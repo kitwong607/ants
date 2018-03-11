@@ -985,7 +985,7 @@ def get_server():
         value = []
 
         with connection.cursor() as cursor:
-            sql = "SELECT * FROM `services` ORDER BY `created_time`"
+            sql = "SELECT * FROM `services` ORDER BY `id` ASC"
             cursor.execute(sql)
 
             connection.commit()
