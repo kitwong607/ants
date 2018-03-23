@@ -1,4 +1,4 @@
-import pymysql.cursors, json, traceback, datetime
+import pymysql.cursors, json, traceback, datetime, sys, itertools
 from ants import utilities
 
 
@@ -216,6 +216,7 @@ def update_backtest_end_time(backtest_id, table="backtest"):
             return "fail", "error found update backtest end time"
 
 
+
 def update_backtest_status(backtest_id, status, error_msg=""):
     try:
         is_db_error = True
@@ -363,6 +364,125 @@ def get_backtest_with_pagination(page_size, page_no):
 
 
 ##########################################################
+
+def create_backtest_job_from_optimization():
+    return
+    result, description, jobs = get_optimization("pending")
+
+
+    if len(jobs) == 0 or jobs is None or jobs == "not_set":
+        return None
+    else:
+        for job in jobs:
+            print(job)
+            #print(job['strategy_class'])
+            #print(strategy_class.OPTIMIZATION_PARAMETER)
+            strategy_parameter_str = job['strategy_parameter']
+            strategy_parameter = json.loads(strategy_parameter_str)
+            strategy_class = utilities.get_class_from_name('ants.strategy.' + job['strategy_class'], job['strategy_class'])
+            optimization_parameter = strategy_class.OPTIMIZATION_PARAMETER
+
+            keys = []
+            values = []
+            for key, parameter in optimization_parameter.items():
+                print(parameter)
+                keys.append(key)
+                value = []
+                if key in strategy_parameter:
+                    print(key)
+                    for i in range(parameter['min_value'], parameter['max_value']+1, parameter['step']):
+                        value.append(i)
+                else:
+                    value.append(parameter['value'])
+                values.append(value)
+
+            print(keys)
+            print(values)
+
+            data = {}
+            data["backtest_mode"] = int(job["backtest_mode_no"])
+            data["data_start_date"] = job['data_start_date']
+            data["start_date"] = job['start_date']
+            data["end_date"] = job['end_date']
+            data["data_ticker"] = job['data_ticker']
+            data["trade_ticker"] = job['trade_ticker']
+            data["exchange"] = job['exchange']
+            data["cash"] = job['cash']
+            data["base_quantity"] = job['base_quantity']
+            data["commission"] = job['commission']
+            data["slippage_pips"] = job['slippage_pips']
+            data["data_resolution"] = job['data_resolution']
+            data["portfolio"] = job['portfolio_class']
+            data["order_handler"] = job['order_handler_class']
+            data["data_provider"] = job['data_provider_class']
+            data["strategy"] = job['strategy_class']
+            data["strategy_name"] = job['strategy_name']
+            data["strategy_slug"] = job['strategy_slug']
+            data["last_update"] = job['last_update']
+            data["version"] = job['version']
+            data["contract"] = job['contract']
+            data["optimization_id"] = job['id']
+            for combination in itertools.product(*values):
+                parameter = {}
+                i = 0
+                for key in keys:
+                    parameter[key] = combination[i]
+
+                data["parameter"] = json.dumps(parameter)
+
+                result, msg = add_backtest(data)
+
+                print(result, msg)
+
+            return
+    '''
+
+
+        (`exchange`=%s, `trade_ticker`, `data_ticker`, `data_resolution`, `contract`,
+        `base_quantity`, `cash`, `data_start_date`, `start_date`, `end_date`,
+        `backtest_mode_no`, `backtest_mode`, `commission`, `slippage_pips`, `data_provider_class`,
+        `order_handler_class`, `portfolio_class`, `strategy_class`, `strategy_name`, `strategy_slug`,
+        `last_update`, `version`, `strategy_parameter`, `optimization_id`,
+
+        `created_time`, `modified_time`)
+         (%s,%s,%s,%s,%s,
+         %s,%s,%s,%s,%s,
+         %s,%s,%s,%s,%s,
+         %s,%s,%s,%s,%s,
+         %s,%s,%s,%s,NOW(),NOW())"
+
+        data["exchange"], data["trade_ticker"], data["data_ticker"], data["data_resolution"], data["contract"],
+        data["base_quantity"], data["cash"], data["data_start_date"], data["start_date"], data["end_date"],
+        data["backtest_mode_no"], data["backtest_mode"], data["commission"], data["slippage_pips"], data["data_provider"],
+        data["order_handler"], data["portfolio"], data["strategy"], data["strategy_name"], data["strategy_slug"],
+        data["last_update"], data["version"], data["parameter"], data["optimization_id"]))
+        24
+            cursor.execute(sql, (
+            data["exchange"], data["trade_ticker"], data["data_ticker"], data["data_resolution"], data["contract"],
+            data["base_quantity"], data["cash"], data["data_start_date"], data["start_date"], data["end_date"],
+            data["backtest_mode_no"], data["backtest_mode"], data["commission"], data["slippage_pips"],
+            data["data_provider"], data["order_handler"], data["portfolio"], data["strategy"], data["strategy_name"],
+            data["strategy_slug"], data["last_update"], data["version"], data["parameter"], data["optimization_id"]))
+
+
+
+
+
+
+@socketio.on('add_backtest', namespace=namespace)
+def add_backtest(data):
+    response = service.check_required_value(["backtest_mode", "data_start_date", "start_date", "end_date", "data_ticker", "trade_ticker",
+					"exchange", "cash", "base_quantity", "commission", "slippage_pips", "data_resolution", "portfolio",
+					"order_handler", "data_provider", "strategy", "parameter", "contract"], data)
+
+    if response is True:
+        result, msg = db.add_backtest(data)
+        emit('db_response', service.create_socketio_response(result, msg, "add_backtest", {}))
+    else:
+        response['action'] = "add_backtest"
+        emit('db_response', response)
+            '''
+
 
 def get_optimization_with_pagination(page_size, page_no):
     try:
@@ -717,7 +837,7 @@ def add_backtest(data):
         if "optimization_id" not in data:
             data["optimization_id"] = 0
 
-        sql = "INSERT INTO `backtest_report` (`exchange`=%s, `trade_ticker`, `data_ticker`, `data_resolution`, `contract`, `base_quantity`, `cash`, `data_start_date`, `start_date`, `end_date`, `backtest_mode_no`, `backtest_mode`, `commission`, `slippage_pips`, `data_provider_class`, `order_handler_class`, `portfolio_class`, `strategy_class`, `strategy_name`, `strategy_slug`, `last_update`, `version`, `strategy_parameter`, `optimization_id`, `created_time`, `modified_time`) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())"
+        sql = "INSERT INTO `backtest_report` (`exchange`, `trade_ticker`, `data_ticker`, `data_resolution`, `contract`, `base_quantity`, `cash`, `data_start_date`, `start_date`, `end_date`, `backtest_mode_no`, `backtest_mode`, `commission`, `slippage_pips`, `data_provider_class`, `order_handler_class`, `portfolio_class`, `strategy_class`, `strategy_name`, `strategy_slug`, `last_update`, `version`, `strategy_parameter`, `optimization_id`, `created_time`, `modified_time`) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())"
         cursor.execute(sql, (data["exchange"], data["trade_ticker"], data["data_ticker"], data["data_resolution"], data["contract"], data["base_quantity"], data["cash"], data["data_start_date"], data["start_date"], data["end_date"], data["backtest_mode_no"], data["backtest_mode"], data["commission"], data["slippage_pips"], data["data_provider"], data["order_handler"], data["portfolio"], data["strategy"], data["strategy_name"], data["strategy_slug"], data["last_update"], data["version"], data["parameter"], data["optimization_id"]))
         connection.commit()
         result = cursor.fetchone()

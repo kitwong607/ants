@@ -75,7 +75,6 @@ class FutureAbstractStrategy(AbstractStrategy):
         elif (data.resolution in utilities.INTRADAY_BAR_SIZE):
             if(self._is_end_day):
                 self._is_end_day = False
-
                 self.bars = {}
                 self.ticks = []
 
@@ -98,8 +97,6 @@ class FutureAbstractStrategy(AbstractStrategy):
                 self.td_low = data.low_price
                 self.td_close = data.close_price
                 self.td_volume = data.volume
-
-                is_new_date = True
 
                 self.update_contact()
                 self.on_new_date(data)

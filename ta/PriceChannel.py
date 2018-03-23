@@ -27,35 +27,49 @@ class PriceChannel(WindowTA):
                 if self.current_date is None:
                     self.on_new_date(data.timestamp)
 
-                self.values[self.current_date].append({"max": np.max(self.high_price), "min": np.min(self.low_price)})
+                self.values[self.current_date].append({"max": np.max(self.high_price_deque), "min": np.min(self.low_price_deque)})
                 self.values_ts[self.current_date].append(self.last_timestamp)
             else:
                 self.values.append({"max":np.max(self.high_price), "min": np.min(self.low_price)})
                 self.values_ts.append(self.last_timestamp)
 
+
     def get_low(self, _from=None, _to=None):
         if _from is None and _to is None:
-            return self.values[-1]['min']
+            return np.min(self.data_deque)
 
         if _form is None:
-            return self.values[:_to]['min']
+            return np.min(self.data_deque[:_to])
 
         if _to is None:
-            return self.values[_from:]['min']
+            return np.min(self.data_deque[_from:])
 
-        return self.values[_from:_to]['min']
+        return np.min(self.data_deque[_from:_to])
 
     def get_high(self, _from=None, _to=None):
         if _from is None and _to is None:
-            return self.values[-1]['max']
+            return np.max(self.data_deque)
 
         if _form is None:
-            return self.values[:_to]['max']
+            return np.max(self.data_deque[:_to])
 
         if _to is None:
-            return self.values[_from:]['max']
+            return np.max(self.data_deque[_from:])
 
-        return self.values[_from:_to]['max']
+        return np.max(self.data_deque[_from:_to])
+
+
+    def get_high_idx(self):
+        return self.data_deque.index(np.max(self.data_deque))
+
+
+    def get_low_idx(self):
+        return self.data_deque.index(np.min(self.data_deque))
+
+
+    def print(self):
+        print(self.data_deque)
+        print(self.values)
 
     def calculate(self, data):
         return
@@ -75,6 +89,7 @@ class PriceChannel(WindowTA):
 
         d['values'] = self.values
         d['calculated_values'] = self.calculated_values
+
         if self.is_intra_day:
             d['values_ts'] = {}
             for date_key in self.values_ts:

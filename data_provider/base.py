@@ -6,7 +6,7 @@ class DataType(IntEnum):
     BAR = 1
 
 class BarData():
-    def __init__(self, ticker, resolution, timestamp, open_price, high_price, low_price, close_price, vol):
+    def __init__(self, ticker, resolution, timestamp, open_price, high_price, low_price, close_price, vol, adjusted_date, adjest_time):
         self.type = DataType.BAR
         self.ticker = ticker
         self.resolution = resolution
@@ -16,15 +16,19 @@ class BarData():
         self.low_price = low_price
         self.close_price = close_price
         self.volume = vol
+        self.adjusted_date = adjusted_date
+        self.adjest_time = adjest_time
 
 class TickData():
-    def __init__(self, ticker, timestamp, bid, ask):
+    def __init__(self, ticker, timestamp, bid, ask, adjusted_date, adjest_time):
         self.type = DataType.TICK
         self.ticker = ticker
         self.timestamp = timestamp
         self.bid = bid
         self.ask = ask
         self.close_pirce = (bid + ask) / 2
+        self.adjusted_date = adjusted_date
+        self.adjest_time = adjest_time
 
 class AbstractDataProdiver(object):
     __metaclass__ = ABCMeta
