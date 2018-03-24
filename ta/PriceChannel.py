@@ -3,8 +3,8 @@ import numpy as np, copy
 from collections import deque
 
 class PriceChannel(WindowTA):
-    def __init__(self, session, window_size, is_intra_day = False, is_save = True):
-        super().__init__(session, window_size, is_intra_day, is_save)
+    def __init__(self, session, window_size, look_back_window_size=1, is_intra_day = False, is_save = True):
+        super().__init__(session, window_size, look_back_window_size, is_intra_day, is_save)
         self.name = "PriceChannel(" + str(self.window_size) + ")"
         self.slug = "price_channel_" + str(self.window_size)
 
@@ -27,11 +27,32 @@ class PriceChannel(WindowTA):
                 if self.current_date is None:
                     self.on_new_date(data.timestamp)
 
-                self.values[self.current_date].append({"max": np.max(self.high_price_deque), "min": np.min(self.low_price_deque)})
+                max_value = np.max(self.high_price_deque)
+                min_value = np.min(self.low_price_deque)
+                value = {"max": max_value, "min": min_value}
+
+                self.values[self.current_date].append(value)
                 self.values_ts[self.current_date].append(self.last_timestamp)
+
+                self.look_back_value.append(value)
             else:
-                self.values.append({"max":np.max(self.high_price), "min": np.min(self.low_price)})
+                max_value = np.max(self.high_price)
+                min_value = np.min(self.low_price)
+                value = {"max": max_value, "min": min_value}
+
+                self.values.append({"max":max_value, "min": min_value})
                 self.values_ts.append(self.last_timestamp)
+
+                self.look_back_value.append(value)
+
+    def get_look_back_value(self, idx):
+        return self.look_back_value[idx]
+
+    def get_look_back_max(self, idx):
+        return self.look_back_value[idx]['max']
+
+    def get_look_back_min(self, idx):
+        return self.look_back_value[idx]['min']
 
 
     def get_low(self, _from=None, _to=None):

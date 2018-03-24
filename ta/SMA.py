@@ -2,8 +2,8 @@ from .base import TA, WindowTA
 import numpy as np, copy
 
 class SMA(WindowTA):
-    def __init__(self, session, window_size:int, is_intra_day = False, is_save = True):
-        super().__init__(session, window_size, is_intra_day, is_save)
+    def __init__(self, session, window_size:int, look_back_window_size=1, is_intra_day = False, is_save = True):
+        super().__init__(session, window_size, look_back_window_size, is_intra_day, is_save)
         self.name = "SMA(" + str(self.window_size) + ")"
         self.slug = "sma_" + str(self.window_size)
 
@@ -17,11 +17,17 @@ class SMA(WindowTA):
                 if self.current_date is None:
                     self.on_new_date(data.timestamp)
 
-                self.values[self.current_date].append(np.mean(self.data_deque))
+                mean = np.mean(self.data_deque)
+                self.values[self.current_date].append(np.mean(mean))
                 self.values_ts[self.current_date].append(self.last_timestamp)
+
+                self.look_back_value.append(mean)
             else:
-                self.values.append(np.mean(self.data_deque))
+                mean = np.mean(self.data_deque)
+                self.values.append(np.mean(mean))
                 self.values_ts.append(self.last_timestamp)
+
+                self.look_back_value.append(mean)
 
     def calculate(self, data):
         if len(self.data_deque) == self.window_size:
@@ -37,6 +43,9 @@ class SMA(WindowTA):
             return m
         else:
             return False
+
+    def get_look_back_value(self, idx):
+        return self.look_back_value[idx]
 
     def to_dict(self):
         if not self.is_save:
