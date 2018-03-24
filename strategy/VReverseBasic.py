@@ -7,23 +7,23 @@ class VReverseBasic(FutureAbstractStrategy):
     OPTIMIZATION_PARAMETER = {
         "fast_sma_window_size": {
             "name": "fast_sma_window_size",
-            "value": 3,
+            "value": 4,
             "min_value": 2,  # 3
             "max_value": 8,  # 3      3 is the best
             "step": 1
         },
         "slow_sma_window_size": {
             "name": "slow_sma_window_size",
-            "value": 10,
+            "value": 12,
             "min_value": 10,  # 3
             "max_value": 30,  # 3      3 is the best
             "step": 2
         },
         "box_size": {
             "name": "box_size",
-            "value": 56,
-            "min_value": 56,
-            "max_value": 105,
+            "value": 49,
+            "min_value": 49,
+            "max_value": 140,
             "step": 7
         },
         "fixed_stop_gain": {
@@ -52,8 +52,8 @@ class VReverseBasic(FutureAbstractStrategy):
 
     def setup(self, session):
         super().setup(session)
-        self.slow_sma = SMA.SMA(self.session, int(self.parameter['fast_sma_window_size']['value']))
-        self.fast_sma = SMA.SMA(self.session, int(self.parameter['slow_sma_window_size']['value']))
+        self.fast_sma = SMA.SMA(self.session, int(self.parameter['fast_sma_window_size']['value']))
+        self.slow_sma = SMA.SMA(self.session, int(self.parameter['slow_sma_window_size']['value']))
 
         self.fixed_stop_loss = int(self.parameter['fixed_stop_loss']['value'])
         self.fixed_stop_gain = int(self.parameter['fixed_stop_gain']['value'])
@@ -62,7 +62,7 @@ class VReverseBasic(FutureAbstractStrategy):
         self.box_size = int(self.parameter['box_size']['value'])
         self.price_channel = PriceChannel.PriceChannel(self.session, self.box_size, True)
 
-        self.first_part = self.box_size/7 + 1
+        self.first_part = self.box_size / 7 + 1
         self.middle_part_start = self.box_size / 7 * 3
         self.middle_part_end = self.middle_part_start + self.box_size / 7 + 1
 
@@ -85,11 +85,15 @@ class VReverseBasic(FutureAbstractStrategy):
         slow_sma_val = self.slow_sma.calculate(data)
         fast_sma_val = self.fast_sma.calculate(data)
 
+        print(data.timestamp, fast_sma_val, slow_sma_val)
+
         if fast_sma_val > slow_sma_val:
             self.today_action = "BUY"
-        elif fast_sma_val < slow_sma_val:
-            #self.today_action = "SELL"
-            self.today_action = None
+            '''
+            elif fast_sma_val < slow_sma_val:
+                #self.today_action = "SELL"
+                self.today_action = None
+            '''
         else:
             self.today_action = None
 
@@ -143,11 +147,14 @@ class VReverseBasic(FutureAbstractStrategy):
         if utilities.is_time_before(10, 0, 0, data.timestamp.hour, data.timestamp.minute, data.timestamp.second):
             return
 
+        '''
         diff = self.box_max - self.box_min
         if(diff<0):
             return
+        '''
 
-        if data.close_price > (self.box_min + diff * 1):
+        #if data.close_price > (self.box_min + diff * 1):
+        if data.close_price > self.box_max:
             stop_loss_pips = self.fixed_stop_loss
             label = 'long entry (sl:' + str(stop_loss_pips) + ')'
 
