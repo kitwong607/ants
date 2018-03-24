@@ -36,35 +36,35 @@ class PriceChannel(WindowTA):
 
     def get_low(self, _from=None, _to=None):
         if _from is None and _to is None:
-            return np.min(self.data_deque)
+            return np.min(self.low_price_deque)
 
         if _form is None:
-            return np.min(self.data_deque[:_to])
+            return np.min(self.low_price_deque[:_to])
 
         if _to is None:
-            return np.min(self.data_deque[_from:])
+            return np.min(self.low_price_deque[_from:])
 
-        return np.min(self.data_deque[_from:_to])
+        return np.min(self.low_price_deque[_from:_to])
 
     def get_high(self, _from=None, _to=None):
         if _from is None and _to is None:
-            return np.max(self.data_deque)
+            return np.max(self.high_price_deque)
 
         if _form is None:
-            return np.max(self.data_deque[:_to])
+            return np.max(self.high_price_deque[:_to])
 
         if _to is None:
-            return np.max(self.data_deque[_from:])
+            return np.max(self.high_price_deque[_from:])
 
-        return np.max(self.data_deque[_from:_to])
+        return np.max(self.high_price_deque[_from:_to])
 
 
     def get_high_idx(self):
-        return self.data_deque.index(np.max(self.data_deque))
+        return self.high_price_deque.index(np.max(self.high_price_deque))
 
 
     def get_low_idx(self):
-        return self.data_deque.index(np.min(self.data_deque))
+        return self.low_price_deque.index(np.min(self.low_price_deque))
 
 
     def print(self):

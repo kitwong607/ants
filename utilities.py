@@ -270,6 +270,7 @@ def create_optimization_report(optimization):
 
     #do heatmap of parameter and pnl etc...
     for backtest in backtests:
+        print(backtest)
         with open(backtest['report_full_path'] + '\\optimization.json', 'w') as fp:
             json.dump(export_json, fp, indent=4, cls=AntJSONEncoder)
 

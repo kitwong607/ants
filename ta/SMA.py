@@ -30,6 +30,7 @@ class SMA(WindowTA):
             m = float(np.mean(_temp_data_deque))
             if len(self.calculated_values) == 0:
                 self.calculated_values = copy.deepcopy(self.values)
+                self.calculated_values_ts = copy.deepcopy(self.values_ts)
             self.calculated_values.append(m)
             self.calculated_values_ts.append(data.timestamp)
 
@@ -64,6 +65,7 @@ class SMA(WindowTA):
                 d['calculated_values_ts'][date_key] = []
                 for ts in self.calculated_values_ts[date_key]:
                     d['calculated_values_ts'][date_key].append((ts + time_offset).timestamp())
+
         else:
             d['values_ts'] = []
             for ts in self.values_ts:
