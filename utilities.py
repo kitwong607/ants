@@ -1,13 +1,16 @@
-import datetime, time, json, numpy as np, math, pandas as pd, os, importlib
+import datetime, time, json, numpy as np, math, pandas as pd, os, importlib, calendar
 from pathlib import Path
 from dateutil.rrule import rrule, MONTHLY
 from os import listdir
 from os.path import isfile, join
 import ants
 from . import db
+from .session_config import SessionStaticVariable
+from distutils.dir_util import copy_tree
 
-INTRADAY_BAR_SIZE = ["1S","2S","3S","5S","10S","12S","15S","20S","30S","1T","2T","3T","5T","8T","10T","12T","15T","20T","30T","1H","2H"]
 
+# region Public Variable
+#INTRADAY_BAR_SIZE = ["1S","2S","3S","5S","10S","12S","15S","20S","30S","1T","2T","3T","5T","8T","10T","12T","15T","20T","30T","1H","2H"]
 RESOLUTION_IN_SEC = {"1S": 1, "2S": 2, "3S": 3, "5S": 5, "10S": 10, "12S": 12, "15S": 15, "20S": 30, "30S": 30,
                      "1T": 60, "2T": 120, "3T": 180, "5T": 300, "8T": 480, "10T": 600, "12T": 720, "15T": 900,
                      "20T": 1200, "30T": 1800,
@@ -16,8 +19,16 @@ RESOLUTION_IN_SEC = {"1S": 1, "2S": 2, "3S": 3, "5S": 5, "10S": 10, "12S": 12, "
 
 EXCHANGE_TIME_ZONE = {"HKEX": 480}
 
+INTRA_DATE_DATA_RESOLUTION = ["1S", "2S", "3S", "5S", "10S", "12S", "15S", "20S", "30S",
+     "1T", "2T", "3T", "5T", "8T", "10T", "12T", "15T", "20T", "30T",
+     "1H", "2H"]
 
-#<editor-fold desc="Datetime calculation functions">#############################################################
+INTRADAY_BAR_SIZE = INTRA_DATE_DATA_RESOLUTION
+# endregion
+
+
+# region Datetime calculation methods
+# region Different
 def get_months_between_two_datetime(start_date,end_date,is_return_str_list=True):
     start_date = start_date.replace(day=1)
     months = [dt for dt in rrule(MONTHLY, dtstart=start_date, until=end_date)]
@@ -35,6 +46,31 @@ def remove_time_from_datetime(datetime_to_remove):
     datetime_to_remove = datetime_to_remove - time_offset
     return datetime_to_remove
 
+
+def diff_month(d1, d2):
+    return (d1.year - d2.year) * 12 + d1.month - d2.month
+
+
+def second_between_two_datetime(datetime_1, datetime_2):
+    if(datetime_1>datetime_2):
+        return abs((datetime_1 - datetime_2).seconds)
+    else:
+        return abs((datetime_2 - datetime_1).seconds)
+
+
+def mintue_between_two_datetime(datetime_1, datetime_2):
+    if(datetime_1>datetime_2):
+        return abs((datetime_1 - datetime_2).seconds) // 60  # in mintues
+    else:
+        return abs((datetime_2 - datetime_1).seconds) // 60  # in mintues
+# endregion
+
+
+# region Calculation
+def get_total_minute_from_datetime(dt):
+    return dt.hour * 60 + dt.minute
+
+
 def add_time_to_datetime(datetime_to_add, hour, minute, second):
     time_offset = datetime.timedelta(
         hours=hour,
@@ -43,21 +79,35 @@ def add_time_to_datetime(datetime_to_add, hour, minute, second):
     datetime_to_add = datetime_to_add + time_offset
     return datetime_to_add
 
-def second_between_two_datetime(datetime_1, datetime_2):
-    if(datetime_1>datetime_2):
-        return abs((datetime_1 - datetime_2).seconds)
+
+def add_months(sourcedate, months):
+    months = int(months)
+    if (months == 0):
+        return sourcedate
+    month = sourcedate.month - 1 + months
+    year = sourcedate.year + month // 12
+    month = month % 12 + 1
+    day = min(sourcedate.day, calendar.monthrange(year, month)[1])
+    return datetime.date(year, month, day)
+
+
+def add_months_with_last_date(sourcedate, months):
+    months = int(months)
+    if (months == 0):
+        return sourcedate
+    if (months > 0):
+        months -= 1
     else:
-        return abs((datetime_2 - datetime_1).seconds)
+        months += 1
+    month = sourcedate.month - 1 + months
+    year = sourcedate.year + month // 12
+    month = month % 12 + 1
+    day = min(sourcedate.day + 31, calendar.monthrange(year, month)[1])
+    return datetime.date(year, month, day)
+# endregion
 
-def mintue_between_two_datetime(datetime_1, datetime_2):
-    if(datetime_1>datetime_2):
-        return abs((datetime_1 - datetime_2).seconds) // 60  # in mintues
-    else:
-        return abs((datetime_2 - datetime_1).seconds) // 60  # in mintues
-#</editor-fold>#################################################################################################
 
-
-#<editor-fold desc="Datetime comparison functions">#############################################################
+# region Comparsion
 def is_new_date(current_date, input_date):
     if (current_date == None or current_date.date() != input_date.date()):
         return True
@@ -72,6 +122,7 @@ def is_time_before(marker_hour, marker_mintue, marker_second, input_hour, input_
     else:
         return False
 
+
 def is_time_after(marker_hour, marker_mintue, marker_second, input_hour, input_minute, input_second):
     marker_time = marker_hour * 10000 + marker_mintue * 100 + marker_second
     input_time = input_hour * 10000 + input_minute * 100 + input_second
@@ -79,10 +130,10 @@ def is_time_after(marker_hour, marker_mintue, marker_second, input_hour, input_m
         return True
     else:
         return False
-#</editor-fold>#################################################################################################
+# endregion
 
 
-#<editor-fold desc="Datetime convert functions">################################################################
+# region Convert format
 def dt_to_ts(dt):
     return dt.timestamp()
 
@@ -91,21 +142,38 @@ def dt_get_date_str(dt):
 
 def dt_get_time_str(dt):
     return dt.strftime('%H%M%S')
-#</editor-fold>#################################################################################################
+# endregion
 
 
-#<editor-fold desc="File related functions">####################################################################
+# endregion
+
+
+# region File methods
 def check_file_exist(file_path):
     my_file = Path(file_path)
     if my_file.is_file():
         return True
     return False
-#</editor-fold>#################################################################################################
 
 
-#<editor-fold desc="Load data functions">#######################################################################
+def create_folder(path):
+    if path == "":
+        return
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def is_file_exist(path):
+    if os.path.exists(path):
+        return True
+    return False
+# endregion
+
+
+# region Load data methods
 def load_inter_day_data(_exchange, _ticker, _date, _resolution):
-    _data_path = "C:\\Data\\"
+    _data_path = SessionStaticVariable.data_path
 
     if "," not in _date:
         _date_list = [_date]
@@ -150,61 +218,23 @@ def load_inter_day_data(_exchange, _ticker, _date, _resolution):
 
     return df.ix[start:end]
 
-    '''
-    data_df =
-
-    elif current_csv_file_idx == len(self.config.data_period) - 1:
-        end = df.index.searchsorted(self.config.end_date)
-        data_df = df.ix[:end].itertuples()
-
-
-
-    for resolution in self.config.data_resolution:
-
-        if utilities.check_file_exist(csv_file_path):
-            df = pd.DataFrame.from_csv(csv_file_path)
-            if is_first:
-                df['datetime_for_sort'] = df.index
-            else:
-                df['datetime_for_sort'] = df.index + datetime.timedelta(seconds=utilities.RESOLUTION_IN_SEC[resolution])
-            df['ticker'] = self.config.data_ticker
-            df['resolution'] = resolution
-            df['resolution_in_sec'] = utilities.RESOLUTION_IN_SEC[resolution]
-            dfs.append(df)
-        is_first = False
-
-    df = pd.concat(dfs)
-    df = df.sort_values(["datetime_for_sort", "resolution_in_sec"])
-    df = df.drop('datetime_for_sort', 1)
-
-    if self.current_csv_file_idx == 0:
-        if self.config.start_date is not None:
-            start = df.index.searchsorted(self.config.start_date)
-            self.data_df = df.ix[start:].itertuples()
-    elif self.current_csv_file_idx == len(self.config.data_period) - 1:
-        end = df.index.searchsorted(self.config.end_date)
-        self.data_df = df.ix[:end].itertuples()
-
-    self.data_df = df.itertuples()
-    self.current_csv_file_idx += 1
-    '''
 
 def load_month_data():
     pass
+# endregion
 
-#</editor-fold>#################################################################################################
 
-#<editor-fold desc="Performance related functions">##############################################################
+# region Count time methods
 def start_count_time_used():
     return time.time()
 
 
 def stop_count_time_used(start_time, task):
     print("--- "+str(round(time.time() - start_time, 2))+" seconds --- for " + task)
-#</editor-fold>##################################################################################################
+# endregion
 
 
-#<editor-fold desc="Class Section">##############################################################################
+# region JSON methods
 class AntJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -215,12 +245,129 @@ class AntJSONEncoder(json.JSONEncoder):
             return obj.tolist()
         else:
             return super(AntJSONEncoder, self).default(obj)
-#</editor-fold>##################################################################################################
+
+def load_json(path):
+    with open(path) as json_data:
+        return json.load(json_data)
+#endregion
+
+
+# region Create backtest report / summary methods
+def prepare_backtest_report_insert_to_db(d):
+    d['win_rate'] = round(d['win_rate'], 3)
+    d['num_trade'] = round(d['num_trade'], 3)
+    d['pnl'] = round(d['pnl'], 3)
+    d['net_pips'] = round(d['net_pips'], 3)
+    d['profit_factor'] = round(d['profit_factor'], 3)
+    d['payoff_ratio'] = round(d['payoff_ratio'], 3)
+    d['roci'] = round(d['roci'], 3)
+
+    d['sharpe_ratio'] = round(d['sharpe_ratio'], 3)
+    d['standard_deviation'] = round(d['standard_deviation'], 3)
+    d['standard_error'] = round(d['standard_error'], 3)
+    d['tharp_expectancy'] = round(d['tharp_expectancy'], 3)
+    d['expectancy'] = round(d['expectancy'], 3)
+
+    d['mdd'] = round(d['mdd'], 3)
+    d['mdd_pct'] = round(d['mdd_pct'], 3)
+    d['mdd_daily'] = round(d['mdd_daily'], 3)
+    d['mdd_pct_daily'] = round(d['mdd_pct_daily'], 3)
+    d['dd_duration'] = round(d['dd_duration'], 3)
+
+    d['dd_duration_daily'] = round(d['dd_duration_daily'], 3)
+    d['avg_pips_pre_contract'] = round(d['avg_pips_pre_contract'], 3)
+
+    key_to_fillzero = ["win_rate", "num_trade", "pnl", "net_pips", "profit_factor",
+                   "payoff_ratio", "roci", "sharpe_ratio", "standard_deviation", "standard_error",
+                   "tharp_expectancy", "expectancy", "mdd", "mdd_pct", "mdd_daily",
+                   "mdd_pct_daily", "dd_duration", "dd_duration_daily", "avg_pips_pre_contract"]
+
+    key_to_save = ['win_rate', 'num_trade', 'pnl', 'net_pips', 'profit_factor', 'payoff_ratio', 'roci', 'sharpe_ratio', 'standard_deviation', 'standard_error', 'tharp_expectancy', 'expectancy', 'mdd', 'mdd_pct', 'mdd_daily', 'mdd_pct_daily', 'dd_duration', 'dd_duration_daily', 'avg_pips_pre_contract', 'report_folder_name', 'report_full_path']
+
+    new_d = {}
+    for key in d:
+        if key in key_to_fillzero:
+            if math.isnan(float(d[key])):
+                d[key] = 0
+
+        if key in key_to_save:
+            new_d[key] = d[key]
+
+    return new_d
+
+
+def create_filter_report(backtest_filename):
+    key_to_calculate = ["num_trade", "win_rate", "pnl", "net_pips", "avg_pips_pre_contract", "profit_factor",
+                        "payoff_ratio", "roci", "sharpe_ratio", "tharp_expectancy", "expectancy", "mdd", "mdd_pct",
+                        "mdd_daily", "mdd_pct_daily", "dd_duration", "dd_duration_daily"]
+    optimization_values = {"num_trade": [], "win_rate": [], "pnl": [], "net_pips": [], "avg_pips_pre_contract": [],
+                           "profit_factor": [], "payoff_ratio": [], "roci": [], "sharpe_ratio": [],
+                           "tharp_expectancy": [], "expectancy": [], "mdd": [], "mdd_pct": [], "mdd_daily": [],
+                           "mdd_pct_daily": [], "dd_duration": [], "dd_duration_daily": []}
+    optimization_summary = {"num_trade": 0, "num_trade_std": 0, "num_trade_std_pct": 0, "win_rate": 0,
+                            "win_rate_std": 0, "win_rate_std_pct": 0, "pnl": 0, "pnl_std": 0, "pnl_std_pct": 0,
+                            "net_pips": 0, "net_pips_std": 0, "net_pips_std_pct": 0, "avg_pips_pre_contract": 0,
+                            "avg_pips_pre_contract_std": 0, "avg_pips_pre_contract_std_pct": 0, "profit_factor": 0,
+                            "profit_factor_std": 0, "profit_factor_std_pct": 0, "payoff_ratio": 0,
+                            "payoff_ratio_std": 0, "payoff_ratio_std_pct": 0, "roci": 0, "roci_std": 0,
+                            "roci_std_pct": 0, "sharpe_ratio": 0, "sharpe_ratio_std": 0, "sharpe_ratio_std_pct": 0,
+                            "tharp_expectancy": 0, "tharp_expectancy_std": 0, "tharp_expectancy_std_pct": 0,
+                            "expectancy": 0, "expectancy_std": 0, "expectancy_std_pct": 0, "mdd": 0, "mdd_std": 0,
+                            "mdd_std_pct": 0, "mdd_pct": 0, "mdd_pct_std": 0, "mdd_pct_std_pct": 0, "mdd_daily": 0,
+                            "mdd_daily_std": 0, "mdd_daily_std_pct": 0, "mdd_pct_daily": 0, "mdd_pct_daily_std": 0,
+                            "mdd_pct_daily_std_pct": 0, "dd_duration": 0, "dd_duration_std": 0,
+                            "dd_duration_std_pct": 0, "dd_duration_daily": 0, "dd_duration_daily_std": 0,
+                            "dd_duration_daily_std_pct": 0}
+
+    all_filter_test_summary = []
+
+    #1 load all filters.json in backtest folder
+    backtest_report_dir = SessionStaticVariable.base_report_directory + backtest_filename + "\\"
+    filter_tests = load_json(backtest_report_dir + "filters.json")
+
+    for filter_test in filter_tests:
+        filter_test_dir = backtest_report_dir + "filtered\\" +filter_test['name'] + "\\"
+        filter_test_summary = load_json(filter_test_dir + "backtest_summary.json")
+
+        #filter_test = data
 
 
 
+        reformatted_filter_test_summary = {}
+        filter_parameter = {}
 
-#<editor-fold desc="Report Creator">##############################################################################
+        filter_test_parameter = filter_test['parameter']
+        for key in filter_test_parameter:
+            filter_parameter[key] = filter_test_parameter[key]['value']
+        reformatted_filter_test_summary['name'] = filter_test['name']
+        reformatted_filter_test_summary['parameter'] = filter_parameter
+        reformatted_filter_test_summary['performance'] = prepare_backtest_report_insert_to_db(filter_test_summary)
+        reformatted_filter_test_summary['backtest_report_path'] = backtest_report_dir
+        reformatted_filter_test_summary['report_path'] = filter_test_dir
+
+
+
+        all_filter_test_summary.append(reformatted_filter_test_summary)
+        for key in key_to_calculate:
+            optimization_values[key].append(filter_test_summary[key])
+
+    for key in optimization_values:
+        optimization_summary[key] = np.mean(optimization_values[key])
+        optimization_summary[key + '_std'] = np.std(optimization_values[key])
+        if optimization_summary[key + '_std'] == 0 or optimization_summary[key] == 0:
+            optimization_summary[key + '_std_pct']
+        else:
+            optimization_summary[key + '_std_pct'] = optimization_summary[key + '_std'] / optimization_summary[key]
+
+    export_json = {}
+    export_json['backtest'] = all_filter_test_summary
+    export_json['optimization_summary'] = optimization_summary
+
+    for filter_test in filter_tests:
+        filter_test_dir = backtest_report_dir + "filtered\\" +filter_test['name'] + "\\"
+        with open(filter_test_dir + 'optimization.json', 'w') as fp:
+            json.dump(export_json, fp, cls=AntJSONEncoder)
+
 def create_optimization_report(optimization):
     result, message, backtests = db.get_backtest_by_optimization_id(optimization["id"])
     if result == "fail":
@@ -241,13 +388,13 @@ def create_optimization_report(optimization):
     for backtest in backtests:
         backtest_summary = {}
         backtest_summary['backtest_report_path'] = backtest['report_full_path']
-        backtest_summary['description'] = backtest
         backtest_parameter = {}
         backtest_parameter_json = json.loads(backtest['strategy_parameter'])
         for key in backtest_parameter_json:
             backtest_parameter[key] = backtest_parameter_json[key]['value']
         backtest_summary['parameter'] = backtest_parameter
         backtest_summary['performance'] = backtest
+
 
         all_backtest_summary.append(backtest_summary)
         for key in key_to_calculate:
@@ -272,9 +419,10 @@ def create_optimization_report(optimization):
     for backtest in backtests:
         print(backtest)
         with open(backtest['report_full_path'] + '\\optimization.json', 'w') as fp:
-            json.dump(export_json, fp, indent=4, cls=AntJSONEncoder)
+            json.dump(export_json, fp, cls=AntJSONEncoder)
 
     result, message = db.update_optimization_status(optimization_id, "completed")
+
 
 def create_report_summary(report_folder):
     #loop position
@@ -296,10 +444,10 @@ def create_report_summary(report_folder):
 
 
     with open(report_folder + "//position_summary.json", 'w') as fp:
-        json.dump(position_summary, fp, indent=4, cls=AntJSONEncoder)
+        json.dump(position_summary, fp, cls=AntJSONEncoder)
 
     with open(report_folder + "//backtest_summary.json", 'w') as fp:
-        json.dump(_backtest_summary, fp, indent=4, cls=AntJSONEncoder)
+        json.dump(_backtest_summary, fp, cls=AntJSONEncoder)
 
 def create_backtest_summary(session_config, positions, position_summary):
     _backtest_summary = {}
@@ -602,12 +750,71 @@ def calculate_drawdown(equity_s, session_config):
 
     duration_watermark = max(duration_watermark, duration_counter)
     return drawdown_s, mdd, drawdown_pct_s, mdd_pct, duration_watermark, new_high_s
-#</editor-fold>##################################################################################################
 
 
+def combine_walk_forward_test(walk_forward_test_id, backtests):
+    db.update_walk_forward_test_status(walk_forward_test_id, "combining")
+    walk_forward_test_report_folder = datetime.datetime.now().strftime("walk_forward_test_%Y%m%d_")+str(walk_forward_test_id).zfill(6) + "_" + backtests[0]['strategy_class']
+    from_path = SessionStaticVariable.base_report_directory + backtests[0]['report_folder_name']
+    to_path = SessionStaticVariable.base_report_directory + walk_forward_test_report_folder
+    copy_tree(from_path, to_path)
+
+    to_path += "\\"
+    os.remove(to_path + "backtest_summary.json")
+    os.remove(to_path + "position_summary.json")
 
 
-#<editor-fold desc="Get Class and class string">#################################################################
+    orders = []
+    positions = []
+    end_date = None
+
+    for backtest in backtests:
+        report_folder = SessionStaticVariable.base_report_directory + backtest['report_folder_name'] + "\\"
+
+        with open(report_folder + "positions.json") as data_file:
+            positions += json.load(data_file)
+
+        with open(report_folder + "orders.json") as data_file:
+            orders += json.load(data_file)
+
+        end_date = backtest['end_date']
+
+    end_date = end_date.replace("-", "")
+
+    i = 1;
+    for position in positions:
+        position['position_id'] = i
+        i+=1
+
+    i = 1;
+    for order in orders:
+        order['order_id'] = i
+        i+=1
+
+    os.remove(to_path + "positions.json")
+    os.remove(to_path + "orders.json")
+
+    with open(to_path + 'positions.json', 'w') as fp:
+        json.dump(positions, fp, cls=AntJSONEncoder)
+
+    with open(to_path + 'orders.json', 'w') as fp:
+        json.dump(orders, fp, cls=AntJSONEncoder)
+
+
+    with open(to_path + "session_config.json") as data_file:
+        session_config = json.load(data_file)
+    session_config['end_date'] = end_date
+
+    with open(to_path + 'session_config.json', 'w') as fp:
+        json.dump(session_config, fp, cls=AntJSONEncoder, indent=4)
+
+    create_report_summary(to_path)
+
+    db.update_walk_forward_test_status(walk_forward_test_id, "completed")
+# endregion
+
+
+# region Get class / class property
 def get_class_from_name(module_name, class_name):
     # load the module, will raise ImportError if module cannot be loaded
     m = importlib.import_module(module_name)
@@ -688,7 +895,29 @@ def get_submodule_class(submodule_name):
     return py_class
 
 def get_strategy_class_name():
+    classes_name = get_submodule_class_name("strategy")
     return get_submodule_class_name("strategy")
+
+def get_strategy_class_name_with_meta():
+    return_data = []
+
+    classes_name = get_submodule_class_name("strategy")
+
+    for class_name in classes_name:
+        obj = {}
+        obj['class_name'] = class_name
+        obj['optimization_pair'] = get_class_from_name('ants.strategy.'+class_name, class_name).OPTIMIZATION_PAIR
+        obj['optimization_parameter'] = get_class_from_name('ants.strategy.'+class_name, class_name).OPTIMIZATION_PARAMETER
+        obj['strategt_slug'] = get_class_from_name('ants.strategy.'+class_name, class_name).STRATEGY_SLUG
+        obj['strategy_name'] = get_class_from_name('ants.strategy.'+class_name, class_name).STRATEGY_NAME
+        obj['version'] = get_class_from_name('ants.strategy.'+class_name, class_name).VERSION
+        obj['last_update_date'] = get_class_from_name('ants.strategy.'+class_name, class_name).LAST_UPDATE_DATE
+        return_data.append(obj)
+
+    return return_data
+
+def get_walk_forward_test_class_name():
+    return get_submodule_class_name("walk_forward")
 
 def get_data_provider_class_name():
     return get_submodule_class_name("data_provider")
@@ -699,14 +928,19 @@ def get_order_handler_class_name():
 def get_portfolio_class_name():
     return get_submodule_class_name("portfolio")
 
+def get_filter_test_classs():
+    return get_submodule_class_name("filter")
+# endregion
 
-#</editor-fold>##################################################################################################
 
+# region Math
 def round(f, round):
     r_str = "{:."+str(round)+"f}"
     return float(r_str.format(float(f)))
+# endregion
 
 
+# region Optimization related methods
 def get_optimization_parameter_combination(default_data, data):
     import itertools
 
@@ -745,3 +979,6 @@ def get_optimization_parameter_combination(default_data, data):
         output_parameter.append(parameter)
 
     return output_parameter
+# endregion
+
+
