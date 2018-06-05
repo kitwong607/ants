@@ -11,10 +11,11 @@ class TA(object):
 class WindowTA(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, session, window_size, look_back_window_size, is_intra_day, is_save):
+    def __init__(self, session, window_size, look_back_window_size, resolution, is_intra_day, is_save):
         self.session = session
         self.last_timestamp = None
         self.window_size = window_size
+        self.resolution = resolution
         self.look_back_window_size = look_back_window_size
         self.data_deque = deque(maxlen=self.window_size)
         self.look_back_value = deque(maxlen=self.look_back_window_size)

@@ -7,13 +7,20 @@ import numpy as np, copy
 #Please also update SMA.py and SMASlop.py
 ###########################################################
 
-class SMA(WindowTA):
+class SMASlope(WindowTA):
     def __init__(self, session, window_size:int, look_back_window_size=1, resolution="1T", is_intra_day = False, is_save = True):
         super().__init__(session, window_size, look_back_window_size, resolution, is_intra_day, is_save)
         self.name = "SMA(" + str(self.window_size) + ")"
         self.slug = "sma_" + str(self.window_size)
 
         self.all_data = []
+
+        if self.is_intra_day:
+            self.sma_values = {}
+            self.calculated_sma_values = {}
+        else:
+            self.sma_values = []
+            self.calculated_sma_values = []
 
     def push_data(self, data):
         self.data_deque.append(data.close_price)
@@ -24,7 +31,12 @@ class SMA(WindowTA):
                     self.on_new_date(data.timestamp)
 
                 mean = np.mean(self.data_deque)
-                self.values[self.current_date].append(np.mean(mean))
+                self.sma_values[self.current_date].append(np.mean(mean))
+                if(len(self.sma_values[self.current_date])==0):
+                    self.values[self.current_date].append(0)
+                else:
+                    self.values[self.current_date].append(self.sma_values[self.current_date][-1]-self.sma_values[self.current_date][-2])
+
 
                 adjusted_ts = self.last_timestamp + datetime.timedelta(seconds=utilities.RESOLUTION_IN_SEC[self.resolution])
                 self.values_ts[self.current_date].append(adjusted_ts)
@@ -32,13 +44,13 @@ class SMA(WindowTA):
                 self.look_back_value.append(mean)
             else:
                 mean = np.mean(self.data_deque)
-                self.values.append(np.mean(mean))
+                self.sma_values.append(np.mean(mean))
+                if(len(self.values)==0):
+                    self.values.append(0)
+                else:
+                    self.values.append(self.sma_values[-1]-self.sma_values[-2])
                 self.values_ts.append(self.last_timestamp)
                 self.look_back_value.append(mean)
-
-                return self.values[-1]
-        else:
-            return float('Nan')
 
     def calculate(self, data):
         if len(self.data_deque) == self.window_size:
@@ -48,7 +60,8 @@ class SMA(WindowTA):
             if len(self.calculated_values) == 0:
                 self.calculated_values = copy.deepcopy(self.values)
                 self.calculated_values_ts = copy.deepcopy(self.values_ts)
-            self.calculated_values.append(m)
+
+            self.calculated_values.append(m-self.sma_values[-1])
             self.calculated_values_ts.append(data.timestamp)
 
             return m

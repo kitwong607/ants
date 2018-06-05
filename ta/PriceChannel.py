@@ -1,10 +1,13 @@
 from .base import TA, WindowTA
+from .. import utilities
+import datetime
 import numpy as np, copy
 from collections import deque
+import itertools
 
 class PriceChannel(WindowTA):
-    def __init__(self, session, window_size, look_back_window_size=1, is_intra_day = False, is_save = True):
-        super().__init__(session, window_size, look_back_window_size, is_intra_day, is_save)
+    def __init__(self, session, window_size, look_back_window_size=1, resolution="1T", is_intra_day = False, is_save = True):
+        super().__init__(session, window_size, look_back_window_size, resolution, is_intra_day, is_save)
         self.name = "PriceChannel(" + str(self.window_size) + ")"
         self.slug = "price_channel_" + str(self.window_size)
 
@@ -32,7 +35,9 @@ class PriceChannel(WindowTA):
                 value = {"max": max_value, "min": min_value}
 
                 self.values[self.current_date].append(value)
-                self.values_ts[self.current_date].append(self.last_timestamp)
+
+                adjusted_ts = self.last_timestamp + datetime.timedelta(seconds=utilities.RESOLUTION_IN_SEC[self.resolution])
+                self.values_ts[self.current_date].append(adjusted_ts)
 
                 self.look_back_value.append(value)
             else:
@@ -44,6 +49,11 @@ class PriceChannel(WindowTA):
                 self.values_ts.append(self.last_timestamp)
 
                 self.look_back_value.append(value)
+
+    def is_ready(self):
+        if len(self.data_deque) == self.window_size:
+            return True
+        return False
 
     def get_look_back_value(self, idx):
         return self.look_back_value[idx]
@@ -59,26 +69,39 @@ class PriceChannel(WindowTA):
         if _from is None and _to is None:
             return np.min(self.low_price_deque)
 
-        if _form is None:
-            return np.min(self.low_price_deque[:_to])
+        if _from is None:
+            _from = 0
+            #return np.min(self.low_price_deque[:_to])
 
         if _to is None:
-            return np.min(self.low_price_deque[_from:])
+            _to = len(self.low_price_deque)
+            #return np.min(self.low_price_deque[_from:])
 
-        return np.min(self.low_price_deque[_from:_to])
+        return np.min(deque(itertools.islice(self.low_price_deque, _from, _to)))
+        #return np.min(self.low_price_deque[_from:_to])
 
     def get_high(self, _from=None, _to=None):
         if _from is None and _to is None:
             return np.max(self.high_price_deque)
 
-        if _form is None:
-            return np.max(self.high_price_deque[:_to])
+        if _from is None:
+            _from = 0
 
         if _to is None:
-            return np.max(self.high_price_deque[_from:])
+            _to = len(self.high_price_deque)
+
+        return np.max(deque(itertools.islice(self.high_price_deque, _from, _to)))
+
+        '''
+        print()
+
+
+        print(type(self.high_price_deque[_from:_to]))
+        temp = list(self.high_price_deque[_from:_to])
+        print(type(temp))
 
         return np.max(self.high_price_deque[_from:_to])
-
+        '''
 
     def get_high_idx(self):
         return self.high_price_deque.index(np.max(self.high_price_deque))
@@ -86,6 +109,15 @@ class PriceChannel(WindowTA):
 
     def get_low_idx(self):
         return self.low_price_deque.index(np.min(self.low_price_deque))
+
+    '''
+    def get_high_idx_from_back(self):
+        return self.high_price_deque.index(np.max(self.high_price_deque))
+
+
+    def get_low_idx_from_back(self):
+        return self.low_price_deque.index(np.min(self.low_price_deque))
+    '''
 
 
     def print(self):
@@ -107,6 +139,8 @@ class PriceChannel(WindowTA):
         d['name'] = self.name
         d['slug'] = self.slug
         d['window_size'] = self.window_size
+        d['look_back_window_size'] = self.look_back_window_size
+        d['resolution'] = self.resolution
 
         d['values'] = self.values
         d['calculated_values'] = self.calculated_values
@@ -131,5 +165,6 @@ class PriceChannel(WindowTA):
             d['calculated_values_ts'] = []
             for ts in self.calculated_values_ts:
                 d['calculated_values_ts'].append((ts + time_offset).timestamp())
+
 
         return d
