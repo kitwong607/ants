@@ -10,6 +10,15 @@ class SessionMode(IntEnum):
     IB_DEMO_TRADE = 4
     IB_LIVE_TRADE = 5
 
+class SessionStaticVariable:
+    data_path = "X:\\data\\"
+    log_directory = "X:\\log\\"
+    api_path = "http://127.0.0.1/antXXXXXXX/XXXXXXXX/XXXXXXXX"
+    base_report_directory = "X:\\Data\\backtest_report\\reports\\"
+    base_ta_directory = "X:\\Data\\backtest_report\\ta\\"
+    base_filter_directory = "X:\\Data\\backtest_report\\filter\\"
+
+
 class SessionConfig:
     def __init__(self, **kwargs):
         #1. read config file
@@ -17,10 +26,11 @@ class SessionConfig:
 
         # ---------------------------Load Config File---------------------------
         self.is_debug = False
-        self.data_path = "C:\\data\\"
-        self.log_directory = "C:\\log\\"
-        self.api_path = "http://127.0.0.1/antXXXXXXX/XXXXXXXX/XXXXXXXX"
-        self.base_report_directory = "C:\\Data\\backtest_report\\reports\\"
+        self.data_path = SessionStaticVariable.data_path
+        self.log_directory = SessionStaticVariable.log_directory
+        self.api_path = SessionStaticVariable.api_path
+        self.base_report_directory = SessionStaticVariable.base_report_directory
+        self.base_ta_directory = SessionStaticVariable.base_ta_directory
         # ----------------------------------------------------------------------
 
         # -----------------------------Mode Setting-----------------------------
@@ -104,9 +114,13 @@ class SessionConfig:
                 "%Y%m%d_") + str(self.session_id).zfill(6) + "_" + self.strategy_class.STRATEGY_SLUG
         self.report_directory = self.base_report_directory + self.report_folder_name
 
-
-        if not os.path.exists(self.report_directory):
-            os.makedirs(self.report_directory)
+        try:
+            if not os.path.exists(self.report_directory):
+                os.makedirs(self.report_directory)
+        except OSError:
+            pass
+        except:
+            pass
 
     def prepare_data_period(self):
         self.data_period = utilities.get_months_between_two_datetime(self.data_start_date, self.end_date)
