@@ -5,7 +5,7 @@ from .. import utilities
 class Order(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, order_id, ticker, data_ticker, exchange, contract, trigger_price, action, stop_loss_threshold, label, quantity):
+    def __init__(self, order_id, ticker, data_ticker, exchange, contract, trigger_price, action, stop_loss_threshold, label, quantity, adjusted_date, adjusted_time):
         self.order_id = order_id
         self.ticker = ticker
         self.data_ticker = data_ticker
@@ -16,6 +16,8 @@ class Order(object):
         self.stop_loss_threshold = stop_loss_threshold
         self.quantity = quantity
         self.label = label
+        self.adjusted_date = adjusted_date
+        self.adjusted_time = adjusted_time
         self.type = None
         self.status = None
         self.filled_price = -1
@@ -41,6 +43,8 @@ class Order(object):
         d['type'] = self.type
         d['status'] = self.status
         d['filled_price'] = self.filled_price
+        d['adjusted_date'] = self.adjusted_date
+        d['adjusted_time'] = self.adjusted_time
         d['date'] = utilities.dt_get_date_str(self.filled_timestamp)
         d['time'] = utilities.dt_get_time_str(self.filled_timestamp)
         d['timestamp'] = (self.filled_timestamp + time_offset).timestamp()
@@ -53,6 +57,6 @@ class Order(object):
         print("calculate_commission")
 
 class MktOrder(Order):
-    def __init__(self, order_id, ticker, data_ticker, exchange, contract, trigger_pice, action, stop_loss_threshold, label, quantity):
-        super().__init__(order_id, ticker, data_ticker, exchange, contract, trigger_pice, action, stop_loss_threshold, label, quantity)
+    def __init__(self, order_id, ticker, data_ticker, exchange, contract, trigger_pice, action, stop_loss_threshold, label, quantity, adjusted_time, adjusted_date):
+        super().__init__(order_id, ticker, data_ticker, exchange, contract, trigger_pice, action, stop_loss_threshold, label, quantity, adjusted_time, adjusted_date)
         self.type = "MKT"

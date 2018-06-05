@@ -6,9 +6,6 @@ from .base import AbstractBarDataProdiver, DataType, BarData
 
 class CSVBarDataProdiver(AbstractBarDataProdiver):
     NAME = "CSVBarDataProdiver"
-    INTRA_DATE_DATA_RESOLUTION = ["1S", "2S", "3S", "5S", "10S", "12S", "15S", "20S", "30S",
-     "1T", "2T", "3T", "5T", "8T", "10T", "12T", "15T", "20T", "30T",
-     "1H", "2H"]
 
 
     def __init__(self, session):
@@ -62,7 +59,7 @@ class CSVBarDataProdiver(AbstractBarDataProdiver):
                     df['second'] = df['second'].astype(str)
                     df['second'] = df['second'].str.zfill(2)
 
-                    if resolution not in CSVBarDataProdiver.INTRA_DATE_DATA_RESOLUTION:
+                    if resolution not in utilities.INTRA_DATE_DATA_RESOLUTION:
                         df['datetime_for_sort'] = df['datetime'] - np.timedelta64(9, 'h')
 
                         df['hour'] = "33"
@@ -72,7 +69,7 @@ class CSVBarDataProdiver(AbstractBarDataProdiver):
                     df['adjusted_time'] = df['hour'] + df['minute'] + df['second']
                     df['adjusted_time'] = df['adjusted_time'].astype(int)
                 else:
-                    if resolution not in CSVBarDataProdiver.INTRA_DATE_DATA_RESOLUTION:
+                    if resolution not in utilities.INTRA_DATE_DATA_RESOLUTION:
                         df['datetime_for_sort'] = df['datetime'] - np.timedelta64(9, 'h')
 
                         df['hour'] = "33"
@@ -101,11 +98,16 @@ class CSVBarDataProdiver(AbstractBarDataProdiver):
 
 
         df = pd.concat(dfs)
+
+
+        #to made different resolution in correct order
+        #1T 09:15:00
+        df['adjusted_time'] = df['adjusted_time'] + df['resolution_in_sec']
+
         df = df.sort_values(["adjusted_date","adjusted_time","resolution_in_sec"])
         df = df.drop('datetime_for_sort', 1)
         df = df[['open','high','low','close','volume','ticker','resolution','resolution_in_sec','adjusted_date','adjusted_time']]
 
-        df.to_csv(self.config.data_period[self.current_csv_file_idx] + "_" + self.config.data_ticker + ".csv")
 
         if self.current_csv_file_idx == 0:
             if self.config.start_date is not None:
