@@ -28,6 +28,9 @@ class FuturePosition():
         self.total_commission = order.commission
         self.init_stop_loss = order.stop_loss_threshold
 
+        self.adjusted_date = order.adjusted_date
+        self.adjusted_time = order.adjusted_time
+
         self.realised_pnl = 0
         self.unrealised_pnl = -order.commission
 
@@ -36,8 +39,10 @@ class FuturePosition():
         self.avg_bot_price = 0
         self.avg_sld_price = 0
 
+
         self.stop_gain_price = None
         self.stop_gain_pips = None
+        self.step_up_stop_gain_size = None
         self.step_up_stop_gain_price = None
         self.step_up_stop_gain_count = 0
 
@@ -207,6 +212,11 @@ class FuturePosition():
                 self.step_up_stop_gain_price = self.init_price - step_up_stop_gain_pips
     '''
 
+    def is_set_stop_gain(self):
+        if self.stop_gain_price is None:
+            return False
+        return True
+
     def set_stop_gain_pips(self, stop_gain_pips):
         if self.stop_gain_price is None:
             self.force_set_stop_gain_pips(stop_gain_pips)
@@ -292,7 +302,7 @@ class FuturePosition():
         self.exit_price_s = []
         self.slippage = 0
         for order in self.orders:
-            self.slippage += order.slippage
+            self.slippage += order.slippage * order.quantity
             if order.action == self.action:
                 self.entry_price_s.append(order.filled_price)
             else:
@@ -325,6 +335,9 @@ class FuturePosition():
 
         d['entry_label'] = self.entry_label
         d['exit_label'] = self.exit_label
+
+        d['adjusted_date'] = self.adjusted_date
+        d['adjusted_time'] = self.adjusted_time
 
         d['entry_price'] = self.entry_price
         d['exit_price'] = self.exit_price
