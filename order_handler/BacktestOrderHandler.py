@@ -33,7 +33,7 @@ class BacktestOrderHandler(AbstractOrderHandler):
                 order.status = "filled"
                 order.filled_price = filled_price
                 order.filled_timestamp = filled_timestamp
-                order.commission = comission
+                order.commission = comission * order.quantity
 
                 if(order.action == "BUY"):
                     order.slippage = filled_price - order.trigger_price
