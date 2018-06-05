@@ -6,6 +6,8 @@ import numpy as np
 from ..ta import SMA
 
 class BoscoStrategy(FutureAbstractStrategy):
+    OPTIMIZATION_PAIR = []
+
     OPTIMIZATION_PARAMETER = {
         "stop_loss": {
             "name": "stop_loss",

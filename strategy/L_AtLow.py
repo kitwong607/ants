@@ -3,45 +3,28 @@ from ..order.ib_order import IBMktOrder
 from .. import utilities
 from ..ta import SMA, PriceChannel, SMASlope
 
-class VReverseBasic(FutureAbstractStrategy):
+class L_AtLow(FutureAbstractStrategy):
     OPTIMIZATION_PAIR = []
 
     FILTER_OPTIMIZATION_PARAMETER = {
-        "fast_sma_window_size": {
-            "name": "fast_sma_window_size",
-            "value": 8,
-            "min_value": 2,
-            "max_value": 18,
-            "step": 1
-        },
-        "slow_sma_window_size": {
-            "name": "slow_sma_window_size",
-            "value": 30,
-            "min_value": 20,
-            "max_value": 80,
-            "step": 2
-        }
     }
 
-    '''
-        "fast_sma_window_size": {
-            "name": "fast_sma_window_size",
-            "value": 8,
-            "min_value": 2,  # 3
-            "max_value": 18,  # 3      3 is the best
-            "step": 1
-        },
-        "slow_sma_window_size": {
-            "name": "slow_sma_window_size",
-            "value": 30,
-            "min_value": 20,  # 3
-            "max_value": 80,  # 3      3 is the best
-            "step": 2
-        },
-        '''
-
     OPTIMIZATION_PARAMETER = {
-        # more trades
+        #depth / width related
+        "below_high_threshold": {
+            "name": "below_high_threshold",
+            "value": 150,
+            "min_value": 60,  # 72
+            "max_value": 400,  # 108
+            "step": 10
+        },
+        "price_channel_height_threshold": {
+            "name": "price_channel_height_threshold",
+            "value": 30,
+            "min_value": 40,             #0
+            "max_value": 160,           #60
+            "step": 10
+        },
         "price_channel_window_size": {
             "name": "price_channel_window_size",
             "value": 66,
@@ -49,23 +32,9 @@ class VReverseBasic(FutureAbstractStrategy):
             "max_value": 240,           #108
             "step": 6
         },
-        #will less trade
 
-        #"price_channel_window_size": {
-        #    "name": "price_channel_window_size",
-        #    "value": 150,
-        #    "min_value": 150,
-        #    "max_value": 204,
-        #    "step": 6
-        #},
 
-        "price_threshold": {
-            "name": "price_threshold",
-            "value": 80,
-            "min_value": 0,             #0
-            "max_value": 160,           #60
-            "step": 10
-        },
+        #stop loss / stop gain related.
         "fixed_stop_gain": {
             "name": "fixed_stop_gain",
             "value": 160,
@@ -89,48 +58,39 @@ class VReverseBasic(FutureAbstractStrategy):
         }
     }
 
-    STRATEGY_NAME = "V Reverse Basic"
-    STRATEGY_SLUG = "v_reverse_basic"
+    STRATEGY_NAME = "Long At Low"
+    STRATEGY_SLUG = "long_AtLow"
     VERSION = "1.0"
-    LAST_UPDATE_DATE = "2017-04-15"
+    LAST_UPDATE_DATE = "2017-05-02"
 
     def __init__(self):
         pass
 
     def setup(self, session):
         super().setup(session)
+        self.below_high_threshold = int(self.parameter['below_high_threshold']['value'])
+        self.price_channel_height_threshold = int(self.parameter['price_channel_height_threshold']['value'])
+        self.price_channel_window_size = int(self.parameter['price_channel_window_size']['value'])
+
         self.fixed_stop_loss = int(self.parameter['fixed_stop_loss']['value'])
         self.fixed_stop_gain = int(self.parameter['fixed_stop_gain']['value'])
-        self.price_threshold = int(self.parameter['price_threshold']['value'])
         self.step_up_stop_gain_size = int(self.parameter['step_up_stop_gain_size']['value'])
 
-
         #price channle TA
-        self.price_channel_window_size = int(self.parameter['price_channel_window_size']['value'])
+        self.price_channel_window_size = int(self.price_channel_window_size)
         self.price_channel_look_back_window_size = 1
         self.price_channel = PriceChannel.PriceChannel(self.session, self.price_channel_window_size, self.price_channel_look_back_window_size, "1T", True)
 
         self.all_intra_ta.append(self.price_channel)
         self.intra_day_ta.append(self.price_channel)
 
-        self.market_open_time_min = None
+        #other varibles
         self.today_action = "BUY"
         self.is_find_pattern = False
+        self.market_open_time_min = None
 
+        self.status = self.STATUS_WAITING
 
-    def on_end_date(self, data):
-        for ta in self.all_inter_ta:
-            ta.push_data(data)
-
-
-    def on_new_date(self, data):
-        self.today_action = "BUY"
-        self.today_action = "SELL"
-
-
-        #set interday ta
-        for ta in self.all_intra_ta:
-            ta.on_new_date(data.timestamp)
 
     def calculate_intra_day_ta(self, data):
         if data.resolution == "1T":
@@ -141,32 +101,35 @@ class VReverseBasic(FutureAbstractStrategy):
             self.is_find_pattern = False
             #if self.price_channel.is_ready():
             if not utilities.get_total_minute_from_datetime(data.timestamp) - self.market_open_time_min < self.price_channel_window_size:
-                col_size = int(self.price_channel_window_size / 3)
-                if self.today_action == "BUY":
-                    self.low2 = self.price_channel.get_low(col_size, col_size*2)
-                    self.high1 = self.price_channel.get_high(0, col_size)
 
-                    condition = (self.high1 - self.low2 > self.price_threshold)
-                    if not condition:
-                        return
+                low = self.price_channel.get_low()
+                condition = self.td_high - low > self.below_high_threshold
+                if not condition:
+                    return
 
-                    self.is_find_pattern = True
+                '''
+                high_idx = self.price_channel.get_high_idx()
+                low_idx = self.price_channel.get_low_idx()
+                condition = high_idx < low_idx
+                if not condition:
+                    return
+                '''
 
-                elif self.today_action == "SELL":
-                    self.high2 = self.price_channel.get_high(col_size, col_size * 2)
-                    self.low1 = self.price_channel.get_low(0, col_size)
+                '''
+                condition = low == self.td_low
+                if not condition:
+                    return
+                '''
 
-                    condition = (self.high2 - self.low1 > self.price_threshold)
-                    if not condition:
-                        return
 
-                    '''
-                    low3 = self.price_channel.get_low(col_size * 2, self.price_channel_window_size)
-                    condition = (low3 > low1)
-                    if not condition:
-                        return
-                    '''
-                    self.is_find_pattern = True
+                self.price_channel_high = self.price_channel.get_high()
+                condition = self.price_channel_high - low > self.price_channel_height_threshold
+                if not condition:
+                    return
+
+
+                self.is_find_pattern = True
+
 
     def calculate_entry_signals(self, data):
         if self.today_action is None:
@@ -182,29 +145,19 @@ class VReverseBasic(FutureAbstractStrategy):
             return
 
 
-        if utilities.is_time_before(10, 0, 0, data.timestamp.hour, data.timestamp.minute, data.timestamp.second):
+        if utilities.is_time_before(10, 30, 0, data.timestamp.hour, data.timestamp.minute, data.timestamp.second):
             return
 
 
         #if data.close_price > (self.box_min + diff * 1):
         if self.today_action == "BUY":
-            #if data.high_price > self.price_channel_low  + (self.price_channel_high-self.price_channel_low)*0.75:
-            if data.high_price > self.high1:
+            if data.high_price > self.price_channel_high:
                 stop_loss_pips = self.fixed_stop_loss
                 label = 'long entry (sl:' + str(stop_loss_pips) + ')'
 
-                #print("entry", data.timestamp)
                 self.set_inverted()
                 self.entry(self.session.config.trade_ticker, data.close_price, self.today_action, label, self.base_quantity, stop_loss_pips)
 
-        elif self.today_action == "SELL":
-            #if data.close_price < self.price_channel_high  - (self.price_channel_high-self.price_channel_low)*0.75:
-            if data.close_price < self.low1 and data.close_price > self.low1 - self.price_threshold/2:
-                stop_loss_pips = self.fixed_stop_loss
-                label = 'short entry (sl:' + str(stop_loss_pips) + ')'
-                #print("entry", data.timestamp)
-                self.set_inverted()
-                self.entry(self.session.config.trade_ticker, data.close_price, self.today_action, label, self.base_quantity, stop_loss_pips)
 
     def calculate_exit_signals(self, data):
         if self.invested and self.invested_count > 0:

@@ -4,6 +4,8 @@ from .. import utilities
 from ..ta import SMA
 
 class SimpleDebugStrategy(FutureAbstractStrategy):
+    OPTIMIZATION_PAIR = []
+
     OPTIMIZATION_PARAMETER = {
         "stop_loss": {
             "name": "stop_loss",
