@@ -101,13 +101,13 @@ class FutureBTPortfolio(AbstractPortfolio):
             json_filename = "//positions_" + str(self.session.config.process_no) + ".json"
 
         with open(self.session.config.report_directory + json_filename, 'w') as fp:
-            json.dump(self.position_records, fp, indent=4, cls=utilities.AntJSONEncoder)
+            json.dump(self.position_records, fp, cls=utilities.AntJSONEncoder)
 
         json_filename = "//orders.json"
         if self.session.config.is_sub_process:
             json_filename = "//orders_" + str(self.session.config.process_no) + ".json"
         with open(self.session.config.report_directory + json_filename, 'w') as fp:
-            json.dump(self.order_records, fp, indent=4, cls=utilities.AntJSONEncoder)
+            json.dump(self.order_records, fp, cls=utilities.AntJSONEncoder)
 
     def transact_order(self, order):
         if order.action == "BUY":

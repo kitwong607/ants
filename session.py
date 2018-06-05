@@ -1,7 +1,9 @@
 import queue, copy,datetime, calendar, multiprocessing
 from .data_provider.base import DataType
 from . import utilities
-from .session_config import SessionMode
+from .session_config import SessionMode, SessionStaticVariable
+from dateutil.relativedelta import relativedelta
+
 
 class Session(object):
     def __init__(self, config):
@@ -121,7 +123,7 @@ class Session(object):
             obj_id += 1
 
         with open(self.config.report_directory + "//"+obj_name+".json", 'w') as fp:
-            json.dump(obj_list, fp, indent=4, cls=utilities.AntJSONEncoder)
+            json.dump(obj_list, fp, cls=utilities.AntJSONEncoder)
 
     def merge_inter_ta_json(self, obj_name):
         import json, os
@@ -167,7 +169,7 @@ class Session(object):
             obj_d[key]["calculated_values_ts"] = new_calculated_values_ts
 
         with open(self.config.report_directory + "//"+obj_name+".json", 'w') as fp:
-            json.dump(obj_d, fp, indent=4, cls=utilities.AntJSONEncoder)
+            json.dump(obj_d, fp, cls=utilities.AntJSONEncoder)
 
     def merge_intra_ta_json(self, obj_name):
         import json, os
@@ -218,7 +220,7 @@ class Session(object):
                 obj_d[ta_key]["calculated_values_ts"] = new_calculated_values_ts[ta_key]
 
         with open(self.config.report_directory + "//"+obj_name+".json", 'w') as fp:
-            json.dump(obj_d, fp, indent=4, cls=utilities.AntJSONEncoder)
+            json.dump(obj_d, fp, cls=utilities.AntJSONEncoder)
 
     def merge_report(self):
         self.config.save()
