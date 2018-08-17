@@ -5,8 +5,9 @@ from os import listdir
 from os.path import isfile, join
 import ants
 from . import db
-from .session_config import SessionStaticVariable
+from . import session_config
 from distutils.dir_util import copy_tree
+from subprocess import Popen, CREATE_NEW_CONSOLE
 
 
 # region Public Variable
@@ -142,6 +143,15 @@ def dt_get_date_str(dt):
 
 def dt_get_time_str(dt):
     return dt.strftime('%H%M%S')
+
+def to_adjusted_time(time_int):
+    if time_int<90000:
+        time_int += 240000
+
+    return time_int
+
+
+
 # endregion
 
 
@@ -158,10 +168,18 @@ def check_file_exist(file_path):
 
 def create_folder(path):
     if path == "":
-        return
+        return False
 
     if not os.path.exists(path):
         os.makedirs(path)
+        return True
+    return False
+
+def create_file(path):
+    if not is_file_exist(path):
+        open(path, 'a').close()
+        return True
+    return False
 
 
 def is_file_exist(path):
@@ -982,3 +1000,15 @@ def get_optimization_parameter_combination(default_data, data):
 # endregion
 
 
+# region Run external process
+def run_new_py(executable, file, is_new_console=True):
+    try:
+        if is_new_console:
+            p = Popen([executable, file], creationflags=CREATE_NEW_CONSOLE)
+        else:
+            p = Popen([executable, file])
+        print("new py pid:", p.pid)
+    except:
+        print("except found on run_new_py in unilities.py")
+        pass
+# endregion

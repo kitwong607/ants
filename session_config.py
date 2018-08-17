@@ -1,6 +1,6 @@
 from enum import IntEnum
-from . import utilities
 import json, datetime, os
+from . import utilities
 
 class SessionMode(IntEnum):
     INTRA_DAY_SINGLE_PROCESS = 0
@@ -11,12 +11,47 @@ class SessionMode(IntEnum):
     IB_LIVE_TRADE = 5
 
 class SessionStaticVariable:
-    data_path = "X:\\data\\"
-    log_directory = "X:\\log\\"
+    IB_WS_SERVER_PORT = 8000
+    IB_WS_SERVER_PORT_DEBUG = 8001
+
+    IB_JSON_SERVER_PORT = 8090
+    IB_JSON_SERVER_PORT_DEBUG = 8091
+
+    IB_GATEWAY_PORT = 8100
+    IB_GATEWAY_IP = "127.0.0.1"
+
+    IB_CLIENT_ID = 0
+    IB_CLIENT_ID_DEBUG = 99
+
+    HKEX_DAILY_BACKTEST_WS_SERVER_PORT = 8200
+
+    HSI_MKT_DATA_REQ_ID = 1001
+    MHI_MKT_DATA_REQ_ID = 1002
+
+    IB_HKEX_BUY_ACCOUNT = "U8618806"
+    IB_HKEX_SELL_ACCOUNT = "U8633399"
+
+    IB_COMMISSION = {"MHI":13, "HSI":50}
+
+    data_path = "X:/data/"
+    log_directory = "X:/log/"
     api_path = "http://127.0.0.1/antXXXXXXX/XXXXXXXX/XXXXXXXX"
-    base_report_directory = "X:\\Data\\backtest_report\\reports\\"
-    base_ta_directory = "X:\\Data\\backtest_report\\ta\\"
-    base_filter_directory = "X:\\Data\\backtest_report\\filter\\"
+
+    base_report_directory = "X:/Data/backtest_report/reports/"
+    base_ta_directory = "X:/Data/backtest_report/ta/"
+    base_filter_directory = "X:/Data/backtest_report/filter/"
+
+
+    base_live_data_directory = "X:/Data/hkex/live/"
+    base_live_report_directory = "X:/Data/live_report/reports/"
+    base_live_ta_directory = "X:/Data/live_report/ta/"
+    base_live_filter_directory = "X:/Data/live_report/filter/"
+
+    pythonw_path = 'E:/Python36-64/pythonw.exe'
+    python_path = "E:/Python36-64/python.exe"
+
+    ant_bot_script_directory = "C:/ant_bot_scripts/"
+    ants_script_directory = "C:/ant_bot_scripts/ants_script/"
 
 
 class SessionConfig:
