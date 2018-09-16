@@ -54,8 +54,8 @@ class AbstractStrategy(object):
 
 
 
-class Strategies(AbstractStrategy):
-    def __init__(self, *strategies):
+class Strategies(AbstractStrategy):elf, *strategies):
+    def __init__(s
         self._lst_strategies = strategies
 
     def calculate_signals(self, event):

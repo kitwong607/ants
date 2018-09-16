@@ -6,6 +6,7 @@ from os.path import isfile, join
 import ants
 from . import db
 from . import session_config
+from .session_config import SessionStaticVariable
 from distutils.dir_util import copy_tree
 from subprocess import Popen, CREATE_NEW_CONSOLE
 
@@ -149,9 +150,6 @@ def to_adjusted_time(time_int):
         time_int += 240000
 
     return time_int
-
-
-
 # endregion
 
 

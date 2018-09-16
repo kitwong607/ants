@@ -5,10 +5,8 @@ from . import utilities
 class SessionMode(IntEnum):
     INTRA_DAY_SINGLE_PROCESS = 0
     INTER_DAY_SINGLE_PROCESS = 1
-    INTRA_DAY_MULTI_PROCESS = 2
-    INTER_DAY_MULTI_PROCESS = 3
-    IB_DEMO_TRADE = 4
-    IB_LIVE_TRADE = 5
+    IB_DEMO_TRADE = 2
+    IB_LIVE_TRADE = 3
 
 class SessionStaticVariable:
     IB_WS_SERVER_PORT = 8000
@@ -85,10 +83,6 @@ class SessionConfig:
         else:
             self.session_id = 999999
 
-        self.is_sub_process = False
-        self.num_sub_process = -1
-        self.process_no = -1
-
         # Ask database
         # ----------------------------------------------------------------------
         self.data_start_date = kwargs['data_start_date']
@@ -101,9 +95,7 @@ class SessionConfig:
         self.exchange = kwargs['exchange']
 
         if self.mode in [ SessionMode.INTRA_DAY_SINGLE_PROCESS,
-                         SessionMode.INTER_DAY_SINGLE_PROCESS,
-                         SessionMode.INTRA_DAY_MULTI_PROCESS,
-                         SessionMode.INTER_DAY_MULTI_PROCESS]:
+                         SessionMode.INTER_DAY_SINGLE_PROCESS]:
             self.cash = kwargs['cash']
         elif self.mode in [SessionMode.IB_DEMO_TRADE, SessionMode.IB_LIVE_TRADE]:
             self.cash = "ask ib"
@@ -112,9 +104,7 @@ class SessionConfig:
 
 
         if self.mode in [ SessionMode.INTRA_DAY_SINGLE_PROCESS,
-                         SessionMode.INTER_DAY_SINGLE_PROCESS,
-                         SessionMode.INTRA_DAY_MULTI_PROCESS,
-                         SessionMode.INTER_DAY_MULTI_PROCESS]:
+                         SessionMode.INTER_DAY_SINGLE_PROCESS]:
             self.data_provider_class = kwargs['data_provider_class']
         elif self.mode in [SessionMode.IB_DEMO_TRADE, SessionMode.IB_LIVE_TRADE]:
             self.data_provider_class = "ask ib"
@@ -173,10 +163,6 @@ class SessionConfig:
         dict_to_save["base_quantity"] = self.base_quantity
         dict_to_save["exchange"] = self.exchange
 
-        dict_to_save["is_sub_process"] = self.is_sub_process
-        dict_to_save["num_sub_process"] = self.num_sub_process
-        dict_to_save["process_no"] = self.process_no
-
         dict_to_save["cash"] = self.cash
         dict_to_save["data_provider_class"] = self.data_provider_class.NAME
         dict_to_save["data_resolution"] = '['+ ','.join(self.data_resolution) + ']'
@@ -195,8 +181,6 @@ class SessionConfig:
         dict_to_save["commission"] = self.commission
 
         config_filename = "//session_config.json"
-        if self.is_sub_process:
-            config_filename = "//session_config_"+str(self.process_no)+".json"
 
         with open(self.report_directory + config_filename, 'w') as fp:
             json.dump(dict_to_save, fp, indent=4)

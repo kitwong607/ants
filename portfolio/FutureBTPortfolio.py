@@ -34,6 +34,7 @@ class FutureBTPortfolio(AbstractPortfolio):
             self.unrealised_pnl += position.unrealised_pnl
             self.equity += (position.unrealised_pnl + position.realised_pnl)
 
+
     def _add_position(self, order):
         if self.config.trade_ticker not in self.positions:
             if self.session.data_provider.is_tick:
@@ -97,15 +98,10 @@ class FutureBTPortfolio(AbstractPortfolio):
 
     def save(self):
         json_filename = "//positions.json"
-        if self.session.config.is_sub_process:
-            json_filename = "//positions_" + str(self.session.config.process_no) + ".json"
-
         with open(self.session.config.report_directory + json_filename, 'w') as fp:
             json.dump(self.position_records, fp, cls=utilities.AntJSONEncoder)
 
         json_filename = "//orders.json"
-        if self.session.config.is_sub_process:
-            json_filename = "//orders_" + str(self.session.config.process_no) + ".json"
         with open(self.session.config.report_directory + json_filename, 'w') as fp:
             json.dump(self.order_records, fp, cls=utilities.AntJSONEncoder)
 

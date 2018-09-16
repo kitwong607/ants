@@ -5,6 +5,9 @@ import numpy as np, copy
 from collections import deque
 import itertools
 
+from ..cants.math import cmath
+
+
 class PriceChannel(WindowTA):
     def __init__(self, session, window_size, look_back_window_size=1, resolution="1T", is_intra_day = False, is_save = True):
         super().__init__(session, window_size, look_back_window_size, resolution, is_intra_day, is_save)
@@ -16,7 +19,12 @@ class PriceChannel(WindowTA):
         self.low_price_deque = deque(maxlen=self.window_size)
         self.close_price_deque = deque(maxlen=self.window_size)
 
+        self.range_high = None
+        self.range_low = None
+
     def push_data(self, data):
+        if data.resolution != self.resolution:
+            return
         self.data_deque.append(data.close_price)
         self.open_price_deque.append(data.open_price)
         self.high_price_deque.append(data.high_price)
@@ -30,8 +38,12 @@ class PriceChannel(WindowTA):
                 if self.current_date is None:
                     self.on_new_date(data.timestamp)
 
-                max_value = np.max(self.high_price_deque)
-                min_value = np.min(self.low_price_deque)
+                #max_value = np.max(self.high_price_deque)
+                #min_value = np.min(self.low_price_deque)
+
+                max_value = cmath.max_of_array(self.high_price_deque)
+                min_value = cmath.min_of_array(self.low_price_deque)
+
                 value = {"max": max_value, "min": min_value}
 
                 self.values[self.current_date].append(value)
@@ -41,14 +53,22 @@ class PriceChannel(WindowTA):
 
                 self.look_back_value.append(value)
             else:
+                '''
                 max_value = np.max(self.high_price)
                 min_value = np.min(self.low_price)
+                '''
+                max_value = cmath.max_of_array(self.high_price_deque)
+                min_value = cmath.min_of_array(self.low_price_deque)
+
                 value = {"max": max_value, "min": min_value}
 
                 self.values.append({"max":max_value, "min": min_value})
                 self.values_ts.append(self.last_timestamp)
 
                 self.look_back_value.append(value)
+
+        self.range_high = self.get_high()
+        self.range_low = self.get_low()
 
     def is_ready(self):
         if len(self.data_deque) == self.window_size:
@@ -67,7 +87,8 @@ class PriceChannel(WindowTA):
 
     def get_low(self, _from=None, _to=None):
         if _from is None and _to is None:
-            return np.min(self.low_price_deque)
+            return cmath.min_of_array(self.low_price_deque)
+            #return np.min(self.low_price_deque)
 
         if _from is None:
             _from = 0
@@ -77,38 +98,31 @@ class PriceChannel(WindowTA):
             _to = len(self.low_price_deque)
             #return np.min(self.low_price_deque[_from:])
 
-        return np.min(deque(itertools.islice(self.low_price_deque, _from, _to)))
+        return cmath.min_of_array(deque(itertools.islice(self.low_price_deque, _from, _to)))
+        #return np.min(deque(itertools.islice(self.low_price_deque, _from, _to)))
         #return np.min(self.low_price_deque[_from:_to])
 
     def get_high(self, _from=None, _to=None):
         if _from is None and _to is None:
-            return np.max(self.high_price_deque)
+            return cmath.max_of_array(self.high_price_deque)
+            #return np.max(self.high_price_deque)
 
         if _from is None:
             _from = 0
 
         if _to is None:
             _to = len(self.high_price_deque)
-
-        return np.max(deque(itertools.islice(self.high_price_deque, _from, _to)))
-
-        '''
-        print()
+        return cmath.max_of_array(deque(itertools.islice(self.high_price_deque, _from, _to)))
+        #return np.max(deque(itertools.islice(self.high_price_deque, _from, _to)))
 
 
-        print(type(self.high_price_deque[_from:_to]))
-        temp = list(self.high_price_deque[_from:_to])
-        print(type(temp))
-
-        return np.max(self.high_price_deque[_from:_to])
-        '''
 
     def get_high_idx(self):
-        return self.high_price_deque.index(np.max(self.high_price_deque))
+        return self.high_price_deque.index(cmath.max_of_array(self.high_price_deque))
 
 
     def get_low_idx(self):
-        return self.low_price_deque.index(np.min(self.low_price_deque))
+        return self.low_price_deque.index(cmath.min_of_array(self.low_price_deque))
 
     '''
     def get_high_idx_from_back(self):

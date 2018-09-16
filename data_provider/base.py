@@ -6,7 +6,9 @@ class DataType(IntEnum):
     BAR = 1
 
 class BarData():
-    def __init__(self, ticker, resolution, timestamp, open_price, high_price, low_price, close_price, vol, adjusted_date=None, adjusted_time=None):
+    #def __init__(self, ticker, resolution, timestamp, open_price, high_price, low_price, close_price, vol, adjusted_date=None, adjusted_time=None):
+    def __init__(self, row):
+        timestamp, open_price, high_price, low_price, close_price, vol, ticker, resolution, resolution_in_sec, adjusted_date, adjusted_time = row
         self.type = DataType.BAR
         self.ticker = ticker
         self.resolution = resolution

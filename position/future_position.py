@@ -282,8 +282,8 @@ class FuturePosition():
         if self.percent_trailing['is_reached_threshold']:
             if self.max_profit_pip - self.current_profit_pips() >= self.percent_trailing['amount_in_pips'] * self.percent_trailing['percent']:
                 return True
-
         return False
+
 
     def lifetime_in_second(self):
         return utilities.second_between_two_datetime(self.entry_time, self.last_update_time)
@@ -314,8 +314,6 @@ class FuturePosition():
         else:
             self.avg_entry_price = self.avg_sld_price
             self.avg_exit_price = self.avg_bot_price
-
-
 
 
     def to_dict(self):
