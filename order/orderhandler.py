@@ -1,0 +1,118 @@
+from abc import ABCMeta
+from ..broker.ib.IBContract import IBContract
+from ..broker.ib.IBOrder import IBOrder
+from ..order.base import OrderType, OrderAction
+
+
+class AbstractOrderHandler(object):
+    IS_DISPLAY_IN_OPTION = False
+    __metaclass__ = ABCMeta
+
+    def __init__(self, session):
+        self.session = session
+        self.lastActiveDate = None
+        self.filledOrder = {}
+        self.unfilledOrder = {}
+
+        self.NextOrderId = 1
+
+
+    def GetNextOrderId(self):
+        nextOrderId = self.NextOrderId
+        self.NextOrderId += 1
+
+        return nextOrderId
+
+    def PrepareContract(self, tradeTicker, expiryMonth):
+        if tradeTicker == "HSI":
+            contract = IBContract.HSIFut(expiryMonth)
+        elif tradeTicker == "MHI":
+            contract = IBContract.MHIFut(expiryMonth)
+        else:
+            raise ValueError("Trade ticker: " + tradeTicker + " not support")
+
+        contract.ticker = tradeTicker
+        contract.expiryMonth = expiryMonth
+        return contract
+
+    def PrepareOrder(self, action, contract, orderId, bar, orderType, label, quantity, limitPrice):
+        if orderType == OrderType.MARKET:
+            order = IBOrder.MarketOrder(action, quantity, bar.closePrice)
+        elif orderType == OrderType.LIMIT:
+            order = IBOrder.LimitOrder(action, quantity, bar.closePrice, limitPrice)
+        else:
+            raise ValueError("Order type: " + orderType + " not support")
+
+        #setup default variable for Order object
+        order.filledTime = None
+        order.adjustedDate = bar.adjustedDate
+        order.adjustedTime = bar.adjustedTime
+
+        order.exchange = self.session.config.exchange
+        order.orderId = orderId
+        order.label = label
+        order.contract = contract
+        order.ticker = contract.ticker
+        order.type = orderType
+        order.stopLossThreshold = 0
+
+        return order
+
+
+
+
+class BacktestOrderHandler(AbstractOrderHandler):
+    IS_DISPLAY_IN_OPTION = True
+    NAME = "BacktestOrderHandler"
+
+    def __init__(self, session):
+        super().__init__(session)
+
+
+    def PlaceOrder(self, orderId, contract, order):
+        if order.adjustedDate not in self.unfilledOrder:
+            self.lastActiveDate = order.adjustedDate
+            self.unfilledOrder[order.adjustedDate] = []
+            self.filledOrder[order.adjustedDate] = []
+        self.unfilledOrder[order.adjustedDate].append(order)
+
+        #This will get from broker if in live trade
+        lastClosePrice = self.session.dataSource.GetLastClose(contract.symbol)
+        getLastTime = self.session.dataSource.GetLastTime(contract.symbol)
+        commission = self.session.config.commission * order.totalQuantity
+
+        if order.action == OrderAction.BUY:
+            filledPirce = lastClosePrice + self.session.config.slippage
+            self.FillOrder(orderId, filledPirce, getLastTime, commission)
+
+            #self.FillOrder(order.orderId, self.session.dataSource.getLastClose(
+             #   order.dataTicker) + self.session.config.slippage, filledTimestamp, self.session.config.commission * order.quantity)
+        elif order.action == OrderAction.SELL:
+            filledPirce = lastClosePrice - self.session.config.slippage
+            self.FillOrder(orderId, filledPirce, getLastTime, commission)
+        else:
+            raise ValueError("Unexprected orderAction: " + order.action)
+
+            #self.FillOrder(order.orderId, self.session.dataSource.getLastClose(
+            #    order.dataTicker) - self.session.config.slippage, filledTimestamp, self.session.config.commission * order.quantity)
+
+
+    def FillOrder(self, orderId, filledPrice, getLastTime, comission):
+        for order in self.unfilledOrder[self.lastActiveDate]:
+            if order.orderId == orderId:
+                order.status = "filled"
+                order.filledPrice = filledPrice
+                order.filledTime = getLastTime
+                order.commission = comission
+
+                if order.action == OrderAction.BUY:
+                    order.slippage = filledPrice - order.signalPrice
+                elif order.action == OrderAction.SELL:
+                    order.slippage = order.signalPrice - filledPrice
+                else:
+                    raise ValueError("Unexprected orderAction: " + order.action)
+
+
+                self.filledOrder[self.lastActiveDate].append(self.unfilledOrder[self.lastActiveDate].pop(self.unfilledOrder[self.lastActiveDate].index(order)))
+                self.session.portfolio.TransactOrder(order)
+                break

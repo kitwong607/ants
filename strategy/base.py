@@ -3,6 +3,7 @@ from .. import utilities
 
 
 class AbstractStrategy(object):
+    IS_DISPLAY_IN_OPTION = False
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -54,8 +55,8 @@ class AbstractStrategy(object):
 
 
 
-class Strategies(AbstractStrategy):elf, *strategies):
-    def __init__(s
+class Strategies(AbstractStrategy):
+    def __init__(self, *strategies):
         self._lst_strategies = strategies
 
     def calculate_signals(self, event):

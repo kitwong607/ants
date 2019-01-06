@@ -1,9 +1,11 @@
 from .future_strategy import FutureAbstractStrategy
-from ..order.ib_order import IBMktOrder
+#from ..order.ib_order import IBMktOrder
 from .. import utilities
-from ..ta import SMA, PriceChannel, SMASlope
+#from ..ta import SMA, PriceChannel, SMASlope
 
 class L_BKO_PClose(FutureAbstractStrategy):
+    IS_DISPLAY_IN_OPTION = False
+
     OPTIMIZATION_PAIR = [["fixed_stop_loss","fixed_stop_gain"],["dump_to_exit","dump_to_exit_threshold"],["price_channel_window_size"]]
 
     FILTER_OPTIMIZATION_PARAMETER = {

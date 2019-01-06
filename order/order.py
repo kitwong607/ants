@@ -1,7 +1,7 @@
 from .base import Order
 
-
 class IBOrder(Order):
+    IS_DISPLAY_IN_OPTION = False
     ORDER_TYPE = [  "auction",
                     "market", "market_if_touch", "market_on_close", "market_on_open",
                     "pegged_to_primary",
@@ -37,8 +37,8 @@ class IBOrder(Order):
                   "relative_market_combo": "REL + MKT"
                   }
 
-    def __init__(self, order_id, ticker, trade_contact, order_type, action, stop_loss_threshold, label, quantity):
-        super().init(order_id, ticker, trade_contact, action, stop_loss_threshold, label, quantity)
+    def __init__(self, order_id, ticker, contact, order_type, action, stop_loss_threshold, label, quantity):
+        super().init(order_id, ticker, contact, action, stop_loss_threshold, label, quantity)
         self.order_id = order_id
         self.ticker = ticker
         self.trade_contact = trade_contact
@@ -50,9 +50,11 @@ class IBOrder(Order):
         self.label = label
 
 class IBMktOrder(IBOrder):
-    def __init__(self, order_id, ticker, trade_contact, order_type, action, stop_loss_threshold=0, label="", quantity=0):
-        super().init(order_id, ticker, trade_contact, order_type, action, stop_loss_threshold, label, quantity)
+    IS_DISPLAY_IN_OPTION = False
+    def __init__(self, order_id, ticker, contact, order_type, action, stop_loss_threshold=0, label="", quantity=0):
+        super().init(order_id, ticker, contact, order_type, action, stop_loss_threshold, label, quantity)
 
 class IBSimulatedOrder(IBOrder):
-    def __init__(self, order_id, ticker, trade_contact, order_type, action, stop_loss_threshold=0, label="", quantity=0):
-        super().init(order_id, ticker, trade_contact, order_type, action, stop_loss_threshold, label, quantity)
+    IS_DISPLAY_IN_OPTION = False
+    def __init__(self, order_id, ticker, contact, order_type, action, stop_loss_threshold=0, label="", quantity=0):
+        super().init(order_id, ticker, contact, order_type, action, stop_loss_threshold, label, quantity)

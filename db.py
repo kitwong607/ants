@@ -26,6 +26,7 @@ def mysql_time_to_string(dt):
 
 
 # region Option related
+# moved to php
 def get_option(option_key, return_value_only=False):
     try:
         is_db_error = True

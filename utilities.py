@@ -1,170 +1,116 @@
-import datetime, time, json, numpy as np, math, pandas as pd, os, importlib, calendar
+from .signal.base import Signal
+from .session import Session
+from .strategy.future_strategy import FutureAbstractStrategy
+
+import time, json, math, os, importlib
 from pathlib import Path
 from dateutil.rrule import rrule, MONTHLY
+from datetime import datetime, timedelta
+
+
 from os import listdir
 from os.path import isfile, join
-import ants
-from . import db
-from . import session_config
-from .session_config import SessionStaticVariable
-from distutils.dir_util import copy_tree
-from subprocess import Popen, CREATE_NEW_CONSOLE
 
+import pandas as pd
+import numpy as np
+import ant
 
-# region Public Variable
-#INTRADAY_BAR_SIZE = ["1S","2S","3S","5S","10S","12S","15S","20S","30S","1T","2T","3T","5T","8T","10T","12T","15T","20T","30T","1H","2H"]
-RESOLUTION_IN_SEC = {"1S": 1, "2S": 2, "3S": 3, "5S": 5, "10S": 10, "12S": 12, "15S": 15, "20S": 30, "30S": 30,
-                     "1T": 60, "2T": 120, "3T": 180, "5T": 300, "8T": 480, "10T": 600, "12T": 720, "15T": 900,
-                     "20T": 1200, "30T": 1800,
-                     "1H": 3600,"2H": 7200,
-                     "1D": 86400}
-
-EXCHANGE_TIME_ZONE = {"HKEX": 480}
-
-INTRA_DATE_DATA_RESOLUTION = ["1S", "2S", "3S", "5S", "10S", "12S", "15S", "20S", "30S",
-     "1T", "2T", "3T", "5T", "8T", "10T", "12T", "15T", "20T", "30T",
-     "1H", "2H"]
-
-INTRADAY_BAR_SIZE = INTRA_DATE_DATA_RESOLUTION
-# endregion
-
-
-# region Datetime calculation methods
-# region Different
-def get_months_between_two_datetime(start_date,end_date,is_return_str_list=True):
-    start_date = start_date.replace(day=1)
-    months = [dt for dt in rrule(MONTHLY, dtstart=start_date, until=end_date)]
+# region Datetime related
+def getMonthList(startDate,endDate,is_return_str_list=True):
+    start_date = startDate.replace(day=1)
+    months = [dt for dt in rrule(MONTHLY, dtstart=start_date, until=endDate)]
     if is_return_str_list:
-        month_str_list = [m.strftime("%Y%m") for m in months]
-        return month_str_list
+        monthStr_list = [m.strftime("%Y%m") for m in months]
+        return monthStr_list
     return months
 
-def remove_time_from_datetime(datetime_to_remove):
-    time_offset = datetime.timedelta(
-                hours=datetime_to_remove.hour,
-                minutes=datetime_to_remove.minute,
-                seconds=datetime_to_remove.second,
-                microseconds=datetime_to_remove.microsecond)
-    datetime_to_remove = datetime_to_remove - time_offset
-    return datetime_to_remove
+
+def clearTimeInDatetime(dtToClear):
+    return dtToClear - timedelta(
+                hours=dtToClear.hour,
+                minutes=dtToClear.minute,
+                seconds=dtToClear.second,
+                microseconds=dtToClear.microsecond)
 
 
-def diff_month(d1, d2):
-    return (d1.year - d2.year) * 12 + d1.month - d2.month
-
-
-def second_between_two_datetime(datetime_1, datetime_2):
-    if(datetime_1>datetime_2):
-        return abs((datetime_1 - datetime_2).seconds)
-    else:
-        return abs((datetime_2 - datetime_1).seconds)
-
-
-def mintue_between_two_datetime(datetime_1, datetime_2):
-    if(datetime_1>datetime_2):
-        return abs((datetime_1 - datetime_2).seconds) // 60  # in mintues
-    else:
-        return abs((datetime_2 - datetime_1).seconds) // 60  # in mintues
-# endregion
-
-
-# region Calculation
-def get_total_minute_from_datetime(dt):
-    return dt.hour * 60 + dt.minute
-
-
-def add_time_to_datetime(datetime_to_add, hour, minute, second):
-    time_offset = datetime.timedelta(
+def addTimeToDatetime(dtToAdd, hour, minute, second):
+    return dtToAdd + timedelta(
         hours=hour,
         minutes=minute,
         seconds=second)
-    datetime_to_add = datetime_to_add + time_offset
-    return datetime_to_add
 
 
-def add_months(sourcedate, months):
-    months = int(months)
-    if (months == 0):
-        return sourcedate
-    month = sourcedate.month - 1 + months
-    year = sourcedate.year + month // 12
-    month = month % 12 + 1
-    day = min(sourcedate.day, calendar.monthrange(year, month)[1])
-    return datetime.date(year, month, day)
+def diffMonth(d1, d2):
+    return (d1.year - d2.year) * 12 + d1.month - d2.month
 
 
-def add_months_with_last_date(sourcedate, months):
-    months = int(months)
-    if (months == 0):
-        return sourcedate
-    if (months > 0):
-        months -= 1
-    else:
-        months += 1
-    month = sourcedate.month - 1 + months
-    year = sourcedate.year + month // 12
-    month = month % 12 + 1
-    day = min(sourcedate.day + 31, calendar.monthrange(year, month)[1])
-    return datetime.date(year, month, day)
-# endregion
+def secondBetweenTwoDatetime(dt1, dt2, useAbsValue=True):
+    if useAbsValue:
+        if(dt1>dt2):
+            return abs((dt1 - dt2).seconds)
+        else:
+            return abs((dt2 - dt1).seconds)
+
+    return (dt1 - dt2).seconds
 
 
-# region Comparsion
-def is_new_date(current_date, input_date):
-    if (current_date == None or current_date.date() != input_date.date()):
-        return True
-    return False
+def mintueBetweenTwoDatetime(dt1, dt2, useAbsValue=True):
+    if useAbsValue:
+        if(dt1>dt2):
+            return abs((dt1 - dt2).seconds) // 60  # in mintues
+        else:
+            return abs((dt2 - dt1).seconds) // 60  # in mintues
+
+    return (dt1 - dt2).seconds // 60
 
 
-def is_time_before(marker_hour, marker_mintue, marker_second, input_hour, input_minute, input_second):
-    marker_time = marker_hour*10000 + marker_mintue*100 + marker_second
-    input_time = input_hour*10000 + input_minute*100 + input_second
-    if input_time < marker_time:
-        return True
-    else:
-        return False
+
+def getTotalMinuteInDatetime(dt):
+    return dt.hour * 60 + dt.minute
 
 
-def is_time_after(marker_hour, marker_mintue, marker_second, input_hour, input_minute, input_second):
-    marker_time = marker_hour * 10000 + marker_mintue * 100 + marker_second
-    input_time = input_hour * 10000 + input_minute * 100 + input_second
-    if input_time > marker_time:
-        return True
-    else:
-        return False
+def dateParser(dateStr):
+    return pd.datetime.strptime(dateStr, '%Y-%m-%d %H:%M:%S')
 # endregion
 
 
 # region Convert format
-def dt_to_ts(dt):
+def dtToTs(dt):
     return dt.timestamp()
 
-def dt_get_date_str(dt):
+def getDateStrFromDt(dt):
     return dt.strftime('%Y%m%d')
 
-def dt_get_time_str(dt):
+def getTimeStrFromDt(dt):
     return dt.strftime('%H%M%S')
 
-def to_adjusted_time(time_int):
+def toAdjustedTime(time_int):
     if time_int<90000:
         time_int += 240000
-
     return time_int
 # endregion
 
 
+# region Count time methods
+def getCurrentDatetime():
+    now = time.time()
+    print("--- Process start at " + str(now) + " ---")
+    return now
+
+
+def calculateTimeUsed(start_time, task):
+    print("--- "+str(round(time.time() - start_time, 2))+" seconds --- for " + task)
 # endregion
 
-
 # region File methods
-def check_file_exist(file_path):
-    my_file = Path(file_path)
-    if my_file.is_file():
+def checkFileExist(filePath):
+    f = Path(filePath)
+    if f.is_file():
         return True
     return False
 
 
-def create_folder(path):
+def createFolder(path):
     if path == "":
         return False
 
@@ -173,80 +119,34 @@ def create_folder(path):
         return True
     return False
 
-def create_file(path):
-    if not is_file_exist(path):
+def createFile(path):
+    if not isFileExist(path):
         open(path, 'a').close()
         return True
     return False
 
 
-def is_file_exist(path):
+def isFileExist(path):
     if os.path.exists(path):
         return True
     return False
 # endregion
 
 
-# region Load data methods
-def load_inter_day_data(_exchange, _ticker, _date, _resolution):
-    _data_path = SessionStaticVariable.data_path
+# region Convert format
+def dtToTs(dt):
+    return dt.timestamp()
 
-    if "," not in _date:
-        _date_list = [_date]
-    else:
-        _date_list = _date.split(",")
+def dtGetDateStr(dt):
+    return dt.strftime('%Y%m%d')
 
-    _date_list.sort()
+def dtGetTimeStr(dt):
+    return dt.strftime('%H%M%S')
 
-    _months = []
-    for _date_str in _date_list:
-        _month = _date_str[:6]
-        if not _month in _date_list:
-            _months.append(_month)
-
-
-    dfs = []
-    is_first = True
-    for _month in _months:
-        csv_filename = _month + "_" + _ticker + "_" + _resolution + ".csv"
-        csv_file_path = _data_path + _exchange + "\\csv\\" + _resolution + "\\" + csv_filename
-
-        df = pd.DataFrame.from_csv(csv_file_path)
-        if is_first:
-            df['datetime_for_sort'] = df.index
-        else:
-            df['datetime_for_sort'] = df.index + datetime.timedelta(seconds=RESOLUTION_IN_SEC[_resolution])
-        df['ticker'] = _ticker
-        df['resolution'] = _resolution
-        df['resolution_in_sec'] = RESOLUTION_IN_SEC[_resolution]
-        dfs.append(df)
-
-        is_first = False
-
-    df = pd.concat(dfs)
-    df = df.sort_values(["datetime_for_sort", "resolution_in_sec"])
-    df = df.drop('datetime_for_sort', 1)
-
-    start_datetime = datetime.datetime.strptime(_date_list[0], '%Y%m%d') + datetime.timedelta(hours=8)  #to 8am
-    end_datetime = datetime.datetime.strptime(_date_list[-1], '%Y%m%d')  + datetime.timedelta(hours=32) #before next day 8 am
-    start = df.index.searchsorted(start_datetime)
-    end = df.index.searchsorted(end_datetime)
-
-    return df.ix[start:end]
-
-
-def load_month_data():
-    pass
-# endregion
-
-
-# region Count time methods
-def start_count_time_used():
-    return time.time()
-
-
-def stop_count_time_used(start_time, task):
-    print("--- "+str(round(time.time() - start_time, 2))+" seconds --- for " + task)
+def toAdjustedTime(timeInt):
+    if timeInt<90000:
+        timeInt += 240000
+    return timeInt
 # endregion
 
 
@@ -262,43 +162,45 @@ class AntJSONEncoder(json.JSONEncoder):
         else:
             return super(AntJSONEncoder, self).default(obj)
 
-def load_json(path):
+def LoadJson(path):
     with open(path) as json_data:
         return json.load(json_data)
+
+    return None
 #endregion
 
 
 # region Create backtest report / summary methods
-def prepare_backtest_report_insert_to_db(d):
-    d['win_rate'] = round(d['win_rate'], 3)
+def PrepareBacktestReportInsertToDB(d):
+    d['winRate'] = round(d['winRate'], 3)
     d['num_trade'] = round(d['num_trade'], 3)
     d['pnl'] = round(d['pnl'], 3)
-    d['net_pips'] = round(d['net_pips'], 3)
-    d['profit_factor'] = round(d['profit_factor'], 3)
-    d['payoff_ratio'] = round(d['payoff_ratio'], 3)
+    d['netPips'] = round(d['netPips'], 3)
+    d['profitFactor'] = round(d['profitFactor'], 3)
+    d['payoffRatio'] = round(d['payoffRatio'], 3)
     d['roci'] = round(d['roci'], 3)
 
-    d['sharpe_ratio'] = round(d['sharpe_ratio'], 3)
-    d['standard_deviation'] = round(d['standard_deviation'], 3)
-    d['standard_error'] = round(d['standard_error'], 3)
-    d['tharp_expectancy'] = round(d['tharp_expectancy'], 3)
+    d['sharpeRatio'] = round(d['sharpeRatio'], 3)
+    d['standardDeviation'] = round(d['standardDeviation'], 3)
+    d['standardError'] = round(d['standardError'], 3)
+    d['tharpExpectancy'] = round(d['tharpExpectancy'], 3)
     d['expectancy'] = round(d['expectancy'], 3)
 
     d['mdd'] = round(d['mdd'], 3)
-    d['mdd_pct'] = round(d['mdd_pct'], 3)
-    d['mdd_daily'] = round(d['mdd_daily'], 3)
-    d['mdd_pct_daily'] = round(d['mdd_pct_daily'], 3)
-    d['dd_duration'] = round(d['dd_duration'], 3)
+    d['mddPct'] = round(d['mddPct'], 3)
+    d['mddDaily'] = round(d['mddDaily'], 3)
+    d['mddPctDaily'] = round(d['mddPctDaily'], 3)
+    d['ddDuration'] = round(d['ddDuration'], 3)
 
-    d['dd_duration_daily'] = round(d['dd_duration_daily'], 3)
+    d['ddDurationDaily'] = round(d['ddDurationDaily'], 3)
     d['avg_pips_pre_contract'] = round(d['avg_pips_pre_contract'], 3)
 
-    key_to_fillzero = ["win_rate", "num_trade", "pnl", "net_pips", "profit_factor",
-                   "payoff_ratio", "roci", "sharpe_ratio", "standard_deviation", "standard_error",
-                   "tharp_expectancy", "expectancy", "mdd", "mdd_pct", "mdd_daily",
-                   "mdd_pct_daily", "dd_duration", "dd_duration_daily", "avg_pips_pre_contract"]
+    key_to_fillzero = ["winRate", "num_trade", "pnl", "net_pips", "profit_factor",
+                   "payoffRatio", "roci", "sharpeRatio", "standardDeviation", "standard_error",
+                   "tharp_expectancy", "expectancy", "mdd", "mddPct", "mddDaily",
+                   "mddPct_daily", "ddDuration", "ddDuration_daily", "avg_pips_pre_contract"]
 
-    key_to_save = ['win_rate', 'num_trade', 'pnl', 'net_pips', 'profit_factor', 'payoff_ratio', 'roci', 'sharpe_ratio', 'standard_deviation', 'standard_error', 'tharp_expectancy', 'expectancy', 'mdd', 'mdd_pct', 'mdd_daily', 'mdd_pct_daily', 'dd_duration', 'dd_duration_daily', 'avg_pips_pre_contract', 'report_folder_name', 'report_full_path']
+    key_to_save = ['winRate', 'num_trade', 'pnl', 'netPips', 'profitFactor', 'payoffRatio', 'roci', 'sharpeRatio', 'standardDeviation', 'standardError', 'tharpExpectancy', 'expectancy', 'mdd', 'mddPct', 'mddDaily', 'mddPctDaily', 'ddDuration', 'ddDurationDaily', 'avg_pips_pre_contract', 'report_folder_name', 'report_full_path']
 
     new_d = {}
     for key in d:
@@ -312,38 +214,38 @@ def prepare_backtest_report_insert_to_db(d):
     return new_d
 
 
-def create_filter_report(backtest_filename):
-    key_to_calculate = ["num_trade", "win_rate", "pnl", "net_pips", "avg_pips_pre_contract", "profit_factor",
-                        "payoff_ratio", "roci", "sharpe_ratio", "tharp_expectancy", "expectancy", "mdd", "mdd_pct",
-                        "mdd_daily", "mdd_pct_daily", "dd_duration", "dd_duration_daily"]
-    optimization_values = {"num_trade": [], "win_rate": [], "pnl": [], "net_pips": [], "avg_pips_pre_contract": [],
-                           "profit_factor": [], "payoff_ratio": [], "roci": [], "sharpe_ratio": [],
-                           "tharp_expectancy": [], "expectancy": [], "mdd": [], "mdd_pct": [], "mdd_daily": [],
-                           "mdd_pct_daily": [], "dd_duration": [], "dd_duration_daily": []}
-    optimization_summary = {"num_trade": 0, "num_trade_std": 0, "num_trade_std_pct": 0, "win_rate": 0,
-                            "win_rate_std": 0, "win_rate_std_pct": 0, "pnl": 0, "pnl_std": 0, "pnl_std_pct": 0,
-                            "net_pips": 0, "net_pips_std": 0, "net_pips_std_pct": 0, "avg_pips_pre_contract": 0,
+def CreateFilterReport(backtestFilename):
+    key_to_calculate = ["num_trade", "winRate", "pnl", "net_pips", "avg_pips_pre_contract", "profit_factor",
+                        "payoffRatio", "roci", "sharpeRatio", "tharp_expectancy", "expectancy", "mdd", "mddPct",
+                        "mddDaily", "mddPct_daily", "ddDuration", "ddDuration_daily"]
+    optimization_values = {"num_trade": [], "winRate": [], "pnl": [], "net_pips": [], "avg_pips_pre_contract": [],
+                           "profit_factor": [], "payoffRatio": [], "roci": [], "sharpeRatio": [],
+                           "tharp_expectancy": [], "expectancy": [], "mdd": [], "mddPct": [], "mddDaily": [],
+                           "mddPct_daily": [], "ddDuration": [], "ddDuration_daily": []}
+    optimization_summary = {"num_trade": 0, "num_trade_std": 0, "num_trade_std_pct": 0, "winRate": 0,
+                            "winRate_std": 0, "winRate_std_pct": 0, "pnl": 0, "pnl_std": 0, "pnl_std_pct": 0,
+                            "net_pips": 0, "net_pipsSeriestd": 0, "net_pipsSeriestd_pct": 0, "avg_pips_pre_contract": 0,
                             "avg_pips_pre_contract_std": 0, "avg_pips_pre_contract_std_pct": 0, "profit_factor": 0,
-                            "profit_factor_std": 0, "profit_factor_std_pct": 0, "payoff_ratio": 0,
-                            "payoff_ratio_std": 0, "payoff_ratio_std_pct": 0, "roci": 0, "roci_std": 0,
-                            "roci_std_pct": 0, "sharpe_ratio": 0, "sharpe_ratio_std": 0, "sharpe_ratio_std_pct": 0,
+                            "profit_factor_std": 0, "profit_factor_std_pct": 0, "payoffRatio": 0,
+                            "payoffRatio_std": 0, "payoffRatio_std_pct": 0, "roci": 0, "roci_std": 0,
+                            "roci_std_pct": 0, "sharpeRatio": 0, "sharpeRatio_std": 0, "sharpeRatio_std_pct": 0,
                             "tharp_expectancy": 0, "tharp_expectancy_std": 0, "tharp_expectancy_std_pct": 0,
-                            "expectancy": 0, "expectancy_std": 0, "expectancy_std_pct": 0, "mdd": 0, "mdd_std": 0,
-                            "mdd_std_pct": 0, "mdd_pct": 0, "mdd_pct_std": 0, "mdd_pct_std_pct": 0, "mdd_daily": 0,
-                            "mdd_daily_std": 0, "mdd_daily_std_pct": 0, "mdd_pct_daily": 0, "mdd_pct_daily_std": 0,
-                            "mdd_pct_daily_std_pct": 0, "dd_duration": 0, "dd_duration_std": 0,
-                            "dd_duration_std_pct": 0, "dd_duration_daily": 0, "dd_duration_daily_std": 0,
-                            "dd_duration_daily_std_pct": 0}
+                            "expectancy": 0, "expectancy_std": 0, "expectancy_std_pct": 0, "mdd": 0, "mddSeriestd": 0,
+                            "mddSeriestd_pct": 0, "mddPct": 0, "mddPct_std": 0, "mddPct_std_pct": 0, "mddDaily": 0,
+                            "mddDaily_std": 0, "mddDaily_std_pct": 0, "mddPct_daily": 0, "mddPct_daily_std": 0,
+                            "mddPct_daily_std_pct": 0, "ddDuration": 0, "ddDuration_std": 0,
+                            "ddDuration_std_pct": 0, "ddDuration_daily": 0, "ddDuration_daily_std": 0,
+                            "ddDuration_daily_std_pct": 0}
 
     all_filter_test_summary = []
 
     #1 load all filters.json in backtest folder
-    backtest_report_dir = SessionStaticVariable.base_report_directory + backtest_filename + "\\"
+    backtest_report_dir = SessionStaticVariable.baseReportDirectory + backtestFilename + "\\"
     filter_tests = load_json(backtest_report_dir + "filters.json")
 
     for filter_test in filter_tests:
         filter_test_dir = backtest_report_dir + "filtered\\" +filter_test['name'] + "\\"
-        filter_test_summary = load_json(filter_test_dir + "backtest_summary.json")
+        filter_test_summary = load_json(filter_test_dir + "backtestSummary.json")
 
         #filter_test = data
 
@@ -384,7 +286,7 @@ def create_filter_report(backtest_filename):
         with open(filter_test_dir + 'optimization.json', 'w') as fp:
             json.dump(export_json, fp, cls=AntJSONEncoder)
 
-def create_optimization_report(optimization):
+def CreateOptimizationReport(optimization):
     result, message, backtests = db.get_backtest_by_optimization_id(optimization["id"])
     if result == "fail":
         return
@@ -395,24 +297,24 @@ def create_optimization_report(optimization):
         return
 
 
-    key_to_calculate = ["num_trade", "win_rate", "pnl", "net_pips", "avg_pips_pre_contract", "profit_factor", "payoff_ratio", "roci", "sharpe_ratio", "tharp_expectancy", "expectancy", "mdd", "mdd_pct", "mdd_daily", "mdd_pct_daily", "dd_duration", "dd_duration_daily"]
-    optimization_values = {"num_trade":[], "win_rate":[], "pnl":[], "net_pips":[], "avg_pips_pre_contract":[], "profit_factor":[], "payoff_ratio":[], "roci":[], "sharpe_ratio":[], "tharp_expectancy":[], "expectancy":[], "mdd":[], "mdd_pct":[], "mdd_daily":[], "mdd_pct_daily":[], "dd_duration":[], "dd_duration_daily":[]}
-    optimization_summary = {"num_trade":0, "num_trade_std":0, "num_trade_std_pct":0, "win_rate":0, "win_rate_std":0, "win_rate_std_pct":0, "pnl":0, "pnl_std":0, "pnl_std_pct":0, "net_pips":0, "net_pips_std":0, "net_pips_std_pct":0, "avg_pips_pre_contract":0, "avg_pips_pre_contract_std":0, "avg_pips_pre_contract_std_pct":0, "profit_factor":0, "profit_factor_std":0, "profit_factor_std_pct":0, "payoff_ratio":0, "payoff_ratio_std":0, "payoff_ratio_std_pct":0, "roci":0, "roci_std":0, "roci_std_pct":0, "sharpe_ratio":0, "sharpe_ratio_std":0, "sharpe_ratio_std_pct":0, "tharp_expectancy":0, "tharp_expectancy_std":0, "tharp_expectancy_std_pct":0, "expectancy":0, "expectancy_std":0, "expectancy_std_pct":0, "mdd":0, "mdd_std":0, "mdd_std_pct":0, "mdd_pct":0, "mdd_pct_std":0, "mdd_pct_std_pct":0, "mdd_daily":0, "mdd_daily_std":0, "mdd_daily_std_pct":0, "mdd_pct_daily":0, "mdd_pct_daily_std":0, "mdd_pct_daily_std_pct":0, "dd_duration":0, "dd_duration_std":0, "dd_duration_std_pct":0, "dd_duration_daily":0, "dd_duration_daily_std":0, "dd_duration_daily_std_pct":0}
+    key_to_calculate = ["num_trade", "winRate", "pnl", "net_pips", "avg_pips_pre_contract", "profit_factor", "payoffRatio", "roci", "sharpeRatio", "tharp_expectancy", "expectancy", "mdd", "mddPct", "mddDaily", "mddPct_daily", "ddDuration", "ddDuration_daily"]
+    optimization_values = {"num_trade":[], "winRate":[], "pnl":[], "net_pips":[], "avg_pips_pre_contract":[], "profit_factor":[], "payoffRatio":[], "roci":[], "sharpeRatio":[], "tharp_expectancy":[], "expectancy":[], "mdd":[], "mddPct":[], "mddDaily":[], "mddPct_daily":[], "ddDuration":[], "ddDuration_daily":[]}
+    optimization_summary = {"num_trade":0, "num_trade_std":0, "num_trade_std_pct":0, "winRate":0, "winRate_std":0, "winRate_std_pct":0, "pnl":0, "pnl_std":0, "pnl_std_pct":0, "net_pips":0, "net_pipsSeriestd":0, "net_pipsSeriestd_pct":0, "avg_pips_pre_contract":0, "avg_pips_pre_contract_std":0, "avg_pips_pre_contract_std_pct":0, "profit_factor":0, "profit_factor_std":0, "profit_factor_std_pct":0, "payoffRatio":0, "payoffRatio_std":0, "payoffRatio_std_pct":0, "roci":0, "roci_std":0, "roci_std_pct":0, "sharpeRatio":0, "sharpeRatio_std":0, "sharpeRatio_std_pct":0, "tharp_expectancy":0, "tharp_expectancy_std":0, "tharp_expectancy_std_pct":0, "expectancy":0, "expectancy_std":0, "expectancy_std_pct":0, "mdd":0, "mddSeriestd":0, "mddSeriestd_pct":0, "mddPct":0, "mddPct_std":0, "mddPct_std_pct":0, "mddDaily":0, "mddDaily_std":0, "mddDaily_std_pct":0, "mddPct_daily":0, "mddPct_daily_std":0, "mddPct_daily_std_pct":0, "ddDuration":0, "ddDuration_std":0, "ddDuration_std_pct":0, "ddDuration_daily":0, "ddDuration_daily_std":0, "ddDuration_daily_std_pct":0}
 
-    all_backtest_summary = []
+    all_backtestSummary = []
 
     for backtest in backtests:
-        backtest_summary = {}
-        backtest_summary['backtest_report_path'] = backtest['report_full_path']
+        backtestSummary = {}
+        backtestSummary['backtest_report_path'] = backtest['report_full_path']
         backtest_parameter = {}
         backtest_parameter_json = json.loads(backtest['strategy_parameter'])
         for key in backtest_parameter_json:
             backtest_parameter[key] = backtest_parameter_json[key]['value']
-        backtest_summary['parameter'] = backtest_parameter
-        backtest_summary['performance'] = backtest
+        backtestSummary['parameter'] = backtest_parameter
+        backtestSummary['performance'] = backtest
 
 
-        all_backtest_summary.append(backtest_summary)
+        all_backtestSummary.append(backtestSummary)
         for key in key_to_calculate:
             optimization_values[key].append(backtest[key])
 
@@ -425,11 +327,11 @@ def create_optimization_report(optimization):
             optimization_summary[key + '_std_pct'] = optimization_summary[key + '_std'] / optimization_summary[key]
 
     export_json = {}
-    export_json['backtest'] = all_backtest_summary
+    export_json['backtest'] = all_backtestSummary
     export_json['optimization_summary'] = optimization_summary
-    first_backtest_summary = all_backtest_summary[0]
+    first_backtestSummary = all_backtestSummary[0]
 
-    db.update_optimization(optimization["id"], optimization_summary, all_backtest_summary[0])
+    db.update_optimization(optimization["id"], optimization_summary, all_backtestSummary[0])
 
     #do heatmap of parameter and pnl etc...
     for backtest in backtests:
@@ -440,10 +342,10 @@ def create_optimization_report(optimization):
     result, message = db.update_optimization_status(optimization_id, "completed")
 
 
-def create_report_summary(report_folder):
+def CreateReportSummary(report_folder):
     #loop position
-    with open(report_folder+"\\session_config.json") as data_file:
-        session_config = json.load(data_file)
+    with open(report_folder+"\\sessionConfig.json") as data_file:
+        sessionConfig = json.load(data_file)
 
     with open(report_folder + "\\positions.json") as data_file:
         positions = json.load(data_file)
@@ -451,95 +353,95 @@ def create_report_summary(report_folder):
     with open(report_folder+"\\orders.json") as data_file:
         orders = json.load(data_file)
 
-    position_summary = {}
-    position_summary['winner_position'] = create_position_summary(positions, "WIN")
-    position_summary['loser_position'] = create_position_summary(positions, "LOSS")
-    position_summary['all_position'] = create_position_summary(positions)
+    positionSummary = {}
+    positionSummary['winnerPosition'] = CreatePositionSummary(positions, "WIN")
+    positionSummary['loserPosition'] = CreatePositionSummary(positions, "LOSS")
+    positionSummary['allPosition'] = CreatePositionSummary(positions)
 
-    _backtest_summary = create_backtest_summary(session_config, positions, position_summary)
+    _backtestSummary = CreateBacktestSummary(sessionConfig, positions, positionSummary)
 
 
-    with open(report_folder + "//position_summary.json", 'w') as fp:
-        json.dump(position_summary, fp, cls=AntJSONEncoder)
+    with open(report_folder + "//positionSummary.json", 'w') as fp:
+        json.dump(positionSummary, fp, cls=AntJSONEncoder)
 
-    with open(report_folder + "//backtest_summary.json", 'w') as fp:
-        json.dump(_backtest_summary, fp, cls=AntJSONEncoder)
+    with open(report_folder + "//backtestSummary.json", 'w') as fp:
+        json.dump(_backtestSummary, fp, cls=AntJSONEncoder)
 
-def create_backtest_summary(session_config, positions, position_summary):
-    _backtest_summary = {}
+def CreateBacktestSummary(sessionConfig, positions, positionSummary):
+    _backtestSummary = {}
 
-    _backtest_summary['pnl'] = 0
-    _backtest_summary['pnl_s'] = [0]
-    _backtest_summary['net_pips'] = 0
-    _backtest_summary['equity_s'] = [0]
-    _backtest_summary['equity_daily'] = {}
-    _backtest_summary['pips_s'] = [0]
-    _backtest_summary['pips_daily'] = {}
-    _backtest_summary['avg_pips_pre_contract'] = position_summary['all_position']['all']['avg_pips_pre_contract']
-    _backtest_summary['win_rate'] = position_summary['all_position']['all']['win_rate']
-    _backtest_summary['num_trade'] = position_summary['all_position']['all']['num_trade']
+    _backtestSummary['pnl'] = 0
+    _backtestSummary['pnlSeries'] = [0]
+    _backtestSummary['netPips'] = 0
+    _backtestSummary['equitySeries'] = [0]
+    _backtestSummary['equityDaily'] = {}
+    _backtestSummary['pipsSeries'] = [0]
+    _backtestSummary['pipsDaily'] = {}
+    _backtestSummary['avgPipsPreContract'] = positionSummary['allPosition']['all']['avgPipsPreContract']
+    _backtestSummary['winRate'] = positionSummary['allPosition']['all']['winRate']
+    _backtestSummary['numTrade'] = positionSummary['allPosition']['all']['numTrade']
 
     # Expectancy = (Probability of Win * Average Win) – (Probability of Loss * Average Loss)
-    _backtest_summary['expectancy'] = (position_summary['all_position']['all']['win_rate'] * position_summary['all_position']['all'][
-        'avg_gain']) - (position_summary['all_position']['all']['loss_rate'] * abs(
-        position_summary['all_position']['all']['avg_loss']))
+    _backtestSummary['expectancy'] = (positionSummary['allPosition']['all']['winRate'] * positionSummary['allPosition']['all'][
+        'avgGain']) - (positionSummary['allPosition']['all']['lossRate'] * abs(
+        positionSummary['allPosition']['all']['avgLoss']))
 
-    _backtest_summary['trade_date'] = []
-    _backtest_summary['trade_date_ts'] = []
+    _backtestSummary['tradeDate'] = []
+    _backtestSummary['tradeDateTS'] = []
     for position in positions:
-        if len(_backtest_summary['trade_date_ts']) == 0:
-            dayback_trade_date = datetime.datetime.strptime(position['date'], '%Y%m%d') - datetime.timedelta(days=1)
-            _backtest_summary['trade_date'].append(dt_get_date_str(dayback_trade_date))
-            _backtest_summary['trade_date_ts'].append(dayback_trade_date.timestamp())
+        if len(_backtestSummary['tradeDateTS']) == 0:
+            daybackTradeDate = datetime.strptime(position['date'], '%Y%m%d') - timedelta(days=1)
+            _backtestSummary['tradeDate'].append(getDateStrFromDt(daybackTradeDate))
+            _backtestSummary['tradeDateTS'].append(daybackTradeDate.timestamp())
 
-            _backtest_summary['equity_daily'][dt_get_date_str(dayback_trade_date)] = 0
-            _backtest_summary['pips_daily'][dt_get_date_str(dayback_trade_date)] = 0
+            _backtestSummary['equityDaily'][getDateStrFromDt(daybackTradeDate)] = 0
+            _backtestSummary['pipsDaily'][getDateStrFromDt(daybackTradeDate)] = 0
 
-        _backtest_summary['trade_date'].append(position['date'])
-        _backtest_summary['trade_date_ts'].append(position['date_ts'])
+        _backtestSummary['tradeDate'].append(position['date'])
+        _backtestSummary['tradeDateTS'].append(position['dateTS'])
 
-        if not position['date'] in _backtest_summary['equity_daily']:
-            _backtest_summary['equity_daily'][position['date']] = _backtest_summary['pnl']
-            _backtest_summary['pips_daily'][position['date']] = _backtest_summary['net_pips']
+        if not position['date'] in _backtestSummary['equityDaily']:
+            _backtestSummary['equityDaily'][position['date']] = _backtestSummary['pnl']
+            _backtestSummary['pipsDaily'][position['date']] = _backtestSummary['netPips']
 
-        _backtest_summary['pnl_s'].append(position['pnl'])
-        _backtest_summary['pnl'] += position['pnl']
-        _backtest_summary['net_pips'] += position['net_pips']
+        _backtestSummary['pnlSeries'].append(position['pnl'])
+        _backtestSummary['pnl'] += position['pnl']
+        _backtestSummary['netPips'] += position['netPips']
 
-        _backtest_summary['equity_s'].append(_backtest_summary['pnl'])
-        _backtest_summary['equity_daily'][position['date']] += position['pnl']
-        _backtest_summary['pips_s'].append(_backtest_summary['net_pips'])
-        _backtest_summary['pips_daily'][position['date']] += position['net_pips']
+        _backtestSummary['equitySeries'].append(_backtestSummary['pnl'])
+        _backtestSummary['equityDaily'][position['date']] += position['pnl']
+        _backtestSummary['pipsSeries'].append(_backtestSummary['netPips'])
+        _backtestSummary['pipsDaily'][position['date']] += position['netPips']
 
-    _backtest_summary['dd_s'], _backtest_summary['mdd'], _backtest_summary['dd_pct'], _backtest_summary['mdd_pct'], \
-    _backtest_summary['dd_duration'], _backtest_summary['new_high_s'] = calculate_drawdown(_backtest_summary['equity_s'], session_config)
+    _backtestSummary['ddSeries'], _backtestSummary['mdd'], _backtestSummary['dd_pct'], _backtestSummary['mddPct'], \
+    _backtestSummary['ddDuration'], _backtestSummary['newHighSeries'] = CalculateDrawdown(_backtestSummary['equitySeries'], sessionConfig)
 
-    _backtest_summary['dd_daily'], _backtest_summary['mdd_daily'], _backtest_summary['dd_pct_daily'], _backtest_summary['mdd_pct_daily'], \
-    _backtest_summary['dd_duration_daily'], _backtest_summary['new_high_daily'] = calculate_drawdown(_backtest_summary['equity_daily'], session_config)
+    _backtestSummary['ddDaily'], _backtestSummary['mddDaily'], _backtestSummary['dd_pctDaily'], _backtestSummary['mddPctDaily'], \
+    _backtestSummary['ddDurationDaily'], _backtestSummary['newHighDaily'] = CalculateDrawdown(_backtestSummary['equityDaily'], sessionConfig)
 
     #Payoff ratio average win / average loss
-    _backtest_summary['payoff_ratio'] = 0
-    if(position_summary['all_position']['all']['gross_loss']!=0):
-        _backtest_summary[
-            'payoff_ratio'] = position_summary['all_position']['all']['avg_gain'] / position_summary['all_position']['all']['gross_loss']
+    _backtestSummary['payoffRatio'] = 0
+    if(positionSummary['allPosition']['all']['grossLoss']!=0):
+        _backtestSummary[
+            'payoffRatio'] = positionSummary['allPosition']['all']['avgGain'] / positionSummary['allPosition']['all']['grossLoss']
 
     #Profit factor = (Gross Profit / Gross Loss)
-    _backtest_summary['profit_factor'] = 0
-    if(position_summary['all_position']['all']['gross_loss']!=0):
-        _backtest_summary['profit_factor'] = position_summary['all_position']['all']['gross_gain'] / abs(position_summary['all_position']['all']['gross_loss'])
+    _backtestSummary['profitFactor'] = 0
+    if(positionSummary['allPosition']['all']['grossLoss']!=0):
+        _backtestSummary['profitFactor'] = positionSummary['allPosition']['all']['grossGain'] / abs(positionSummary['allPosition']['all']['grossLoss'])
 
     #recovery factor = (Gross Profit / Gross Loss)
-    _backtest_summary['recovery_factor'] = 0
-    if(position_summary['all_position']['all']['gross_loss']!=0):
-        _backtest_summary['recovery_factor'] = position_summary['all_position']['all']['gross_gain'] / abs(position_summary['all_position']['all']['gross_loss'])
+    _backtestSummary['recoveryFactor'] = 0
+    if(positionSummary['allPosition']['all']['grossLoss']!=0):
+        _backtestSummary['recoveryFactor'] = positionSummary['allPosition']['all']['grossGain'] / abs(positionSummary['allPosition']['all']['grossLoss'])
 
     #recovery_factor = Net profit divided by Max. system drawdown
-    _backtest_summary['recovery_factor'] = 0
-    if _backtest_summary['mdd']!=0:
-        _backtest_summary['recovery_factor'] = _backtest_summary['pnl'] / _backtest_summary['mdd']
+    _backtestSummary['recoveryFactor'] = 0
+    if _backtestSummary['mdd']!=0:
+        _backtestSummary['recoveryFactor'] = _backtestSummary['pnl'] / _backtestSummary['mdd']
 
     #roci = Net profit divided by Max. system drawdown
-    _backtest_summary['roci'] = (_backtest_summary['pnl'] - session_config['cash']) / session_config['cash']
+    _backtestSummary['roci'] = (_backtestSummary['pnl'] - sessionConfig['cash']) / sessionConfig['cash']
 
     """
     Create the Sharpe ratio for the strategy, based on a
@@ -550,16 +452,16 @@ def create_backtest_summary(session_config, positions, position_summary):
     periods - Daily (252), Hourly (252*6.5), Minutely(252*6.5*60) etc.
     """
     periods = 252
-    _backtest_summary['sharpe_ratio'] = 0
-    if (np.std(_backtest_summary['equity_s']) != 0):
-        _backtest_summary[
-            'sharpe_ratio'] = np.nan_to_num(np.sqrt(periods) * (np.mean(_backtest_summary['equity_s'])) / np.std(_backtest_summary['equity_s']))
+    _backtestSummary['sharpeRatio'] = 0
+    if (np.std(_backtestSummary['equitySeries']) != 0):
+        _backtestSummary[
+            'sharpeRatio'] = np.nan_to_num(np.sqrt(periods) * (np.mean(_backtestSummary['equitySeries'])) / np.std(_backtestSummary['equitySeries']))
 
-    pnl_s = _backtest_summary['pnl_s'][1:]
+    pnl_s = _backtestSummary['pnlSeries'][1:]
     pnl_np = np.asarray(pnl_s)
     std = pnl_np.std()
-    _backtest_summary['standard_deviation'] = std
-    _backtest_summary['standard_error'] = std / math.sqrt(len(positions))
+    _backtestSummary['standardDeviation'] = std
+    _backtestSummary['standardError'] = std / math.sqrt(len(positions))
 
 
     '''
@@ -571,62 +473,65 @@ def create_backtest_summary(session_config, positions, position_summary):
             AL = average losing trade
             PL = probably of losing (total losses / total trades )
     '''
-    _backtest_summary['tharp_expectancy'] = 0
-    if (abs(position_summary['all_position']['all']['avg_loss']) != 0):
-        _backtest_summary['tharp_expectancy'] = ((position_summary['all_position']['all']['win_rate'] * position_summary['all_position']['all']['avg_gain']) + (
-            position_summary['all_position']['all']['loss_rate'] * position_summary['all_position']['all']['avg_loss'])) / abs(position_summary['all_position']['all']['avg_loss'])
+    _backtestSummary['tharpExpectancy'] = 0
+    if (abs(positionSummary['allPosition']['all']['avgLoss']) != 0):
+        _backtestSummary['tharpExpectancy'] = ((positionSummary['allPosition']['all']['winRate'] * positionSummary['allPosition']['all']['avgGain']) + (
+            positionSummary['allPosition']['all']['lossRate'] * positionSummary['allPosition']['all']['avgLoss'])) / abs(positionSummary['allPosition']['all']['avgLoss'])
 
-    last_cash = session_config['cash']
-    _backtest_summary['monthly_cash'] = {}
-    _backtest_summary['monthly_pnl'] = {}
-    _backtest_summary['month_s'] = []
+    last_cash = sessionConfig['cash']
+    _backtestSummary['monthlyCash'] = {}
+    _backtestSummary['monthlyPnl'] = {}
+    _backtestSummary['monthSeries'] = []
     for position in positions:
-        _year_str = position['date'][:4]
-        _month_str = position['date'][4:6]
+        _yearStr = position['date'][:4]
+        _monthStr = position['date'][4:6]
 
-        if not _year_str in _backtest_summary['monthly_pnl']:
-            _backtest_summary['monthly_cash'][_year_str] = {}
-            _backtest_summary['monthly_pnl'][_year_str] = {}
+        if not _yearStr in _backtestSummary['monthlyPnl']:
+            _backtestSummary['monthlyCash'][_yearStr] = {}
+            _backtestSummary['monthlyPnl'][_yearStr] = {}
 
-        if not _month_str in _backtest_summary['monthly_pnl'][_year_str]:
-            _backtest_summary['month_s'].append(position['date'][:6])
-            _backtest_summary['monthly_cash'][_year_str][_month_str] = last_cash
-            _backtest_summary['monthly_pnl'][_year_str][_month_str] = 0
+        if not _monthStr in _backtestSummary['monthlyPnl'][_yearStr]:
+            _backtestSummary['monthSeries'].append(position['date'][:6])
+            _backtestSummary['monthlyCash'][_yearStr][_monthStr] = last_cash
+            _backtestSummary['monthlyPnl'][_yearStr][_monthStr] = 0
 
         last_cash += position['pnl']
-        _backtest_summary['monthly_pnl'][_year_str][_month_str] += position['pnl']
+        _backtestSummary['monthlyPnl'][_yearStr][_monthStr] += position['pnl']
 
-    _backtest_summary['monthly_return'] = {}
-    _backtest_summary['monthly_return_heatmap'] = []
+    _backtestSummary['monthlyReturn'] = {}
+    _backtestSummary['monthlyReturnHeatmap'] = []
     x = 0
     y = 0
     x_axis = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     y_axis = []
-    last_year = None
-    for month_str in _backtest_summary['month_s']:
-        _year_str = month_str[:4]
-        _month_str = month_str[4:]
+    lastYear = None
 
-        if last_year is None:
-            last_year = _year_str
-            y_axis.append(last_year)
 
-        if last_year != _year_str:
-            last_year = _year_str
-            y_axis.append(last_year)
+
+    for monthStr in reversed(_backtestSummary['monthSeries']):
+        _yearStr = monthStr[:4]
+        _monthStr = monthStr[4:]
+
+        if lastYear is None:
+            lastYear = _yearStr
+            y_axis.append(lastYear)
+
+        if lastYear != _yearStr:
+            lastYear = _yearStr
+            y_axis.append(lastYear)
             y += 1
 
-        x = int(_month_str) - 1
+        x = int(_monthStr) - 1
 
-        _backtest_summary['monthly_return'][month_str] = float("{0:.2f}".format(_backtest_summary['monthly_pnl'][_year_str][_month_str] / _backtest_summary['monthly_cash'][_year_str][_month_str] * 100))
-        _backtest_summary['monthly_return_heatmap'].append([x,y,_backtest_summary['monthly_return'][month_str]])
-        _backtest_summary['monthly_return_heatmap_x_axis'] = x_axis
-        _backtest_summary['monthly_return_heatmap_y_axis'] = y_axis
+        _backtestSummary['monthlyReturn'][monthStr] = float("{0:.1f}".format(_backtestSummary['monthlyPnl'][_yearStr][_monthStr] / _backtestSummary['monthlyCash'][_yearStr][_monthStr] * 100))
+        _backtestSummary['monthlyReturnHeatmap'].append([x,y,_backtestSummary['monthlyReturn'][monthStr]])
+        _backtestSummary['monthlyReturnHeatmapXAxis'] = x_axis
+        _backtestSummary['monthlyReturnHeatmapYAxis'] = y_axis
 
-    return _backtest_summary
+    return _backtestSummary
 
 
-def create_position_summary(positions, result_filter="ALL"):
+def CreatePositionSummary(positions, result_filter="ALL"):
     _summary = {}
 
     if not result_filter == "ALL":
@@ -645,147 +550,149 @@ def create_position_summary(positions, result_filter="ALL"):
         else:
             _selected_short_position.append(position)
 
-    _summary['all'] = calculate_position_summary(_selected_position)
-    _summary['long'] = calculate_position_summary(_selected_long_position)
-    _summary['short'] = calculate_position_summary(_selected_short_position)
+    _summary['all'] = CalculatePositionSummary(_selected_position)
+    _summary['long'] = CalculatePositionSummary(_selected_long_position)
+    _summary['short'] = CalculatePositionSummary(_selected_short_position)
 
     return _summary
 
-def calculate_position_summary(positions):
+def CalculatePositionSummary(positions):
     _summary = {}
-    _summary['num_trade'] = len(positions)
-    _summary['net_pips'] = 0
+    _summary['numTrade'] = len(positions)
+    _summary['netPips'] = 0
     _summary['pnl'] = 0
-    _summary['num_winner'] = 0
-    _summary['num_loser'] = 0
-    _summary['gross_gain'] = 0
-    _summary['gross_loss'] = 0
-    _summary['largest_win'] = -1
-    _summary['largest_loss'] = 999999999
+    _summary['numWinner'] = 0
+    _summary['numLoser'] = 0
+    _summary['grossGain'] = 0
+    _summary['grossLoss'] = 0
+    _summary['largestWin'] = -1
+    _summary['largestLoss'] = 999999999
     _summary['commission'] = 0
     _summary['slippage'] = 0
-    _summary['avg_slippage'] = 0
-    _summary['num_contract'] = 0
+    _summary['avgSlippage'] = 0
+    _summary['numContract'] = 0
 
     for position in positions:
-        _summary['net_pips'] += position['net_pips']
+        _summary['netPips'] += position['netPips']
         _summary['pnl'] += position['pnl']
         _summary['commission'] += position['commission']
-        _summary['slippage'] += position['slippage']
-        _summary['num_contract'] += position['max_net'] * 2
+        _summary['slippage'] += position['totalSlippage']
+        _summary['numContract'] += position['qty']
+
+
         if position['result'] == "WIN":
-            _summary['num_winner'] += 1
-            _summary['gross_gain'] += position['pnl']
-            _summary['largest_win'] = max(_summary['largest_win'], position['pnl'])
+            _summary['numWinner'] += 1
+            _summary['grossGain'] += position['pnl']
+            _summary['largestWin'] = max(_summary['largestWin'], position['pnl'])
         else:
-            _summary['num_loser'] += 1
-            _summary['gross_loss'] += position['pnl']
-            _summary['largest_loss'] = min(_summary['largest_loss'], position['pnl'])
+            _summary['numLoser'] += 1
+            _summary['grossLoss'] += position['pnl']
+            _summary['largestLoss'] = min(_summary['largestLoss'], position['pnl'])
 
-    if _summary['num_trade'] == 0:
-        _summary['win_rate'] = 0
-        _summary['loss_rate'] = 0
-        _summary['avg_pnl'] = 0
-        _summary['avg_gain'] = 0
-        _summary['avg_loss'] = 0
-        _summary['avg_pips_pre_contract'] = 0
-        _summary['avg_slippage'] = 0
-        _summary['avg_commission'] = 0
+    if _summary['numTrade'] == 0:
+        _summary['winRate'] = 0
+        _summary['lossRate'] = 0
+        _summary['avgPnl'] = 0
+        _summary['avgGain'] = 0
+        _summary['avgLoss'] = 0
+        _summary['avgPipsPreContract'] = 0
+        _summary['avgSlippage'] = 0
+        _summary['avgCommission'] = 0
     else:
-        _summary['win_rate'] = _summary['num_winner'] / _summary['num_trade']
-        _summary['loss_rate'] = _summary['num_loser'] / _summary['num_trade']
-        _summary['avg_gain'] = _summary['gross_gain'] / _summary['num_trade']
-        _summary['avg_loss'] = _summary['gross_loss'] / _summary['num_trade']
-        _summary['avg_pnl'] = _summary['pnl'] / _summary['num_trade']
-        _summary['avg_pips_pre_contract'] = _summary['net_pips'] / _summary['num_contract']
-        _summary['avg_slippage'] = _summary['slippage'] / _summary['num_contract']
-        _summary['avg_commission'] = _summary['commission'] / _summary['num_contract']
+        _summary['winRate'] = _summary['numWinner'] / _summary['numTrade']
+        _summary['lossRate'] = _summary['numLoser'] / _summary['numTrade']
+        _summary['avgGain'] = _summary['grossGain'] / _summary['numTrade']
+        _summary['avgLoss'] = _summary['grossLoss'] / _summary['numTrade']
+        _summary['avgPnl'] = _summary['pnl'] / _summary['numTrade']
+        _summary['avgPipsPreContract'] = _summary['netPips'] / _summary['numContract']
+        _summary['avgSlippage'] = _summary['slippage'] / _summary['numContract']
+        _summary['avgCommission'] = _summary['commission'] / _summary['numContract']
 
-    if _summary['largest_win'] == -1:
-        _summary['largest_win'] = 0
+    if _summary['largestWin'] == -1:
+        _summary['largestWin'] = 0
 
-    if _summary['largest_loss'] == 999999999:
-        _summary['largest_loss'] = 0
+    if _summary['largestLoss'] == 999999999:
+        _summary['largestLoss'] = 0
 
     return _summary
 
-def calculate_drawdown(equity_s, session_config):
+def CalculateDrawdown(equitySeries, sessionConfig):
     # Calculate the cumulative returns curve
     # and set up the High Water Mark
-    if (len(equity_s) == 0):
-        return equity_s, 0.0, equity_s, 0.0, 0, equity_s
+    if (len(equitySeries) == 0):
+        return equitySeries, 0.0, equitySeries, 0.0, 0, equitySeries
 
     watermark = 0
-    duration_watermark = 0
-    duration_counter = 0
+    durationWatermark = 0
+    durationCounter = 0
 
-    if isinstance(equity_s, dict):
-        drawdown_s = {}
-        drawdown_pct_s = {}
-        new_high_s = {}
-        date_s = sorted(list(equity_s.keys()))
+    if isinstance(equitySeries, dict):
+        drawdownSeries = {}
+        drawdownPctSeries = {}
+        newHighSeries = {}
+        dateSeries = sorted(list(equitySeries.keys()))
 
-        for date_key in date_s:
-            equity = equity_s[date_key]
+        for dateKey in dateSeries:
+            equity = equitySeries[dateKey]
             if equity > watermark:
-                new_high_s[date_key] = equity
+                newHighSeries[dateKey] = equity
                 watermark = equity  # markwater mark
-                duration_watermark = max(duration_watermark, duration_counter)
-                duration_counter = 0
+                durationWatermark = max(durationWatermark, durationCounter)
+                durationCounter = 0
             else:
-                duration_counter += 1
+                durationCounter += 1
 
             dd = equity - watermark
-            drawdown_s[date_key] = dd
-            drawdown_pct_s[date_key] = abs(dd) / (watermark + session_config["cash"])
-        mdd = abs(min(drawdown_s.values()))
-        mdd_pct = max(drawdown_pct_s.values())
+            drawdownSeries[dateKey] = dd
+            drawdownPctSeries[dateKey] = abs(dd) / (watermark + sessionConfig["cash"])
+        mdd = abs(min(drawdownSeries.values()))
+        mddPct = max(drawdownPctSeries.values())
     else:
-        drawdown_s = []
-        drawdown_pct_s = []
-        new_high_s = []
+        drawdownSeries = []
+        drawdownPctSeries = []
+        newHighSeries = []
 
         i = 0
 
-        for equity in equity_s:
+        for equity in equitySeries:
             if equity > watermark:
-                new_high_s.append([i+1, equity])
+                newHighSeries.append([i+1, equity])
                 watermark = equity          #markwater mark
-                duration_watermark = max(duration_watermark, duration_counter)
-                duration_counter = 0
+                durationWatermark = max(durationWatermark, durationCounter)
+                durationCounter = 0
             else:
-                duration_counter += 1
+                durationCounter += 1
             dd = equity - watermark
-            drawdown_s.append(dd)
-            drawdown_pct_s.append(abs(dd)/(watermark + session_config["cash"]))
+            drawdownSeries.append(dd)
+            drawdownPctSeries.append(abs(dd)/(watermark + sessionConfig["cash"]))
 
             i += 1
 
-        mdd = abs(min(drawdown_s))
-        mdd_pct = abs(max(drawdown_pct_s))
+        mdd = abs(min(drawdownSeries))
+        mddPct = abs(max(drawdownPctSeries))
 
-    duration_watermark = max(duration_watermark, duration_counter)
-    return drawdown_s, mdd, drawdown_pct_s, mdd_pct, duration_watermark, new_high_s
+    durationWatermark = max(durationWatermark, durationCounter)
+    return drawdownSeries, mdd, drawdownPctSeries, mddPct, durationWatermark, newHighSeries
 
 
-def combine_walk_forward_test(walk_forward_test_id, backtests):
-    db.update_walk_forward_test_status(walk_forward_test_id, "combining")
-    walk_forward_test_report_folder = datetime.datetime.now().strftime("walk_forward_test_%Y%m%d_")+str(walk_forward_test_id).zfill(6) + "_" + backtests[0]['strategy_class']
-    from_path = SessionStaticVariable.base_report_directory + backtests[0]['report_folder_name']
-    to_path = SessionStaticVariable.base_report_directory + walk_forward_test_report_folder
-    copy_tree(from_path, to_path)
+def CombineWalkForwardTest(walkForwardTestId, backtests):
+    db.update_walk_forward_test_status(walkForwardTestId, "combining")
+    walkForwardTestReportFolder = datetime.datetime.now().strftime("walk_forward_test_%Y%m%d_")+str(walkForwardTestId).zfill(6) + "_" + backtests[0]['strategyClass']
+    fromPath = SessionStaticVariable.baseReportDirectory + backtests[0]['report_folder_name']
+    toPath = SessionStaticVariable.baseReportDirectory + walkForwardTestReportFolder
+    copy_tree(fromPath, toPath)
 
-    to_path += "\\"
-    os.remove(to_path + "backtest_summary.json")
-    os.remove(to_path + "position_summary.json")
+    toPath += "\\"
+    os.remove(toPath + "backtestSummary.json")
+    os.remove(toPath + "positionSummary.json")
 
 
     orders = []
     positions = []
-    end_date = None
+    endDate = None
 
     for backtest in backtests:
-        report_folder = SessionStaticVariable.base_report_directory + backtest['report_folder_name'] + "\\"
+        report_folder = SessionStaticVariable.baseReportDirectory + backtest['report_folder_name'] + "\\"
 
         with open(report_folder + "positions.json") as data_file:
             positions += json.load(data_file)
@@ -793,9 +700,9 @@ def combine_walk_forward_test(walk_forward_test_id, backtests):
         with open(report_folder + "orders.json") as data_file:
             orders += json.load(data_file)
 
-        end_date = backtest['end_date']
+        endDate = backtest['endDate']
 
-    end_date = end_date.replace("-", "")
+    endDate = endDate.replace("-", "")
 
     i = 1;
     for position in positions:
@@ -807,206 +714,276 @@ def combine_walk_forward_test(walk_forward_test_id, backtests):
         order['order_id'] = i
         i+=1
 
-    os.remove(to_path + "positions.json")
-    os.remove(to_path + "orders.json")
+    os.remove(toPath + "positions.json")
+    os.remove(toPath + "orders.json")
 
-    with open(to_path + 'positions.json', 'w') as fp:
+    with open(toPath + 'positions.json', 'w') as fp:
         json.dump(positions, fp, cls=AntJSONEncoder)
 
-    with open(to_path + 'orders.json', 'w') as fp:
+    with open(toPath + 'orders.json', 'w') as fp:
         json.dump(orders, fp, cls=AntJSONEncoder)
 
 
-    with open(to_path + "session_config.json") as data_file:
-        session_config = json.load(data_file)
-    session_config['end_date'] = end_date
+    with open(toPath + "sessionConfig.json") as data_file:
+        sessionConfig = json.load(data_file)
+    sessionConfig['endDate'] = endDate
 
-    with open(to_path + 'session_config.json', 'w') as fp:
-        json.dump(session_config, fp, cls=AntJSONEncoder, indent=4)
+    with open(toPath + 'sessionConfig.json', 'w') as fp:
+        json.dump(sessionConfig, fp, cls=AntJSONEncoder, indent=4)
 
-    create_report_summary(to_path)
+    create_report_summary(toPath)
 
-    db.update_walk_forward_test_status(walk_forward_test_id, "completed")
+    db.update_walk_forward_test_status(walkForwardTestId, "completed")
 # endregion
 
 
+
+
 # region Get class / class property
-def get_class_from_name(module_name, class_name):
+def GetClassFromName(moduleName, className):
     # load the module, will raise ImportError if module cannot be loaded
-    m = importlib.import_module(module_name)
+    m = importlib.import_module(moduleName)
     # get the class, will raise AttributeError if class cannot be found
-    c = getattr(m, class_name)
+    c = getattr(m, className)
     return c
 
 
-def get_class_name_from_submodule(module_name):
+def GetClassNameFromSubmodule(moduleName):
     import pyclbr
-    class_name = []
-    module_info = pyclbr.readmodule(module_name)
+    className = []
+    moduleInfo = pyclbr.readmodule(moduleName)
 
-    for item in module_info.values():
-        class_name.append(item.name)
+    for item in moduleInfo.values():
+        name = item.name
+        targetClass = GetClassFromName(moduleName, name)
 
-    return class_name
+        if targetClass.IS_DISPLAY_IN_OPTION:
+            className.append(item.name)
+
+    return className
 
 
-def get_class_from_submodule(module_name):
+def GetClassFromSubmodule(moduleName):
     import pyclbr
-    class_name = []
-    module_info = pyclbr.readmodule(module_name)
+    className = []
+    moduleInfo = pyclbr.readmodule(moduleName)
 
-    for item in module_info.values():
-        class_name.append(item.name)
+    for item in moduleInfo.values():
+        className.append(item.name)
 
     classes = []
-    for name in class_name:
-        classes.append(get_class_from_name(module_name, name))
+    for name in className:
+        classes.append(GetClassFromName(moduleName, name))
 
     return classes
 
 
-def get_submodule_from_module(submodule_name):
+def GetSubmoduleFromModule(submoduleName):
     skip_files = ["__init__.py", "base.py", "future_strategy.py"]
-    path = os.path.dirname(ants.__file__)
-    path = path + "\\" + submodule_name + "\\"
+    path = os.path.dirname(ant.__file__)
+    path = path + "\\" + submoduleName + "\\"
 
-    py_files = []
-    py_modules = []
+    pyFiles = []
+    pyModules = []
     for f in listdir(path):
         if isfile(join(path, f)) and f not in skip_files and f[0] != "_":
-            py_files.append(f)
-            py_modules.append(f.replace(".py", ""))
+            pyFiles.append(f)
+            pyModules.append(f.replace(".py", ""))
 
-    return py_files, py_modules
+    return pyFiles, pyModules
 
-def get_strategy_class_parameter(class_name):
-    submodule_name = "strategy"
-    py_files, py_modules = get_submodule_from_module(submodule_name)
+def GetStrategyClassParameter(className):
+    submoduleName = "strategy"
+    pyFiles, pyModules = GetSubmoduleFromModule(submoduleName)
 
-    for m in py_modules:
-        class_list = get_class_name_from_submodule('ants.' + submodule_name + '.' + m)
-        for strategy_class in class_list:
-            if strategy_class==class_name:
-                strategy_class = get_class_from_submodule('ants.' + submodule_name + '.' + m)
-                strategy_class = strategy_class[0]
-                return strategy_class.OPTIMIZATION_PARAMETER
+    for m in pyModules:
+        classList = GetClassNameFromSubmodule('ant.' + submoduleName + '.' + m)
+        for strategyClass in classList:
+            if strategyClass==className:
+                strategyClass = GetClassFromSubmodule('ant.' + submoduleName + '.' + m)
+                strategyClass = strategyClass[0]
+                return strategyClass.OPTIMIZATION_PARAMETER
     return None
 
-def get_submodule_class_name(submodule_name):
-    py_files, py_modules = get_submodule_from_module(submodule_name)
+def GetSubmoduleClassName(submoduleName):
+    pyFiles, pyModules = GetSubmoduleFromModule(submoduleName)
 
-    py_class = []
-    for m in py_modules:
-        py_class = py_class + get_class_name_from_submodule('ants.' + submodule_name + '.' + m)
+    pyClass = []
+    for m in pyModules:
+        pyClass = pyClass + GetClassNameFromSubmodule('ant.' + submoduleName + '.' + m)
 
-    return py_class
+    return pyClass
 
-def get_submodule_class(submodule_name):
-    py_files, py_modules = get_submodule_from_module(submodule_name)
+def GetSubmoduleClass(submoduleName):
+    pyFiles, pyModules = GetSubmoduleFromModule(submoduleName)
 
-    py_class = []
-    for m in py_modules:
-        py_class = py_class + get_class_from_submodule('ants.' + submodule_name + '.' + m)
+    pyClass = []
+    for m in pyModules:
+        pyClass = pyClass + GetClassFromSubmodule('ant.' + submoduleName + '.' + m)
 
-    return py_class
+    return pyClass
 
-def get_strategy_class_name():
-    classes_name = get_submodule_class_name("strategy")
-    return get_submodule_class_name("strategy")
+def GetStrategyClassName():
+    classesName = GetSubmoduleClassName("strategy")
+    return GetSubmoduleClassName("strategy")
 
-def get_strategy_class_name_with_meta():
-    return_data = []
+def GetStrategyClassNameWithMeta():
+    returnDictata = []
 
-    classes_name = get_submodule_class_name("strategy")
+    classesName = GetSubmoduleClassName("strategy")
 
-    for class_name in classes_name:
+    for className in classesName:
         obj = {}
-        obj['class_name'] = class_name
-        obj['optimization_pair'] = get_class_from_name('ants.strategy.'+class_name, class_name).OPTIMIZATION_PAIR
-        obj['optimization_parameter'] = get_class_from_name('ants.strategy.'+class_name, class_name).OPTIMIZATION_PARAMETER
-        obj['strategt_slug'] = get_class_from_name('ants.strategy.'+class_name, class_name).STRATEGY_SLUG
-        obj['strategy_name'] = get_class_from_name('ants.strategy.'+class_name, class_name).STRATEGY_NAME
-        obj['version'] = get_class_from_name('ants.strategy.'+class_name, class_name).VERSION
-        obj['last_update_date'] = get_class_from_name('ants.strategy.'+class_name, class_name).LAST_UPDATE_DATE
-        return_data.append(obj)
+        obj['className'] = className
+        obj['optimizationPair'] = GetClassFromName('ant.strategy.'+className, className).OPTIMIZATION_PAIR
+        obj['optimizationParameter'] = GetClassFromName('ant.strategy.'+className, className).OPTIMIZATION_PARAMETER
+        obj['strategtSlug'] = GetClassFromName('ant.strategy.'+className, className).STRATEGY_SLUG
+        obj['strategyName'] = GetClassFromName('ant.strategy.'+className, className).STRATEGY_NAME
+        obj['version'] = GetClassFromName('ant.strategy.'+className, className).VERSION
+        obj['lastUpdateDate'] = GetClassFromName('ant.strategy.'+className, className).LAST_UPDATE_DATE
+        returnDictata.append(obj)
 
-    return return_data
+    return returnDictata
 
-def get_walk_forward_test_class_name():
-    return get_submodule_class_name("walk_forward")
+def GetWalkForwardTestClassName():
+    return GetSubmoduleClassName("walk_forward")
 
-def get_data_provider_class_name():
-    return get_submodule_class_name("data_provider")
+def GetDataSourceClassName():
+    return GetSubmoduleClassName("data")
 
-def get_order_handler_class_name():
-    return get_submodule_class_name("order_handler")
+def GetOrderHandlerClassName():
+    return GetSubmoduleClassName("order")
 
-def get_portfolio_class_name():
-    return get_submodule_class_name("portfolio")
+def GetPortfolioClassName():
+    return GetSubmoduleClassName("portfolio")
 
-def get_filter_test_classs():
-    return get_submodule_class_name("filter")
+def GetFilterTestClassName():
+    return GetSubmoduleClassName("filter")
+
+
+def GetSubmoduleClassName(submoduleName):
+    pyFiles, pyModules = GetSubmoduleFromModule(submoduleName)
+
+    pyClass = []
+    for m in pyModules:
+        pyClass = pyClass + GetClassNameFromSubmodule('ant.' + submoduleName + '.' + m)
+
+
+    return pyClass
+
+
+
+def GetSubmoduleClass(submoduleName):
+    pyFiles, pyModules = GetSubmoduleFromModule(submoduleName)
+
+    pyClass = []
+    for m in pyModules:
+        pyClass = pyClass + GetClassFromSubmodule('ant.' + submoduleName + '.' + m)
+
+    return pyClass
+
+def CheckRequiredValue(keys, target_dict):
+    isPass = True
+    missedKey = []
+    for key in keys:
+        if key not in target_dict:
+            isPass = False
+            missedKey.append(key)
+
+    d = {}
+    if isPass:
+        return True
+    else:
+        return CreateSocketioResponse("fail", ", ".join(missedKey) + " are missed", d)
+
+def CreateSocketioResponse(status, description, action, data={}):
+    returnDict = {}
+    returnDict['status'] = status
+    returnDict['description'] = description
+    returnDict['action'] = action
+    returnDict['data'] = data
+    return returnDict
 # endregion
 
-
-# region Math
-def round(f, round):
-    r_str = "{:."+str(round)+"f}"
-    return float(r_str.format(float(f)))
-# endregion
-
-
-# region Optimization related methods
-def get_optimization_parameter_combination(default_data, data):
-    import itertools
-
-    values_conbination = []
-    keys = []
-
-    for key in data:
-        keys.append(key)
-        temp = []
-        parameter = data[key]
-        parameter["min_value"] = int(parameter["min_value"])
-        parameter["max_value"] = int(parameter["max_value"])
-        parameter["step"] = int(parameter["step"])
-        value = parameter["min_value"]
-        while (value <= parameter["max_value"]):
-            temp.append(value)
-            value += parameter["step"]
-        values_conbination.append(temp)
-
-    values_conbination = list(itertools.product(*values_conbination))
-
-    output_parameter = []
-    for values in values_conbination:
-        parameter = {}
-        i = 0
-        for key in keys:
-            parameter[keys[i]] = {}
-            parameter[keys[i]]['value'] = values[i]
-            i += 1
-
-        for default_key in default_data:
-            if default_key not in parameter:
-                parameter[default_key] = {}
-                parameter[default_key]["value"] = default_data[default_key]["value"]
-
-        output_parameter.append(parameter)
-
-    return output_parameter
-# endregion
+def IsIntraDayData(dataName):
+    dataName = dataName.lower()
+    if dataName in ["opend", "highd", "lowd", "closed", "vold", "volumed", "afternoonopend", "afternoonhighd",
+                    "afternoonlowd", "afternoonclosed", "afternoonvold", "afternoonvolumed", "ranged",
+                    "uppershadowd", "lowershadowd", "bodyd", "afternoonranged", "afternoonuppershadowd",
+                    "afternoonlowershadowd", "afternoonbodyd"]:
+        return False
+    return True
 
 
-# region Run external process
-def run_new_py(executable, file, is_new_console=True):
-    try:
-        if is_new_console:
-            p = Popen([executable, file], creationflags=CREATE_NEW_CONSOLE)
-        else:
-            p = Popen([executable, file])
-        print("new py pid:", p.pid)
-    except:
-        print("except found on run_new_py in unilities.py")
-        pass
-# endregion
+def GetDataByName(instance, dataName):
+    strategy = None
+    if issubclass(type(instance), FutureAbstractStrategy):
+        strategy = instance
+    elif issubclass(type(instance), Signal):
+        strategy = instance.strategy
+    elif issubclass(type(instance), Session):
+        strategy = instance.strategy
+    elif issubclass(type(instance), Session):
+        strategy = instance.strategy
+
+    dataName = dataName.lower()
+
+    if dataName == "tr" or dataName == "atr":
+        strategy.useTR = True
+        return strategy.TR
+    if dataName == "open":
+        return strategy.open
+    elif dataName == "high":
+        return strategy.high
+    elif dataName == "low":
+        return strategy.low
+    elif dataName == "close":
+        return strategy.close
+    elif dataName == "vol" or dataName == "volume":
+        return strategy.volume
+
+
+    elif dataName == "opend":
+        return strategy.openD
+    elif dataName == "highd":
+        return strategy.highD
+    elif dataName == "lowd":
+        return strategy.lowD
+    elif dataName == "closed":
+        return strategy.closeD
+    elif dataName == "vold" or dataName == "volumed":
+        return strategy.volumeD
+
+
+    elif dataName == "afternoonopend":
+        return strategy.afternoonOpenD
+    elif dataName == "afternoonhighd":
+        return strategy.afternoonHighD
+    elif dataName == "afternoonlowd":
+        return strategy.afternoonLowD
+    elif dataName == "afternoonclosed":
+        return strategy.afternoonCloseD
+    elif dataName == "afternoonvold" or dataName == "afternoonvolumed":
+        return strategy.afternoonVolumeD
+
+
+    elif dataName == "ranged":
+        return strategy.ranged
+    elif dataName == "uppershadowd":
+        return strategy.upperShadowD
+    elif dataName == "lowershadowd":
+        return strategy.lowerShadowD
+    elif dataName == "bodyd":
+        return strategy.bodyD
+
+
+    elif dataName == "afternoonranged":
+        return strategy.afternoonRangeD
+    elif dataName == "afternoonuppershadowd":
+        return strategy.afternoonUpperShadowD
+    elif dataName == "afternoonlowershadowd":
+        return strategy.afternoonLowerShadowD
+    elif dataName == "afternoonbodyd":
+        return strategy.afternoonBodyD
+
+    return None

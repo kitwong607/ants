@@ -1,6 +1,11 @@
 from .base import AbstractStrategy
-from ..data_provider.base import DataType
 from .. import utilities
+
+from ..order.base import OrderAction, OrderType
+from ..data.datamodel import DataType
+from ..cmath import cmath
+import pandas as pd
+
 
 MONTH_CODE = {"1": "F", "2": "G", "3": "H", "4": "J",
              "5": "K", "6": "M", "7": "N", "8": "Q",
@@ -15,57 +20,139 @@ HKEX_FUTURE = ["HSI","MHI"]
 #4 calculate_exit_signals   -> if data is intra day data and portfolio contain position
 
 class FutureAbstractStrategy(AbstractStrategy):
+    IS_DISPLAY_IN_OPTION = False
+
     STATUS_WAITING = "WAITING"
     STATUS_ENTERED = "ENTERED"
     STATUS_BREAKOUT_SUCCESS = "BREAKOUT_SUCCESS"
     STATUS_BREAKOUT_FAIL = "BREAKOUT_FAIL"
     STATUS_EXITTED = "EXITTED"
 
-    def setup(self, session):
-        self.session = session
-        self.strategy_class = self.session.config.strategy_class
-        self.contract = self.session.config.contract
-        self.parameter = self.session.config.strategy_parameter
+    @staticmethod
+    def GET_OPTIMIZATION_PARAMETER(OPTIMIZATION_PARAMETER, isPrint=False):
+        import itertools, copy
 
-        self.in_period_data = False
+        newOptimizationParameter = copy.deepcopy(OPTIMIZATION_PARAMETER)
+        parameterLists = []
+        keyOrder = []
+        for key in OPTIMIZATION_PARAMETER:
+            parameterValueList = []
+
+            isOptimizationParameter = False
+            if "min" in newOptimizationParameter[key]:
+                isOptimizationParameter = True
+
+            newOptimizationParameter[key].pop('min', None)
+            newOptimizationParameter[key].pop('max', None)
+            newOptimizationParameter[key].pop('step', None)
+
+            if isOptimizationParameter:
+                for i in range(OPTIMIZATION_PARAMETER[key]['min'], OPTIMIZATION_PARAMETER[key]['max'] + 1,
+                               OPTIMIZATION_PARAMETER[key]['step']):
+                    if isPrint: print(key, i)
+                    parameterValueList.append(i)
+                keyOrder.append(key)
+                parameterLists.append(parameterValueList)
+
+        productList = list(itertools.product(*parameterLists))
+        if isPrint: print(newOptimizationParameter)
+        finalOptimizationParameterSetList = []
+
+        if isPrint:
+            print("productList")
+            print(keyOrder)
+            print(productList)
+
+        for parameter in productList:
+            if isPrint: print(parameter)
+            singleOptimizationParameterSet = copy.deepcopy(newOptimizationParameter)
+            i = 0
+            for key in keyOrder:
+                singleOptimizationParameterSet[key]['value'] = parameter[i]
+                i += 1
+
+            finalOptimizationParameterSetList.append(singleOptimizationParameterSet)
+
+        if isPrint:
+            for set in finalOptimizationParameterSetList:
+                print(set)
+
+        return finalOptimizationParameterSetList
+
+    @property
+    def currentDate(self):
+        return self.date[-1]
+
+
+    def Setup(self, session):
+        self.config = session.config
+        self.session = session
+        self.orderHandler = self.session.orderHandler
+        self.strategy_class = self.config.strategyClass
+        self.contract = self.config.contract
+        self.parameter = self.config.strategyParameter
+
+        self.inTradePeriod = False
         self.status = self.STATUS_WAITING
 
-        self._is_end_day = True
+        self.isDayEnd = True
+        self.rangeFilter = None
+        self.range = None
+
+        self.useTR = False
+        self.TR = []
+
+
         #common
-        self.all_inter_ta = []
-        self.inter_day_ta = []
-        self.inter_day_ta_separated = []
-        self.all_intra_ta = []
-        self.intra_day_ta = []
-        self.intra_day_ta_separated = []
+        self.bars = []
+        self.interDayTA = []
+        self.intraDayTA = []
 
-        self.invested = False
-        self.invested_count = 0
+        self.entryCount = 0
 
-        self.market_open_time = None
-        self.current_date = None
-        self.previous_date = None
-        self.td_close_time = None
-        self.trade_date_data = None
+        self.baseQuantity = self.config.baseQuantity
+
+        self.mktOpenTime = None
+        self.mktCloseTime = None
+        self.tradeDateData = None
+        self.stopLoss = 60
+        if "stopLoss" in self.parameter:
+            self.stopLoss = self.parameter["stopLoss"]["value"]
 
         #filter related
-        self.today_action = None
+        self.action = None
 
-        self.contact = self.session.config.contract
-        self.base_quantity = self.session.config.base_quantity
+        self.contact = self.config.contract
 
-        self.current_date = self.previous_date = None
-        self.p_open = None
-        self.p_high = None
-        self.p_low = None
-        self.p_close = None
-        self.p_volume = None
+        self.date = []
+        self.openD = []
+        self.highD = []
+        self.lowD = []
+        self.closeD = []
+        self.volumeD = []
 
-        self.pd_open = self.td_open = None
-        self.pd_high = self.td_high = None
-        self.pd_low = self.td_low = None
-        self.pd_close = self.td_close = None
-        self.pd_volume = self.td_volume = None
+
+        self.afternoonOpenD = []
+        self.afternoonHighD = []
+        self.afternoonLowD = []
+        self.afternoonCloseD = []
+        self.afternoonVolumeD = []
+
+        self.rangeD = []
+        self.upperShadowD = []
+        self.lowerShadowD = []
+        self.bodyD = []
+        self.afternoonRangeD = []
+        self.afternoonUpperShadowD = []
+        self.afternoonLowerShadowD = []
+        self.afternoonBodyD = []
+
+        self.timestamp = []
+        self.open = []
+        self.high = []
+        self.low = []
+        self.close = []
+        self.volume = []
 
         self.sl_price = 0
         self.sp_price = 0
@@ -74,115 +161,265 @@ class FutureAbstractStrategy(AbstractStrategy):
         self.exit_price = 0
         self.exit_time = 0
 
-        self.trade_limit = 0
-        self.signal_resolution = None
-        self.exit_b4_market_close = None
-        self.first_entry_time = None
-        self.last_entry_time = None
+        self.entrySignals = []
+        self.exitSignals = []
+
+        self.tradeLimit = 0
+        self.signalResolution = self.config.signalResolution
+
+        self.minsToExitBeforeMarketClose = None
+        self.entryHourLimitInAdjustedTime = None
 
         if self.parameter is None:
             self.parameter = strategy_class.OPTIMIZATION_PARAMETER
 
-    def calculate_tick_data(self, data):
+
+    def isEntry(self):
+        if self.entryCount == 0:
+            return False
+        return True
+
+
+    def EntryQty(self):
+        return self.session.portfolio.GetEntryQty()
+
+
+    def ExitQty(self):
+        return self.session.portfolio.GetExitQty()
+
+
+    def MaxNet(self):
+        position = self.session.portfolio.CurrentPosition()
+        if position is None:
+            return 0
+        else:
+            return position.maxNet
+
+
+    def NetQty(self):
         pass
+        return self.session.portfolio.maxNet
 
-    def calculate_bar_data(self, data):
-        #1 is day end
-        if data.resolution == "1D":
-            #day end
-            self._is_end_day = True
-            self.pd_data = data
-            self.on_end_date(data)
-        elif (data.resolution in utilities.INTRADAY_BAR_SIZE):
-            if(self._is_end_day):
 
-                self._is_end_day = False
-                self.bars = {}
-                self.ticks = []
+    def CalculateBar(self, bar):
+        # 1 is day end
+        #print(bar.resolution)
+        if bar.resolution == "1D":
+            self.isDayEnd = True
+            self.OnDayEnd(bar)
+        else:   # (bar.resolution in utilities.INTRADAY_BAR_SIZE) #assum all are intra day
+            if (self.isDayEnd):
+                self.isDayEnd = False
 
-                self.previous_date = self.current_date
-                self.current_date = utilities.remove_time_from_datetime(data.timestamp)
-                self.market_open_time = data.timestamp
-                self.market_open_time_min = utilities.get_total_minute_from_datetime(self.market_open_time)
+                self.date.append(utilities.clearTimeInDatetime(bar.timestamp))
+
+                self.mktOpenTime = bar.timestamp
+                self.mktOpenTime_min = utilities.getTotalMinuteInDatetime(self.mktOpenTime)
                 self.invested = False
-                self.invested_count = 0
+                self.entryCount = 0
+
+                self.tradeDateData = self.session.dataSource.GetTickerTradeDateDataByDate(self.currentDate)
+
+                closeTime = self.tradeDateData["aht_close_time"]
+                if closeTime == 0:
+                    closeTime = self.tradeDateData["close_time"]
+                closeTime = str(closeTime)
+                closeTime = utilities.addTimeToDatetime(self.currentDate, int(closeTime[0:2]),
+                                                            int(closeTime[2:4]), int(closeTime[4:]))
+                self.mktCloseTime = closeTime
+
+                afternoonCloseTime = str(self.tradeDateData["close_time"])
+                self.mktAfternoonCloseTime = utilities.addTimeToDatetime(self.currentDate, int(afternoonCloseTime[0:2]),
+                                                            int(afternoonCloseTime[2:4]), int(afternoonCloseTime[4:]))
+
+
+                self.openD.append(bar.openPrice)
+                self.highD.append(bar.highPrice)
+                self.lowD.append(bar.lowPrice)
+                self.closeD.append(bar.closePrice)
+                self.volumeD.append(bar.volume)
+
+                self.upperShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
+                self.lowerShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
+                self.bodyD.append(abs(self.openD[-1] - self.closeD[-1]))
+                self.rangeD.append(self.highD[-1] - self.lowD[-1])
+
+                if bar.timestamp <= self.mktAfternoonCloseTime:
+                    self.afternoonOpenD.append(bar.openPrice)
+                    self.afternoonHighD.append(bar.highPrice)
+                    self.afternoonLowD.append(bar.lowPrice)
+                    self.afternoonCloseD.append(bar.closePrice)
+                    self.afternoonVolumeD.append(bar.volume)
+
+                    self.afternoonUpperShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
+                    self.afternoonLowerShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
+                    self.afternoonBodyD.append(abs(self.openD[-1] - self.closeD[-1]))
+                    self.afternoonRangeD.append(self.highD[-1] - self.lowD[-1])
+
+
+                self.UpdateContact()
+                self.OnNewDay(bar)
+
+            '''
+            if len(self.closeD) == 0:
+                self.openD.append(bar.openPrice)
+                self.highD.append(bar.highPrice)
+                self.lowD.append(bar.lowPrice)
+                self.closeD.append(bar.closePrice)
+                self.volumeD.append(bar.volume)
+
+                self.upperShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
+                self.lowerShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
+                self.bodyD.append(abs(self.openD[-1] - self.closeD[-1]))
+                self.rangeD.append(self.highD[-1] - self.lowD[-1])
+            '''
+
+            #Update current Open high low close and volume
+            if bar.highPrice > self.highD[-1]: self.highD[-1] = bar.highPrice
+            if bar.lowPrice < self.lowD[-1]: self.lowD[-1] = bar.lowPrice
+            self.closeD[-1] = bar.closePrice
+            self.volumeD[-1] += bar.volume
+
+            self.bodyD[-1] = abs(self.openD[-1] - self.closeD[-1])
+            self.rangeD[-1] = self.highD[-1] - self.lowD[-1]
+
+            if self.openD[-1] > self.closeD[-1]:
+                self.upperShadowD[-1] = self.highD[-1] - self.openD[-1]
+                self.lowerShadowD[-1] = self.closeD[-1] - self.lowD[-1]
+            else:
+                self.upperShadowD[-1] = self.highD[-1] - self.closeD[-1]
+                self.lowerShadowD[-1] = self.openD[-1] - self.lowD[-1]
+
+            if bar.timestamp <= self.mktAfternoonCloseTime:
+                if bar.highPrice > self.afternoonHighD[-1]: self.afternoonHighD[-1] = bar.highPrice
+                if bar.lowPrice < self.afternoonLowD[-1]: self.afternoonLowD[-1] = bar.lowPrice
+                self.afternoonCloseD[-1] = bar.closePrice
+                self.afternoonVolumeD[-1] += bar.volume
+
+                self.afternoonBodyD[-1] = abs(self.afternoonOpenD[-1] - self.afternoonCloseD[-1])
+                self.afternoonRangeD[-1] = self.afternoonHighD[-1] - self.afternoonLowD[-1]
+
+                if self.afternoonOpenD[-1] > self.afternoonCloseD[-1]:
+                    self.afternoonUpperShadowD[-1] = self.afternoonHighD[-1] - self.afternoonOpenD[-1]
+                    self.afternoonLowerShadowD[-1] = self.afternoonCloseD[-1] - self.afternoonLowD[-1]
+                else:
+                    self.afternoonUpperShadowD[-1] = self.afternoonHighD[-1] - self.afternoonCloseD[-1]
+                    self.afternoonLowerShadowD[-1] = self.afternoonOpenD[-1] - self.afternoonLowD[-1]
+
+
+            if bar.resolution == self.signalResolution:
+                self.bars.append(bar)
+
+                self.timestamp.append(bar.timestamp)
+                self.open.append(bar.openPrice)
+                self.high.append(bar.highPrice)
+                self.low.append(bar.lowPrice)
+                self.close.append(bar.closePrice)
+                self.volume.append(bar.volume)
+
+            self.CalculateTA(bar)
+
+            if self.inTradePeriod is False:
+                return
+
+            # Calculate Signal
+            if self.CanCalculateExitSignal(bar):
+                self.CalculateExitSignal(bar)
+
+                '''
+                if self.entryHourLimitInAdjustedTime is not None:
+                    #self.Exit(bar, OrderType.MARKET, "ExitBeforeMktClose", self.baseQuantity)
+                    canCalculateExitSignal = False
+
+                if canCalculateExitSignal:
+                    self.CalculateExitSignal(data)
+                '''
+
+            if self.action is not None:
+                if bar.resolution != self.signalResolution:
+                    return
+
+                if self.entryCount >= self.tradeLimit:
+                    return
+                if self.entryHourLimitInAdjustedTime is not None:
+                    if not (bar.adjustedTime > self.entryHourLimitInAdjustedTime["START"] and bar.adjustedTime < self.entryHourLimitInAdjustedTime["END"]):
+                        return
+
+                self.CalculateEntrySignal(bar)
 
 
 
-                self.trade_date_date = self.session.data_provider.get_ticker_trade_date_data(self.current_date)
 
-                close_time = self.trade_date_date["aht_close_time"]
-                if close_time == 0:
-                    close_time = self.trade_date_date["close_time"]
-                close_time = str(close_time)
-                close_time = utilities.add_time_to_datetime(self.current_date, int(close_time[0:2]), int(close_time[2:4]), int(close_time[4:]))
-                self.td_close_time = close_time
+    def CanCalculateExitSignal(self, bar):
+        if self.config.tradeTicker not in self.session.portfolio.positions:
+            return False
 
-                self.pd_open = self.td_open
-                self.pd_high = self.td_high
-                self.pd_low = self.td_low
-                self.pd_close = self.td_close
-                self.pd_volume = self.td_volume
+        if bar.resolution != self.signalResolution:
+            return False
 
-
-                self.td_open = data.open_price
-                self.td_high = data.high_price
-                self.td_low = data.low_price
-                self.td_close = data.close_price
-                self.td_volume = data.volume
-
-                self.update_contact()
-                self.on_new_date(data)
+        if self.minsToExitBeforeMarketClose is not None:
+            diff = utilities.mintueBetweenTwoDatetime(self.mktCloseTime, bar.timestamp, False)
+            if diff <= self.minsToExitBeforeMarketClose:
+                self.Exit(bar, OrderType.MARKET, "ExitBeforeMktClose", self.baseQuantity)
+                return False
+        return True
 
 
-            if data.high_price > self.td_high: self.td_high = data.high_price
-            if data.low_price < self.td_low: self.td_low = data.low_price
+    def CalculateEntrySignal(self, bar):
+        count = 0
+        for signal in self.entrySignals:
+            if signal.CalculateSignal(bar):
+                count += 1
+
+        if count == len(self.entrySignals):
+            self.Entry(bar, OrderType.MARKET, signal.Label(), self.baseQuantity)
 
 
-            self.td_close = data.close_price
-            self.td_volume += data.volume
+    def CalculateExitSignal(self, bar):
+        for signal in self.exitSignals:
+            if signal.CalculateSignal(bar):
+                self.Exit(bar, OrderType.MARKET, signal.Label(), self.baseQuantity)
+                return
 
 
-            self.last_bar = data
-            self.calculate_intra_day_ta(data)
+    def Entry(self, bar, orderType, label, quantity, triggerLimit=None):
+        self.entryCount += 1
+
+        if triggerLimit is None:
+            triggerLimit = self.config.slippage
+        if self.action == OrderAction.BUY:
+            limitPrice = bar.closePrice + triggerLimit
+        else:
+            limitPrice = bar.closePrice - triggerLimit
+
+        orderId = self.orderHandler.GetNextOrderId()
+        contract = self.orderHandler.PrepareContract(self.config.tradeTicker,
+                                                     self.tradeDateData["expected_expiry_month"])
+        order = self.orderHandler.PrepareOrder(self.action, contract, orderId, bar, orderType, label, quantity, limitPrice)
+        order.stopLossThreshold = self.stopLoss
+
+        self.orderHandler.PlaceOrder(orderId, contract, order)
 
 
-            if self.session.config.trade_ticker in self.session.portfolio.positions:
-                is_check_exit = True
-                if not self.invested:
-                    is_check_exit = False
+    def Exit(self, bar, orderType, label, quantity, triggerLimit=None):
+        if triggerLimit is None:
+            triggerLimit = self.config.slippage
 
-                if is_check_exit:
-                   self.calculate_exit_signals(data)
+        orderId = self.orderHandler.GetNextOrderId()
+        contract = self.orderHandler.PrepareContract(self.config.tradeTicker, self.tradeDateData["expected_expiry_month"])
 
-            if self.today_action is not None and self.in_period_data:
-                is_check_entry = True
+        if self.action == OrderAction.BUY:
+            limitPrice = bar.closePrice + triggerLimit
+            order = self.orderHandler.PrepareOrder(OrderAction.SELL, contract, orderId, bar, orderType, label, quantity, limitPrice)
+        else:
+            limitPrice = bar.closePrice - triggerLimit
+            order = self.orderHandler.PrepareOrder(OrderAction.BUY, contract, orderId, bar, orderType, label, quantity, limitPrice)
 
-                if data.resolution!=self.signal_resolution:
-                    is_check_entry = False
-                if self.today_action is None:
-                    is_check_entry = False
-                if self.invested_count >= self.trade_limit:
-                    is_check_entry = False
-                if self.invested:
-                    is_check_entry = False
-                if self.first_entry_time is not None:
-                    if utilities.is_time_before(self.first_entry_time[0], self.first_entry_time[1], self.first_entry_time[2],
-                                               data.timestamp.hour, data.timestamp.minute, data.timestamp.second):
-                        #print("1", data.timestamp)
-                        is_check_entry = False
-                if self.last_entry_time is not None:
-                    if utilities.is_time_after(self.last_entry_time[0], self.last_entry_time[1], self.last_entry_time[2],
-                                               data.timestamp.hour, data.timestamp.minute, data.timestamp.second):
-                        #print("2", data.timestamp)
-                        is_check_entry = False
+        self.orderHandler.PlaceOrder(orderId, contract, order)
 
 
-                if is_check_entry:
-                    self.calculate_entry_signals(data)
-
-    def update_contact(self):
-        trade_data = self.session.data_provider.get_ticker_trade_date_data(self.current_date)
+    def UpdateContact(self):
+        trade_data = self.session.dataSource.GetTickerTradeDateDataByDate(self.currentDate)
         expected_expiry_month = str(trade_data["expected_expiry_month"])
         if int(expected_expiry_month[0]) >= 8:
             year = str(1900 + int(expected_expiry_month[:2]))
@@ -191,147 +428,306 @@ class FutureAbstractStrategy(AbstractStrategy):
 
         month = str(int(expected_expiry_month[2:]))
 
-        if self.session.config.trade_ticker in HKEX_FUTURE:
-            self.contract = "HKFE.F." + self.session.config.trade_ticker + month + year
+        if self.config.tradeTicker in HKEX_FUTURE:
+            self.contract = "HKFE.F." + self.config.tradeTicker + month + year
         else:
-            print("future_strategy.update_contact not develop for " + self.session.config.trade_ticker)
-
-    def set_inverted(self):
-        self.invested = True
-        self.invested_count += 1
+            print("future_strategy.UpdateContact not develop for " + self.config.tradeTicker)
 
 
-    def set_not_inverted(self):
-        self.invested = False
+    def OnNewDay(self, bar):
+        if self.rangeFilter is None:
+            self.range = self.highD[-1] - self.lowD[-1]
+
+        for ta in self.intraDayTA:
+            ta.OnNewDay(bar.timestamp)
+
+        for ta in self.interDayTA:
+            ta.OnNewDay(bar.timestamp)
+
+        for signal in self.entrySignals:
+            signal.OnNewDay(bar)
+
+        for signal in self.exitSignals:
+            signal.OnNewDay(bar)
+
+        if self.inTradePeriod is False:
+            if bar.timestamp >= self.config.startDate and bar.timestamp<=self.config.endDate:
+                self.inTradePeriod = True
+        else:
+            if bar.timestamp >= self.config.endDate:
+                self.inTradePeriod = False
+
+        '''
+        #update range filter
+        if self.rangeType == 1:
+            if len(self.highD) >= 2:
+                self.range = self.highD[-2] - self.lowD[-2]
+
+        elif self.rangeType == 2:
+            if len(self.highD) >= 3:
+                _range1 = self.highD[-2] - self.lowD[-2]
+                _range2 = self.highD[-3] - self.lowD[-3]
+                if _range1 < _range2:
+                    self.range = _range1
+                else:
+                    self.range = _range2
+
+        elif self.rangeType == 3:
+            if len(self.highD) >= 2:
+                self.range = (self.highD[-2] - self.lowD[-2]) / 2
+
+        elif self.rangeType == 4:
+            if len(self.highD) >= 3:
+                self.range = (self.highD[-3] - self.lowD[-3]) / 2
+
+        elif self.rangeType == 5:
+            if len(self.highD) >= 2:
+                _range1 = self.highD[-2] - self.closeD[-2]
+                _range2 = self.closeD[-2] - self.lowD[-2]
+                _range3 = self.highD[-2] - self.openD[-2]
+                _range4 = self.openD[-2] - self.lowD[-2]
+
+                self.range = _range1
+                if _range2 > self.range:
+                    self.range = _range2
+
+                if _range3 > self.range:
+                    self.range = _range3
+
+                if _range4 > self.range:
+                    self.range = _range4
+
+        elif self.rangeType == 6:
+            if len(self.highD) >= 2:
+                self.range = (self.highD[-2] - self.lowD[-2]) / 5
+        '''
 
 
-    def on_end_date(self, data):
-        for ta in self.all_inter_ta:
-            ta.push_data(data)
+    def OnDayEnd(self, bar):
+        for ta in self.interDayTA:
+            ta.OnDayEnd()
+
+        for ta in self.intraDayTA:
+            ta.OnDayEnd()
+
+        for signal in self.entrySignals:
+            signal.OnDayEnd()
+
+        for signal in self.exitSignals:
+            signal.OnDayEnd()
+
+    def GetAverageData(self, dataName="high", windowSize=0):
+        self.windowSize = windowSize
+        dataName = dataName.lower()
+
+        if dataName == "open":
+            data = self.open
+        elif dataName == "high":
+            data = self.high
+        elif dataName == "low":
+            data = self.low
+        elif dataName == "close":
+            data = self.close
+        elif dataName == "tr":
+            data = self.TR
+        elif dataName == "atr":
+            data = self.TR
+
+        elif dataName == "openD":
+            data = self.openD
+        elif dataName == "highD":
+            data = self.highD
+        elif dataName == "lowD":
+            data = self.lowD
+        elif dataName == "closeD":
+            data = self.closeD
+
+        return cmath.Average(data, self.windowSize)
 
 
-    def on_new_date(self, data):
-        for ta in self.all_intra_ta:
-            ta.on_new_date(data.timestamp)
+    def GetData(self, dataName="close", offset=0):
+        offset = (offset * -1) - 1
+        dataName = dataName.lower()
+
+        if dataName == "open":
+            return self.open[offset]
+        elif dataName == "high":
+            return self.high[offset]
+        elif dataName == "low":
+            return self.low[offset]
+        elif dataName == "close":
+            return self.close[offset]
 
 
-    def calculate_intra_day_ta(self, data):
-        for ta in self.all_intra_ta:
-            ta.push_data(data)
+        elif dataName == "openD":
+            return self.openD[offset]
+        elif dataName == "highD":
+            return self.highD[offset]
+        elif dataName == "lowD":
+            return self.lowD[offset]
+        elif dataName == "closeD":
+            return self.closeD[offset]
+
+        return None
 
 
-    def ta_to_dict(self, input_ta):
-        ta_d = {}
-        for ta in input_ta:
-            _d = ta.to_dict()
+    def GetTR(self):
+        tr1 = self.high[-1] - self.low[-1]
 
+        if len(self.high) == 1:
+            return tr1
+
+        tr2 = abs(self.high[-1] - self.close[-2])
+        tr3 = abs(self.low[-1] - self.close[-2])
+
+        returnVal = tr1
+        if tr2 > returnVal:
+            returnVal = tr2
+
+        if tr3 > returnVal:
+            returnVal = tr3
+
+        return returnVal
+
+
+    def AddIntraDayTA(self, ta):
+        self.intraDayTA.append(ta)
+
+
+    def AddInterDayTA(self, ta):
+        self.interDayTA.append(ta)
+
+    '''
+    def CalculateInterDayTA(self):
+        for ta in self.interDayTA:
+            ta.UpdateData()
+    '''
+
+    def CalculateTA(self, bar):
+        if self.useTR is True:
+            self.TR.append(self.GetTR())
+
+        for ta in self.interDayTA:
+            ta.Calculate(bar)
+
+        for ta in self.intraDayTA:
+            ta.Calculate(bar)
+
+        if self.rangeFilter is not None:
+            self.range = self.rangeFilter[-1]
+
+
+    def TAToDict(self, inputTA):
+        taDict = {}
+        for ta in inputTA:
+            _d = ta.ToDict()
             if 'slug' in _d.keys():
-                ta_d[_d['slug']] = _d
+                taDict[_d['slug']] = _d
             else:
-                for ta_key in _d:
-                    ta_d[ta_key] = _d[ta_key]
+                for taKey in _d:
+                    taDict[taKey] = _d[taKey]
 
-        return ta_d
+        return taDict
 
 
-    def save(self):
+
+    def Save(self):
         import inspect, os, json
         from shutil import copyfile
 
-        strategy_class_path = inspect.getfile(self.session.config.strategy_class)
-        copyfile(strategy_class_path, self.session.config.report_directory + "//" + os.path.basename(strategy_class_path))
-        copyfile(strategy_class_path, self.session.config.report_directory + "//strategy.txt")
+        strategyClassPath = inspect.getfile(self.config.strategyClass)
+        copyfile(strategyClassPath, self.config.reportDirectory + "//" + os.path.basename(strategyClassPath))
+        copyfile(strategyClassPath, self.config.reportDirectory + "//strategy.txt")
 
-        # do inter_day_ta
-        ta_d = self.ta_to_dict(self.inter_day_ta)
-        json_filename = "//inter_day_ta.json"
-        with open(self.session.config.report_directory + json_filename, 'w') as fp:
-            json.dump(ta_d, fp, cls=utilities.AntJSONEncoder)
+        #Do inter day ta
+        taDict = {}
+        taList = []
+        for ta in self.interDayTA:
+            _d = ta.ToDict()
+            _ta = {}
+            _ta['ticker'] = self.config.dataTicker
+            _ta['slug'] = _d['slug']
+            _ta['name'] = _d['name']
+            taList.append(_ta)
 
-        # do inter_day_ta_separated
-        ta_d = self.ta_to_dict(self.inter_day_ta_separated)
-        json_filename = "//inter_day_ta_separated.json"
-        with open(self.session.config.report_directory + json_filename, 'w') as fp:
-            json.dump(ta_d, fp, cls=utilities.AntJSONEncoder)
+            jsonFolder = self.config.baseTADirectory + "interday/" + self.config.dataTicker + "/"
+            utilities.createFolder(jsonFolder)
 
+            jsonFile = jsonFolder + _d['slug'] + ".json"
+            df = pd.DataFrame(
+                {'date': _d['valuesTimestamp'],
+                 'value': _d['values']
+                 }, columns=['date', 'value'])
+            df['date'] = df['date'].astype(str)
+            df['value'] = df['value'].astype(float)
+
+            if utilities.isFileExist(jsonFile):
+                previousDf = pd.read_json(jsonFile, orient='index')
+                #previousDf = pd.read_csv(csvFile, index_col="date")
+                previousDf['date'] = previousDf.index
+                previousDf = previousDf.reset_index(drop=True)
+
+                previousDf['date'] = previousDf['date'].astype(str)
+                previousDf['value'] = previousDf['value'].astype(float)
+
+                df = pd.concat([previousDf, df]).drop_duplicates(subset=["date", "value"]).sort_values(
+                    'date').reset_index(drop=True)
+
+            df.index = df.date
+            df = df.drop(columns=['date'])
+            df.to_json(jsonFile, orient='index')
+
+        taDict = self.TAToDict(self.interDayTA)
+        jsonFilename = "//interDayTA.json"
+        with open(self.config.reportDirectory + jsonFilename, 'w') as fp:
+            json.dump(taList, fp, cls=utilities.AntJSONEncoder)
+
+        ##########################################################################################
+        ##########################################################################################
 
         #do intra_day_ta
-        ta_d = self.ta_to_dict(self.intra_day_ta)
-        _intra_day_ta = []
+        taDict = self.TAToDict(self.intraDayTA)
+        intraDayTaToSave = []
 
-        for ta_slug in ta_d:
+        for taSlug in taDict:
             _ta = {}
-            _ta['ticker'] = self.session.config.data_ticker
-            _ta['slug'] = ta_d[ta_slug]['slug']
-            _ta['name'] = ta_d[ta_slug]['name']
-            _ta['window_size'] = ta_d[ta_slug]['window_size']
-            _ta['look_back_window_size'] = ta_d[ta_slug]['look_back_window_size']
-            _ta['resolution'] = ta_d[ta_slug]['resolution']
-            _intra_day_ta.append(_ta)
+            _ta['ticker'] = self.config.dataTicker
+            _ta['slug'] = taDict[taSlug]['slug']
+            _ta['name'] = taDict[taSlug]['name']
 
-            for date_key in ta_d[ta_slug]['values_ts']:
-                folder = self.session.config.base_ta_directory + "intraday//" + self.session.config.data_ticker + "//" + ta_d[ta_slug]['slug'] + "_" + ta_d[ta_slug]['resolution']
-                filename = ta_d[ta_slug]['slug'] + "_" + ta_d[ta_slug]['resolution'] + "_" + date_key + ".json"
-                utilities.create_folder(folder)
-                csv_path = folder + "//" + filename
+            if 'windowSize' in taDict[taSlug]:
+                _ta['windowSize'] = taDict[taSlug]['windowSize']
+            if 'offset' in taDict[taSlug]:
+                _ta['offset'] = taDict[taSlug]['offset']
 
-                if not utilities.is_file_exist(csv_path):
+            _ta['resolution'] = taDict[taSlug]['resolution']
+            intraDayTaToSave.append(_ta)
+
+            for dateKey in taDict[taSlug]['valuesTimestamp']:
+                folder = self.config.baseTADirectory + "intraday//" + self.config.dataTicker + "//" + taDict[taSlug]['slug'] + "_" + taDict[taSlug]['resolution']
+                filename = taDict[taSlug]['slug'] + "_" + taDict[taSlug]['resolution'] + "_" + dateKey + ".json"
+                utilities.createFolder(folder)
+                csvPath = folder + "//" + filename
+
+                if not utilities.isFileExist(csvPath):
                     d_to_save = {}
 
-                    d_to_save['name'] = ta_d[ta_slug]['name']
-                    d_to_save['slug'] = ta_d[ta_slug]['slug']
-                    d_to_save['window_size'] = ta_d[ta_slug]['window_size']
-                    d_to_save['look_back_window_size'] = ta_d[ta_slug]['look_back_window_size']
-                    d_to_save['resolution'] = ta_d[ta_slug]['resolution']
-                    d_to_save['values'] = ta_d[ta_slug]['values'][date_key]
-                    d_to_save['values_ts'] = ta_d[ta_slug]['values_ts'][date_key]
-                    d_to_save['calculated_values'] = ta_d[ta_slug]['calculated_values'][date_key]
-                    d_to_save['calculated_values_ts'] = ta_d[ta_slug]['calculated_values_ts'][date_key]
+                    d_to_save['type'] = taDict[taSlug]['type']
+                    d_to_save['name'] = taDict[taSlug]['name']
+                    d_to_save['slug'] = taDict[taSlug]['slug']
 
-                    with open(csv_path, 'w') as fp:
+                    if 'windowSize' in taDict[taSlug]:
+                        d_to_save['windowSize'] = taDict[taSlug]['windowSize']
+                    if 'offset' in taDict[taSlug]:
+                        d_to_save['offset'] = taDict[taSlug]['offset']
+
+                    d_to_save['resolution'] = taDict[taSlug]['resolution']
+                    d_to_save['values'] = taDict[taSlug]['values'][dateKey]
+                    d_to_save['valuesTimestamp'] = taDict[taSlug]['valuesTimestamp'][dateKey]
+
+                    with open(csvPath, 'w') as fp:
                         json.dump(d_to_save, fp, cls=utilities.AntJSONEncoder)
 
-        json_filename = "//intra_day_ta.json"
-        with open(self.session.config.report_directory + json_filename, 'w') as fp:
-            json.dump(_intra_day_ta, fp, cls=utilities.AntJSONEncoder)
-
-        #do intra_day_ta_separated
-        ta_d = self.ta_to_dict(self.intra_day_ta_separated)
-
-        _intra_day_ta = []
-
-        for ta_slug in ta_d:
-            _ta = {}
-            _ta['ticker'] = self.session.config.data_ticker
-            _ta['slug'] = ta_d[ta_slug]['slug']
-            _ta['name'] = ta_d[ta_slug]['name']
-            _ta['window_size'] = ta_d[ta_slug]['window_size']
-            _ta['look_back_window_size'] = ta_d[ta_slug]['look_back_window_size']
-            _ta['resolution'] = ta_d[ta_slug]['resolution']
-            _intra_day_ta.append(_ta)
-
-            for date_key in ta_d[ta_slug]['values_ts']:
-                folder = self.session.config.base_ta_directory + "intraday//" + self.session.config.data_ticker + "//" + ta_d[ta_slug]['slug'] + "_" + ta_d[ta_slug]['resolution']
-                filename = ta_d[ta_slug]['slug'] + "_" + ta_d[ta_slug]['resolution'] + "_" + date_key + ".json"
-                utilities.create_folder(folder)
-                csv_path = folder + "//" + filename
-
-                if not utilities.is_file_exist(csv_path):
-                    d_to_save = {}
-
-                    d_to_save['name'] = ta_d[ta_slug]['name']
-                    d_to_save['slug'] = ta_d[ta_slug]['slug']
-                    d_to_save['window_size'] = ta_d[ta_slug]['window_size']
-                    d_to_save['look_back_window_size'] = ta_d[ta_slug]['look_back_window_size']
-                    d_to_save['resolution'] = ta_d[ta_slug]['resolution']
-                    d_to_save['values'] = ta_d[ta_slug]['values'][date_key]
-                    d_to_save['values_ts'] = ta_d[ta_slug]['values_ts'][date_key]
-                    d_to_save['calculated_values'] = ta_d[ta_slug]['calculated_values'][date_key]
-                    d_to_save['calculated_values_ts'] = ta_d[ta_slug]['calculated_values_ts'][date_key]
-
-                    with open(csv_path, 'w') as fp:
-                        json.dump(d_to_save, fp, cls=utilities.AntJSONEncoder)
-
-        json_filename = "//intra_day_ta_separated.json"
-        with open(self.session.config.report_directory + json_filename, 'w') as fp:
-            json.dump(_intra_day_ta, fp, cls=utilities.AntJSONEncoder)
+        jsonFilename = "//intraDayTA.json"
+        with open(self.config.reportDirectory + jsonFilename, 'w') as fp:
+            json.dump(intraDayTaToSave, fp, cls=utilities.AntJSONEncoder)

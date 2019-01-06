@@ -1,8 +1,32 @@
 from abc import ABCMeta
+from enum import IntEnum, Enum
 from datetime import timedelta
 from .. import utilities
 
+
+# region Class: OrderAction
+class OrderAction(Enum):
+    IS_DISPLAY_IN_OPTION = False
+    BUY = "BUY"
+    SELL = "SELL"
+# endregion
+
+# region Class: OrderActionStr
+
+# endregion
+
+# region Class: OrderType
+class OrderType(IntEnum):
+    IS_DISPLAY_IN_OPTION = False
+    MARKET = 0
+    LIMIT = 1
+# endregion
+
+
+
 class Order(object):
+    IS_DISPLAY_IN_OPTION = False
+
     __metaclass__ = ABCMeta
 
     def __init__(self, order_id, ticker, data_ticker, exchange, contract, trigger_price, action, stop_loss_threshold, label, quantity, adjusted_date, adjusted_time):
@@ -57,6 +81,8 @@ class Order(object):
         print("calculate_commission")
 
 class MktOrder(Order):
+    IS_DISPLAY_IN_OPTION = False
+
     def __init__(self, order_id, ticker, data_ticker, exchange, contract, trigger_pice, action, stop_loss_threshold, label, quantity, adjusted_time, adjusted_date):
         super().__init__(order_id, ticker, data_ticker, exchange, contract, trigger_pice, action, stop_loss_threshold, label, quantity, adjusted_time, adjusted_date)
         self.type = "MKT"
