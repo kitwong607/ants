@@ -26,8 +26,10 @@ class CSVOHLCDataSource(AbstractBarDataSource):
 
 
     def LoadCsvFile(self):
+        dataFolderPath = self.config.dataPath + self.config.productType + "/" + self.config.exchange
+
         if self.tradeDate is None:
-            csvFilePath = self.config.dataPath + self.config.exchange + "\\csv\\trade_date\\trade_date.csv"
+            csvFilePath = dataFolderPath + "/csv/trade_date/trade_date.csv"
             if utilities.checkFileExist(csvFilePath):
                 #print(CSVOHLCDataSource.NAME, "load trade date")
                 self.tradeDate = pd.read_csv(csvFilePath, index_col=0, parse_dates=True, date_parser=pd.core.tools.datetimes.to_datetime)
@@ -41,7 +43,7 @@ class CSVOHLCDataSource(AbstractBarDataSource):
         dfs = []
         for resolution in self.config.dataResolution:
             csvFilename = self.config.dataPeriod[self.currentCsvFileIdx] + "_" + self.config.dataTicker + "_" + resolution + ".csv"
-            csvFilePath = self.config.dataPath + self.config.exchange + "\\csv\\" + resolution + "\\" + csvFilename
+            csvFilePath = dataFolderPath + "/csv/" + resolution + "/" + csvFilename
 
             if utilities.checkFileExist(csvFilePath):
                 #print(CSVOHLCDataSource.NAME, "load csv:", resolution, self.config.exchange, self.config.dataTicker)

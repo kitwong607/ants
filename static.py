@@ -9,3 +9,16 @@ EXCHANGE_TIME_ZONE = {"HKEX": 480, "HKFE": 480}
 INTRA_DATE_DATA_RESOLUTION = ["1S", "2S", "3S", "5S", "10S", "12S", "15S", "20S", "30S",
      "1T", "2T", "3T", "5T", "8T", "10T", "12T", "15T", "20T", "30T",
      "1H", "2H"]
+
+
+INDEX_TICKER = ['mhi','hsi']
+COMMODITY_TICKER = ['brent','copper']
+FX_TICKER = ['usdjpy','usdcad']
+
+
+def GetTickerType(tickerType):
+    if str(tickerType).lower() in INDEX_TICKER: return "INDEX"
+    if str(tickerType).lower() in COMMODITY_TICKER: return "COMMODITY_TICKER"
+    if str(tickerType).lower() in FX_TICKER: return "FX"
+
+    return "NOT_SET"

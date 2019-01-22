@@ -51,25 +51,24 @@ class SessionStaticVariable:
 
 
     # region Directory, file location, python path
-    data_path = "X:/data/"
+    dataPath = "X:/"
     log_directory = "X:/log/"
     api_path = "http://127.0.0.1/antXXXXXXX/XXXXXXXX/XXXXXXXX"
 
-    baseReportDirectory = "X:/Data/backtest_report/reports/"
-    baseTADirectory = "X:/Data/backtest_report/ta/"
-    base_filter_directory = "X:/Data/backtest_report/filter/"
+    baseReportDirectory = "Y:/ReportData/BacktestReport/Reports/"
+    baseTADirectory = "Y:/ReportData/BacktestReport/TA/"
+    base_filter_directory = "Y:/ReportData/BacktestReport/Filter/"
 
 
-    base_live_data_directory = "X:/Data/hkex/live/"
-    base_live_reportDirectory = "X:/Data/live_report/reports/"
-    base_live_ta_directory = "X:/Data/live_report/ta/"
-    base_live_filter_directory = "X:/Data/live_report/filter/"
+    base_live_data_directory = "X:/index/ib/Live/"
+    base_live_reportDirectory = "Y:/ReportData/LiveReport/Reports/"
+    base_live_ta_directory = "Y:/ReportData/LiveReport/LiveReport/TA/"
+    base_live_filter_directory = "Y:/ReportData/LiveReport/Filter/"
 
-    pythonw_path = 'E:/Python36-64/pythonw.exe'
-    python_path = "E:/Python36-64/python.exe"
+    pythonw_path = 'C:/Anaconda3/pythonw.exe'
+    python_path = "C:/Anaconda3/python.exe"
 
-    ant_bot_script_directory = "C:/ant_bot_scripts/"
-    ants_script_directory = "C:/ant_bot_scripts/ants_script/"
+    antScriptDirectory = "D:/PythonScript/AntBotScripts/AntsScript"
     # endregion
 # endregion
 
@@ -79,7 +78,8 @@ class SessionConfig:
     def __init__(self, **kwargs):
         # region Directory path, file path related
         self.isDebug = False
-        self.dataPath = SessionStaticVariable.data_path
+        self.productType = "index"
+        self.dataPath = SessionStaticVariable.dataPath
         self.logDirectory = SessionStaticVariable.log_directory
         self.apiPath = SessionStaticVariable.api_path
         self.baseReportDirectory = SessionStaticVariable.baseReportDirectory
@@ -97,6 +97,7 @@ class SessionConfig:
         self.endDate = kwargs["endDate"] if "endDate" in kwargs else datetime(2014, 12, 31, 1, 0, 0)
         self.dataPeriod = utilities.getMonthList(self.startDate - timedelta(days=self.numReferenceDay), self.endDate)
 
+        self.productType = kwargs["productType"] if "productType" in kwargs else "index"
         self.tradeTicker = kwargs["tradeTicker"] if "tradeTicker" in kwargs else "MHI"
         self.dataTicker = kwargs["dataTicker"] if "dataTicker" in kwargs else "MHI"
 
