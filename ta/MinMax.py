@@ -31,21 +31,18 @@ class MinX(WindowTA):
             self.values[self.currentDate] = []
             self.valuesTimestamp[self.currentDate] = []
         else:
-            #do pre calculation before TA
             if len(self.data) > self.windowSize:
-                #today daily date do not invole
-                val = cmath.Min(self.data, self.windowSize)
+                val = cmath.MinOfRange(self.data, -self.windowSize, len(self.data))
                 self.values.append(val)
                 self.valuesTimestamp.append(self.currentDate)
 
     def OnDayEnd(self):
+        return
+        '''
         if len(self.data) < self.windowSize:
             return
+        '''
 
-        if not self.isIntraDay:
-            # update last bar on day end
-            # today daily date do not involed so no need to update in day end
-            pass
 
     def Calculate(self, bar):
         if len(self.data) <= self.windowSize:
@@ -54,15 +51,15 @@ class MinX(WindowTA):
         self.isReady = True
         if self.isIntraDay:
             if self.resolution == bar.resolution:
-                val = cmath.Min(self.data, self.windowSize)
+                val = cmath.MinOfRange(self.data, -self.windowSize, len(self.data))
                 self.values[self.currentDate].append(val)
                 self.valuesTimestamp[self.currentDate].append(bar.timestamp)
 
                 self.continueValues.append(val)
                 self.continueValuesTimestamp.append(bar.timestamp)
         else:
-            # today daily date do not involed so no need to update in each bar
-            pass
+            val = cmath.MinOfRange(self.data, -self.windowSize, len(self.data))
+            self.values[-1] = val
 
 class MaxX(WindowTA):
     @staticmethod
@@ -89,21 +86,17 @@ class MaxX(WindowTA):
             self.values[self.currentDate] = []
             self.valuesTimestamp[self.currentDate] = []
         else:
-            #do pre calculation before TA
             if len(self.data) > self.windowSize:
-                #today daily date do not invole
-                val = cmath.Max(self.data, self.windowSize)
+                val = cmath.MaxOfRange(self.data, -self.windowSize, len(self.data))
                 self.values.append(val)
                 self.valuesTimestamp.append(self.currentDate)
 
     def OnDayEnd(self):
+        return
+        '''
         if len(self.data) < self.windowSize:
             return
-
-        if not self.isIntraDay:
-            # update last bar on day end
-            # today daily date do not involed so no need to update in day end
-            pass
+        '''
 
     def Calculate(self, bar):
         if len(self.data) <= self.windowSize:
@@ -112,15 +105,16 @@ class MaxX(WindowTA):
         self.isReady = True
         if self.isIntraDay:
             if self.resolution == bar.resolution:
-                val = cmath.Max(self.data, self.windowSize)
+                val = cmath.MaxOfRange(self.data, -self.windowSize, len(self.data))
                 self.values[self.currentDate].append(val)
                 self.valuesTimestamp[self.currentDate].append(bar.timestamp)
 
                 self.continueValues.append(val)
                 self.continueValuesTimestamp.append(bar.timestamp)
         else:
-            # today daily date do not involed so no need to update in each bar
-            pass
+            val = cmath.MaxOfRange(self.data, -self.windowSize, len(self.data))
+            self.values[-1] = val
+
 
 class MinXY(DualWindowTA):
     @staticmethod
@@ -161,8 +155,8 @@ class MinXY(DualWindowTA):
             #do pre calculation before TA
             if len(self.xData) > self.xWindowSize and len(self.yData) > self.yWindowSize:
                 #today daily date do not invole
-                xVal = cmath.Min(self.xData, self.xWindowSize)
-                yVal = cmath.Min(self.yData, self.yWindowSize)
+                xVal = cmath.MinOfRange(self.xData, -self.xWindowSize, len(self.xData))
+                yVal = cmath.MinOfRange(self.yData, -self.yWindowSize, len(self.yData))
                 val = yVal
                 if xVal < yVal:
                     val = xVal
@@ -192,8 +186,8 @@ class MinXY(DualWindowTA):
         self.isReady = True
         if self.isIntraDay:
             if self.resolution == bar.resolution:
-                xVal = cmath.Min(self.xData, self.xWindowSize)
-                yVal = cmath.Min(self.yData, self.yWindowSize)
+                xVal = cmath.MinOfRange(self.xData, -self.xWindowSize, len(self.xData))
+                yVal = cmath.MinOfRange(self.yData, -self.yWindowSize, len(self.yData))
                 val = yVal
                 if xVal < yVal:
                     val = xVal
@@ -227,8 +221,8 @@ class MaxXY(DualWindowTA):
         self.yDataName = yDataName
         self.xWindowSize = xWindowSize
         self.yWindowSize = yWindowSize
-        self.name = MinXY.GetName(xDataName, xWindowSize, yDataName, yWindowSize)
-        self.slug = MinXY.GetSlug(xDataName, xWindowSize, yDataName, yWindowSize)
+        self.name = MaxXY.GetName(xDataName, xWindowSize, yDataName, yWindowSize)
+        self.slug = MaxXY.GetSlug(xDataName, xWindowSize, yDataName, yWindowSize)
 
         self.xData = utilities.GetDataByName(session, xDataName)
         self.yData = utilities.GetDataByName(session, yDataName)
@@ -243,8 +237,8 @@ class MaxXY(DualWindowTA):
             #do pre calculation before TA
             if len(self.xData) > self.xWindowSize and len(self.yData) > self.yWindowSize:
                 #today daily date do not invole
-                xVal = cmath.Max(self.xData, self.xWindowSize)
-                yVal = cmath.Max(self.yData, self.yWindowSize)
+                xVal = cmath.MaxOfRange(self.xData, -self.xWindowSize, len(self.xData))
+                yVal = cmath.MaxOfRange(self.yData, -self.yWindowSize, len(self.yData))
                 val = yVal
                 if xVal < yVal:
                     val = xVal
@@ -274,11 +268,128 @@ class MaxXY(DualWindowTA):
         self.isReady = True
         if self.isIntraDay:
             if self.resolution == bar.resolution:
-                xVal = cmath.Max(self.xData, self.xWindowSize)
-                yVal = cmath.Max(self.yData, self.yWindowSize)
+                xVal = cmath.MaxOfRange(self.xData, -self.xWindowSize, len(self.xData))
+                yVal = cmath.MaxOfRange(self.yData, -self.yWindowSize, len(self.yData))
                 val = yVal
                 if xVal < yVal:
                     val = xVal
+                self.values[self.currentDate].append(val)
+                self.valuesTimestamp[self.currentDate].append(bar.timestamp)
+
+                self.continueValues.append(val)
+                self.continueValuesTimestamp.append(bar.timestamp)
+        else:
+            # today daily date do not involed so no need to update in each bar
+            pass
+
+class MinPreviousX(WindowTA):
+    @staticmethod
+    def GetSlug(dataName, windowSize):
+        return dataName +"-"+str(windowSize)+"_previousMin"
+
+    @staticmethod
+    def GetName(dataName, windowSize):
+        return dataName+"("+str(windowSize)+") PreviousMin"
+
+
+    def __init__(self, session, dataName, windowSize: int, isIntraDay, isSave=True):
+        resolution = session.strategy.signalResolution
+
+        super().__init__(session, windowSize, resolution, isIntraDay, isSave)
+        self.dataName = dataName
+        self.name = MinPreviousX.GetName(dataName, windowSize)
+        self.slug = MinPreviousX.GetSlug(dataName, windowSize)
+        self.data = utilities.GetDataByName(session, dataName)
+
+    def OnNewDay(self, date_ts):
+        self.currentDate = utilities.dtGetDateStr(date_ts)
+
+        if self.isIntraDay:
+            self.values[self.currentDate] = []
+            self.valuesTimestamp[self.currentDate] = []
+        else:
+            #do pre calculation before TA
+            if len(self.data) > self.windowSize:
+                #today daily date do not invole
+                val = cmath.MinOfRange(self.data, -self.windowSize-1, len(self.data)-1)
+                self.values.append(val)
+                self.valuesTimestamp.append(self.currentDate)
+
+    def OnDayEnd(self):
+        if len(self.data) < self.windowSize:
+            return
+
+        if not self.isIntraDay:
+            # update last bar on day end
+            # today daily date do not involed so no need to update in day end
+            pass
+
+    def Calculate(self, bar):
+        if len(self.data) <= self.windowSize:
+            return
+
+        self.isReady = True
+        if self.isIntraDay:
+            if self.resolution == bar.resolution:
+                val = cmath.MinOfRange(self.data, -self.windowSize-1, len(self.data)-1)
+                self.values[self.currentDate].append(val)
+                self.valuesTimestamp[self.currentDate].append(bar.timestamp)
+
+                self.continueValues.append(val)
+                self.continueValuesTimestamp.append(bar.timestamp)
+        else:
+            # today daily date do not involed so no need to update in each bar
+            pass
+
+class MaxPreviousX(WindowTA):
+    @staticmethod
+    def GetSlug(dataName, windowSize):
+        return dataName +"-"+str(windowSize)+"_previousMax"
+
+    @staticmethod
+    def GetName(dataName, windowSize):
+        return dataName+"("+str(windowSize)+") PreviousMax"
+
+    def __init__(self, session, dataName, windowSize: int, isIntraDay, isSave=True):
+        resolution = session.strategy.signalResolution
+
+        super().__init__(session, windowSize, resolution, isIntraDay, isSave)
+        self.dataName = dataName
+        self.name = MaxPreviousX.GetName(dataName, windowSize)
+        self.slug = MaxPreviousX.GetSlug(dataName, windowSize)
+        self.data = utilities.GetDataByName(session, dataName)
+
+    def OnNewDay(self, date_ts):
+        self.currentDate = utilities.dtGetDateStr(date_ts)
+
+        if self.isIntraDay:
+            self.values[self.currentDate] = []
+            self.valuesTimestamp[self.currentDate] = []
+        else:
+            #do pre calculation before TA
+            if len(self.data) > self.windowSize:
+                #today daily date do not invole
+                val = cmath.MaxOfRange(self.data, -self.windowSize-1, len(self.data)-1)
+                self.values.append(val)
+                self.valuesTimestamp.append(self.currentDate)
+
+    def OnDayEnd(self):
+        if len(self.data) < self.windowSize:
+            return
+
+        if not self.isIntraDay:
+            # update last bar on day end
+            # today daily date do not involed so no need to update in day end
+            pass
+
+    def Calculate(self, bar):
+        if len(self.data) <= self.windowSize:
+            return
+
+        self.isReady = True
+        if self.isIntraDay:
+            if self.resolution == bar.resolution:
+                val = cmath.MaxOfRange(self.data, -self.windowSize-1, len(self.data)-1)
                 self.values[self.currentDate].append(val)
                 self.valuesTimestamp[self.currentDate].append(bar.timestamp)
 

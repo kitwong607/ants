@@ -51,8 +51,8 @@ class OffsetTA(object):
         else:
             self.resolution = "1D"
             self.strategy.AddInterDayTA(self)
-
-        self.data = utilities.GetDataByName(session, self.dataName)
+        if self.dataName is not "":
+            self.data = utilities.GetDataByName(session, self.dataName)
 
 
     def Calculate(self, bar):

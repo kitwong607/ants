@@ -4,7 +4,7 @@ from .. import utilities
 from ..order.base import OrderAction, OrderType
 from ..data.datamodel import DataType
 from ..cmath import cmath
-import pandas as pd
+import pandas as pd, time, os
 
 
 MONTH_CODE = {"1": "F", "2": "G", "3": "H", "4": "J",
@@ -661,24 +661,88 @@ class FutureAbstractStrategy(AbstractStrategy):
             df['date'] = df['date'].astype(str)
             df['value'] = df['value'].astype(float)
 
+
+            print("jsonFile:", jsonFile)
+            tryCount = 0
+            lockFile = jsonFile.replace(".json", ".lock")
+            isCheckLockFile = utilities.isFileExist(lockFile)
+
+            while isCheckLockFile:
+                print("Lock file exist, please exit:", lockFile)
+                tryCount += 1
+                time.sleep(1)
+                isCheckLockFile = utilities.isFileExist(lockFile)
+
+                if tryCount >= 10:
+                    isCheckLockFile = False
+                    raise ValueError
+
+            print("create lock file:", lockFile)
+            with open(lockFile, 'w') as fp:
+                json.dump({}, fp, indent=4)
+
             if utilities.isFileExist(jsonFile):
-                previousDf = pd.read_json(jsonFile, orient='index')
-                #previousDf = pd.read_csv(csvFile, index_col="date")
-                previousDf['date'] = previousDf.index
-                previousDf = previousDf.reset_index(drop=True)
+                try:
+                    previousDf = pd.read_json(jsonFile, orient='index')
+                    #previousDf = pd.read_csv(csvFile, index_col="date")
+                    previousDf['date'] = previousDf.index
+                    previousDf = previousDf.reset_index(drop=True)
 
-                previousDf['date'] = previousDf['date'].astype(str)
-                previousDf['value'] = previousDf['value'].astype(float)
+                    previousDf['date'] = previousDf['date'].astype(str)
+                    previousDf['value'] = previousDf['value'].astype(float)
+                    previousDf = previousDf[['date', 'value']]
 
-                df = pd.concat([previousDf, df]).drop_duplicates(subset=["date", "value"]).sort_values(
-                    'date').reset_index(drop=True)
+
+
+                    #for debug when value not match with previous, it cannot merge
+                    # print(jsonFile)
+                    #print("previousDf")
+                    #print(previousDf)
+    
+                    #print("df")
+                    #print(df)
+                    '''
+                    forSaveDF = previousDf
+                    forSaveDF.index = forSaveDF.date
+                    forSaveDF.to_csv("X:\log\previousDf1.csv")
+                    forSaveDF = df.drop(columns=['date'])
+    
+    
+                    forSaveDF = df
+                    forSaveDF.index = forSaveDF.date
+                    forSaveDF = df.drop(columns=['date'])
+                    forSaveDF.to_csv("X:\log\df.csv")
+    
+                    forSaveDF = pd.concat([previousDf, df])
+                    forSaveDF['duplicated'] = forSaveDF.index.duplicated()
+                    forSaveDF.to_csv("X:\log\combine.csv")
+
+                    print(previousDf.dtypes)
+                    print(df.dtypes)
+                    '''
+
+                    df = pd.concat([previousDf, df]).drop_duplicates(subset=["date", "value"])
+                    #df.to_csv("X:\log\sort_afterCombinated.csv")
+                    df = df.reset_index(drop=True)
+                    df = df.sort_values('date')
+                except ValueError as e:
+                    pass
 
             df.index = df.date
             df = df.drop(columns=['date'])
+
+            #df.to_csv("X:/log/b4Save.csv")
             df.to_json(jsonFile, orient='index')
+
+            print("remove lock file:", lockFile)
+            os.remove(lockFile)
 
         taDict = self.TAToDict(self.interDayTA)
         jsonFilename = "//interDayTA.json"
+
+
+        #check TA file islock before save.
+
         with open(self.config.reportDirectory + jsonFilename, 'w') as fp:
             json.dump(taList, fp, cls=utilities.AntJSONEncoder)
 

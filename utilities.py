@@ -1,7 +1,3 @@
-from .signal.base import Signal
-from .session import Session
-from .strategy.future_strategy import FutureAbstractStrategy
-
 import time, json, math, os, importlib
 from pathlib import Path
 from dateutil.rrule import rrule, MONTHLY
@@ -108,6 +104,14 @@ def checkFileExist(filePath):
         return True
     return False
 
+def RemoveAllFileFromDir(workingDir):
+    for the_file in os.listdir(workingDir):
+        file_path = os.path.join(workingDir, the_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            print(e)
 
 def createFolder(path):
     if path == "":
@@ -458,10 +462,14 @@ def CreateBacktestSummary(sessionConfig, positions, positionSummary):
 
     pnl_s = _backtestSummary['pnlSeries'][1:]
     pnl_np = np.asarray(pnl_s)
-    std = pnl_np.std()
-    _backtestSummary['standardDeviation'] = std
-    _backtestSummary['standardError'] = std / math.sqrt(len(positions))
 
+    if len(pnl_s)==0:
+        _backtestSummary['standardDeviation'] = 0
+        _backtestSummary['standardError'] = 0
+    else:
+        std = pnl_np.std()
+        _backtestSummary['standardDeviation'] = std
+        _backtestSummary['standardError'] = std / math.sqrt(len(positions))
 
     '''
     Expectancy  = - (AW * PW + AL * PL) / AL
@@ -522,7 +530,10 @@ def CreateBacktestSummary(sessionConfig, positions, positionSummary):
 
         x = int(_monthStr) - 1
 
-        _backtestSummary['monthlyReturn'][monthStr] = float("{0:.1f}".format(_backtestSummary['monthlyPnl'][_yearStr][_monthStr] / _backtestSummary['monthlyCash'][_yearStr][_monthStr] * 100))
+        if _backtestSummary['monthlyCash'][_yearStr][_monthStr] == 0:
+            _backtestSummary['monthlyReturn'][monthStr] = float(0.0)
+        else:
+            _backtestSummary['monthlyReturn'][monthStr] = float("{0:.1f}".format(_backtestSummary['monthlyPnl'][_yearStr][_monthStr] / _backtestSummary['monthlyCash'][_yearStr][_monthStr] * 100))
         _backtestSummary['monthlyReturnHeatmap'].append([x,y,_backtestSummary['monthlyReturn'][monthStr]])
         _backtestSummary['monthlyReturnHeatmapXAxis'] = x_axis
         _backtestSummary['monthlyReturnHeatmapYAxis'] = y_axis
@@ -915,6 +926,10 @@ def IsIntraDayData(dataName):
 
 
 def GetDataByName(instance, dataName):
+    from .session import Session
+    from .signal.base import Signal
+    from .strategy.future_strategy import FutureAbstractStrategy
+
     strategy = None
     if issubclass(type(instance), FutureAbstractStrategy):
         strategy = instance

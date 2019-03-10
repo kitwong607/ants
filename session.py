@@ -69,7 +69,73 @@ class SessionStaticVariable:
     python_path = "C:/Anaconda3/python.exe"
 
     antScriptDirectory = "D:/PythonScript/AntBotScripts/AntsScript"
+
+
+    HKEXTradingHour = [
+        {
+            "date": "0000-00-00"
+        },
+        #Period 1
+        {
+            "date": "2011-03-07",
+            "morning": {"open": 94500, "close": 123000},
+            "afternoon": {"open": 143000, "close": 161500}
+        },
+        #Period 2
+        {
+            "date": "2012-03-05",
+            "morning": {"open": 91500, "close": 120000},
+            "afternoon": {"open": 133000, "close": 161500}
+        },
+        #Period 3
+        # MHI have on market later the HSI so we take MHI time here, so night market start date not same as HKEX start
+        {
+            "date": "2014-01-06",
+            "morning": {"open": 91500, "close": 120000},
+            "afternoon": {"open": 130000, "close": 161500}
+        },
+        #Period 4
+        {
+            "date": "2014-11-03",
+            "morning": {"open": 91500, "close": 120000},
+            "afternoon": {"open": 130000, "close": 161500},
+            "ath": {"open": 170000, "close": 230000}
+        },
+        #Period 5
+        {
+            "date": "2016-07-25",
+            "morning": {"open": 91500, "close": 120000},
+            "afternoon": {"open": 130000, "close": 161500},
+            "ath": {"open": 170000, "close": 234500}
+        },
+        #Period 6
+        {
+            "date": "2017-11-06",
+            "morning": {"open": 91500, "close": 120000},
+            "afternoon": {"open": 130000, "close": 163000},
+            "ath": {"open": 171500, "close": 234500}
+        },
+        #Period 7
+        {
+            "date": "present",
+            "morning": {"open": 91500, "close": 120000},
+            "afternoon": {"open": 130000, "close": 163000},
+            "ath": {"open": 171500, "close": 250000}
+        }
+    ]
     # endregion
+
+
+
+
+    @staticmethod
+    def GetHistoricalPriceDataPath(ticker, exchange):
+        path = SessionStaticVariable.dataPath
+        if str(ticker).upper() == "MHI" or str(ticker).lower() == "HSI":
+            path += 'index/'
+        path += str(exchange).lower() + "/csv/"
+        return path
+
 # endregion
 
 
@@ -126,7 +192,7 @@ class SessionConfig:
         self.commission = kwargs["commission"] if "commission" in kwargs else 17
 
         self.reportFolderName = datetime.now().strftime(
-            "%Y%m%d_") + str(self.sessionId).zfill(6) + "_" + self.strategyClass.STRATEGY_SLUG
+            "%Y%m%d_") + str(self.sessionId).zfill(6) + "_" + self.strategyClass.STRATEGY_SLUG + "_" + self.signalResolution
         self.reportDirectory = self.baseReportDirectory + self.reportFolderName
 
         try:
@@ -138,10 +204,25 @@ class SessionConfig:
             del exc_info
 
         # endregion
+    def SetReportFolderDate(self, dateStr, cat=""):
+        try:
+            import shutil
+            shutil.rmtree(self.reportDirectory)
 
+            self.reportFolderName = dateStr + str(self.sessionId).zfill(
+                6) + "_" + self.strategyClass.STRATEGY_SLUG + "_" + self.signalResolution
+
+            if cat != "":
+                self.reportFolderName += "_" + cat
+
+            self.reportDirectory = self.baseReportDirectory + self.reportFolderName
+
+            if not os.path.exists(self.reportDirectory):
+                os.makedirs(self.reportDirectory)
+        except:
+            pass
 
     def Save(self):
-        
         dictToSave = {}
         dictToSave["sessionId"] = self.sessionId
         dictToSave["mode"] = self.mode
@@ -157,6 +238,7 @@ class SessionConfig:
         dictToSave["cash"] = self.cash
         dictToSave["dataSourceClass"] = self.dataSourceClass.NAME
         dictToSave["dataResolution"] = '['+ ','.join(self.dataResolution) + ']'
+        dictToSave["signalResolution"] = self.signalResolution
 
         dictToSave["strategyClass"] = {}
         dictToSave["strategyClass"]["name"] = self.strategyClass.STRATEGY_NAME
@@ -171,7 +253,7 @@ class SessionConfig:
         dictToSave["slippage"] = self.slippage
         dictToSave["commission"] = self.commission
 
-        configFilename = "//sessionConfig.json"
+        configFilename = "/sessionConfig.json"
 
         with open(self.reportDirectory + configFilename, 'w') as fp:
             json.dump(dictToSave, fp, indent=4)
@@ -214,8 +296,10 @@ class Session(object):
         print("Saving strategy")
         self.strategy.Save()
 
-        print("saving creating summary report")
+        print("saving creating summary report:", self.config.reportFolderName)
         utilities.CreateReportSummary(self.config.reportDirectory)
+
+
 
 
 
