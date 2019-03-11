@@ -1,3 +1,10 @@
+<<<<<<< HEAD
+from .signal.base import Signal
+
+from .strategy.future_strategy import FutureAbstractStrategy
+
+=======
+>>>>>>> 834eaf9e800e1cf1e6c9500bcda566fb59d8c0f4
 import time, json, math, os, importlib
 from pathlib import Path
 from dateutil.rrule import rrule, MONTHLY
@@ -927,8 +934,11 @@ def IsIntraDayData(dataName):
 
 def GetDataByName(instance, dataName):
     from .session import Session
+<<<<<<< HEAD
+=======
     from .signal.base import Signal
     from .strategy.future_strategy import FutureAbstractStrategy
+>>>>>>> 834eaf9e800e1cf1e6c9500bcda566fb59d8c0f4
 
     strategy = None
     if issubclass(type(instance), FutureAbstractStrategy):

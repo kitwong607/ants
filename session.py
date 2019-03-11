@@ -28,13 +28,15 @@ class SessionStaticVariable:
     IB_JSON_SERVER_PORT = 8090
     IB_JSON_SERVER_PORT_DEBUG = 8091
 
+
     IB_GATEWAY_PORT = 8100
     IB_GATEWAY_IP = "127.0.0.1"
+    IB_CONTROLLER_PORT = 8101
 
     IB_CLIENT_ID = 0
     IB_CLIENT_ID_DEBUG = 99
 
-    HKEX_DAILY_BACKTEST_WS_SERVER_PORT = 8200
+    HKEX_LIVE_WS_SERVER_PORT = 8200
 
     HSI_MKT_DATA_REQ_ID = 1001
     MHI_MKT_DATA_REQ_ID = 1002
@@ -51,7 +53,7 @@ class SessionStaticVariable:
 
     # region Directory, file location, python path
     dataPath = "X:/"
-    log_directory = "X:/log/"
+    logDirectory = "C:/log/" #"X:/log/"
     api_path = "http://127.0.0.1/antXXXXXXX/XXXXXXXX/XXXXXXXX"
 
     baseReportDirectory = "Y:/ReportData/BacktestReport/Reports/"
@@ -60,6 +62,7 @@ class SessionStaticVariable:
 
 
     base_live_data_directory = "X:/index/ib/Live/"
+    baseLiveDataDirectory = "C:/tmp/index/IB/Live/"
     base_live_reportDirectory = "Y:/ReportData/LiveReport/Reports/"
     base_live_ta_directory = "Y:/ReportData/LiveReport/LiveReport/TA/"
     base_live_filter_directory = "Y:/ReportData/LiveReport/Filter/"
