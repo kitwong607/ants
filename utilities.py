@@ -1,5 +1,5 @@
 from .signal.base import Signal
-from .session import Session
+
 from .strategy.future_strategy import FutureAbstractStrategy
 
 import time, json, math, os, importlib
@@ -915,6 +915,8 @@ def IsIntraDayData(dataName):
 
 
 def GetDataByName(instance, dataName):
+    from .session import Session
+
     strategy = None
     if issubclass(type(instance), FutureAbstractStrategy):
         strategy = instance

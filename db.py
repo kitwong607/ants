@@ -1,157 +1,125 @@
-import pymysql.cursors, json, traceback, datetime, sys, itertools, math, copy
-from ants import utilities
+import pymysql.cursors, json, traceback, datetime, sys, itertools, math, copy, requests
+from . import utilities, static
+
+NOT_SET = "not_set"
+CONFIG_HOST = "localhost"
+CONFIG_USER = "ants_admin"
+CONFIG_PASSWORD = "SlamDunk21"
+CONFIG_DB = "ants"
 
 
 # region DB connect function
-def connect_to_mysql():
-    connection = pymysql.connect(host='localhost',
-                                 user='ants_admin',
-                                 password='SlamDunk21',
-                                 db='ants',
+def ConnectToMySQL():
+    connection = pymysql.connect(host=CONFIG_HOST,
+                                 user=CONFIG_USER,
+                                 password=CONFIG_PASSWORD,
+                                 db=CONFIG_DB,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
     return connection
 
-def disconnect_to_mysql(connection):
+def DisconnectToMySQL(connection):
     connection.close()
 # endregion
 
+############################################################################
 
 # region Data format convert
-def mysql_time_to_string(dt):
+def MySQLTimeToString(dt):
     if dt is None:
         return "0000-00-00 00:00:00"
     return dt.strftime('%Y-%m-%d %H:%M:%S')
 # endregion
 
+############################################################################
 
 # region Option related
-# moved to php
-def get_option(option_key, return_value_only=False):
+def GetOption(option_key):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        value = NOT_SET
+        connection = ConnectToMySQL()
 
         with connection.cursor() as cursor:
-
             sql = "SELECT * FROM `sys_option` WHERE `option_key`=%s LIMIT 1"
             cursor.execute(sql, (option_key))
             connection.commit()
             result = cursor.fetchone()
-            is_db_error = False
             if result is None:
                 value = "not_set"
             else:
                 value = result['option_value']
 
-        if is_db_error:
-            is_success = False
-
+        return value
     except:
         traceback.print_exc()
-        is_success = False
-
+        return NOT_SET
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            if return_value_only:
-                return value
-            else:
-                return "success", "option updated", value
-        else:
-            if return_value_only:
-                return "fail"
-            else:
-                return "fail", "error found on option update.", value
 
-def update_option(option_key, option_value):
+def UpdateOption(optionKey, optionValue):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        value = NOT_SET
+        connection = ConnectToMySQL()
 
         with connection.cursor() as cursor:
-
             sql = "SELECT * FROM `sys_option` WHERE `option_key`=%s"
-            cursor.execute(sql, (option_key))
+            cursor.execute(sql, (optionKey))
             connection.commit()
             result = cursor.fetchone()
-            is_db_error = False
             if result is None:
                 sql = "INSERT INTO `sys_option` (`option_key`, `option_value`) VALUES(%s, %s)"
-                cursor.execute(sql, (option_key,option_value))
+                cursor.execute(sql, (optionKey,optionValue))
                 connection.commit()
                 result = cursor.fetchone()
             else:
                 sql = "UPDATE `sys_option` SET `option_value`=%s WHERE `option_key`=%s"
-                cursor.execute(sql, (option_value, option_key))
+                cursor.execute(sql, (optionValue, optionKey))
                 connection.commit()
                 result = cursor.fetchone()
 
-        if is_db_error:
-            is_success = False
-
+        return True
     except:
         traceback.print_exc()
-        is_success = False
-
+        return False
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "option updated"
-        else:
-            return "fail", "error found on option update."
+        DisconnectToMySQL(connection)
 # endregion
 
+############################################################################
 
 # region Backtest related
 # region Get Method
-def get_final_backtest_by_walk_forward_test(walk_forward_test_id):
+def GetFinalBacktestByWalkforwardTest(wftId):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        value = NOT_SET
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "SELECT * FROM `backtest_report` WHERE `walk_forward_test_id`=%s AND `is_final_walk_forward_backtest`=%s ORDER BY `start_date` ASC"
-            cursor.execute(sql, (walk_forward_test_id, 'yes'))
+            cursor.execute(sql, (wftId, 'yes'))
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value.append(row)
 
-        if is_db_error:
-            is_success = False
-
+        return value
     except:
         traceback.print_exc()
-        is_success = False
-
+        return NOT_SET
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "get backtest by optimization_id success", value
-        else:
-            return "fail", "error found on get backtest by optimization_id.", "not_set"
-
-
-def get_backtest_by_optimization_id(optimization_id):
+def GetBacktestByOptimizationId(optimizationId):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -159,66 +127,44 @@ def get_backtest_by_optimization_id(optimization_id):
             cursor.execute(sql, (optimization_id))
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value.append(row)
 
-        if is_db_error:
-            is_success = False
-
+        return value
     except:
         traceback.print_exc()
-        is_success = False
+        return value
 
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "get backtest by optimization_id success", value
-        else:
-            return "fail", "error found on get backtest by optimization_id.", "not_set"
-
-
-def get_backtest_by_id(backtest_id, table="backtest_report"):
+def GetBacktestById(backtestId, table="backtest_report"):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
 
         with connection.cursor() as cursor:
             sql = "SELECT * FROM `"+table+"` WHERE `id`=%s  LIMIT 1"
-            cursor.execute(sql, (backtest_id))
+            cursor.execute(sql, (backtestId))
             connection.commit()
             result = cursor.fetchone()
-            is_db_error = False
 
-        if is_db_error:
-            is_success = False
-
+        return result
     except:
         traceback.print_exc()
-        is_success = False
+        return NOT_SET
 
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "get backtest", result
-        else:
-            return "fail", "error found on get backtest.", "not_set"
-
-
-def get_backtest(status="running"):
+def GetBacktest(status="running"):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -233,34 +179,24 @@ def get_backtest(status="running"):
                 cursor.execute(sql, (status))
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
 
                     value.append(row)
 
-
-        if is_db_error:
-            is_success = False
-
+        return value
     except:
         traceback.print_exc()
-        is_success = False
-
+        return value
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "get backtest", value
-        else:
-            return "fail", "error found on get backtest.", "not_set"
-
-def get_backtest_status_summary(result):
+def GetBacktestStatusSummary(result):
     value = {}
     value['num_backtest'] = 0
     value['num_completed'] = 0
@@ -274,13 +210,11 @@ def get_backtest_status_summary(result):
             value["num_" + row['status']] += row['num_rows']
             value['num_backtest'] += row['num_rows']
 
-        return value
+    return value
 
-def get_backtest_with_pagination(page_size, page_no):
+def GetBacktestWithPagination(pageSize, pageNo):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -288,149 +222,127 @@ def get_backtest_with_pagination(page_size, page_no):
             cursor.execute(sql)
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
-            value = get_backtest_status_summary(result)
-            value['page_size'] = page_size
-            value['page_no'] = page_no
-            value['num_pages'] = int(math.ceil(value['num_backtest'] / page_size))
+            value = GetBacktestStatusSummary(result)
+            value['page_size'] = pageSize
+            value['page_no'] = pageNo
+            value['num_pages'] = int(math.ceil(value['num_backtest'] / pageSize))
 
             value['backtest'] = []
 
             sql = "SELECT * FROM `backtest_report` ORDER BY `id` DESC LIMIT %s, %s"
-            cursor.execute(sql, ((page_no - 1) * page_size, page_size))
+            cursor.execute(sql, ((pageNo - 1) * pageSize, pageSize))
             connection.commit()
 
             result = cursor.fetchall()
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value['backtest'].append(row)
 
-        if is_db_error:
-            is_success = False
+        return value
     except:
-        is_success = False
         print(traceback.print_exc())
+        return NOT_SET
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "get backtest with pagination", value
-        else:
-            return "fail", "error found on get backtest with pagination", "not_set"
 
-def get_backtest_with_optimization_id(optimization_id, page_size, page_no):
+def GetBacktestWithOptimizationId(optimizationId, pageSize, pageNo):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "SELECT COUNT(*) as `num_rows`, `status` FROM `backtest_report` WHERE `optimization_id` = %s GROUP BY `status`"
-            cursor.execute(sql, (optimization_id))
+            cursor.execute(sql, (optimizationId))
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
+            isDBError = False
 
-            value = get_backtest_status_summary(result)
-            value['page_size'] = page_size
-            value['page_no'] = page_no
-            value['num_pages'] = int(math.ceil(value['num_backtest'] / page_size))
+            value = GetBacktestStatusSummary(result)
+            value['page_size'] = pageSize
+            value['page_no'] = pageNo
+            value['num_pages'] = int(math.ceil(value['num_backtest'] / pageSize))
 
             value['backtest'] = []
 
             sql = "SELECT * FROM `backtest_report` WHERE `optimization_id` = %s ORDER BY `id` DESC LIMIT %s, %s"
-            cursor.execute(sql, (optimization_id, (page_no - 1) * page_size, page_size))
+            cursor.execute(sql, (optimizationId, (pageNo - 1) * pageSize, pageSize))
             connection.commit()
 
             result = cursor.fetchall()
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value['backtest'].append(row)
 
-        if is_db_error:
-            is_success = False
+        return value
     except:
-        is_success = False
         print(traceback.print_exc())
+        return []
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "get backtest with optimization id", value
-        else:
-            return "fail", "error found on get backtest  with optimization id", "not_set"
 
-def get_backtest_with_walk_forward_test_id(walk_forward_test_id):
+def GetBacktestWithWalkForwardTestId(wftId):
     try:
-        yes = "yes"
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
+        yes = "yes"
 
         with connection.cursor() as cursor:
             sql = "SELECT COUNT(*) as `num_rows`, `status` FROM `backtest_report` WHERE `walk_forward_test_id` = %s AND `is_final_walk_forward_backtest`=%s GROUP BY `status`"
-            cursor.execute(sql, (walk_forward_test_id, yes))
+            cursor.execute(sql, (wftId, yes))
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
+            isDBError = False
 
-            value = get_backtest_status_summary(result)
+            value = GetBacktestStatusSummary(result)
 
             value['backtest'] = []
 
             sql = "SELECT * FROM `backtest_report` WHERE `walk_forward_test_id` = %s AND `is_final_walk_forward_backtest`=%s ORDER BY `id`"
-            cursor.execute(sql, (walk_forward_test_id, yes))
+            cursor.execute(sql, (wftId, yes))
             connection.commit()
 
             result = cursor.fetchall()
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value['backtest'].append(row)
 
-        if is_db_error:
-            is_success = False
+        return value
     except:
-        is_success = False
         print(traceback.print_exc())
-    finally:
-        disconnect_to_mysql(connection)
+        return []
 
-        if is_success:
-            return "success", "get backtest with walk forward test id", value
-        else:
-            return "fail", "error found on get backtest with walk forward test id", "not_set"
+    finally:
+        DisconnectToMySQL(connection)
 # endregion
 
 
 # region Update method
-def update_backtest_report(config):
+def UpdateBacktestReport(config):
     try:
-        with open(config.report_directory + '\\backtest_summary.json') as json_data:
-            d = json.load(json_data)
+        with open(config.report_directory + '\\backtest_summary.json') as jsonData:
+            d = json.load(jsonData)
             d['report_folder_name'] = config.report_folder_name
             d['report_full_path'] = config.report_directory
 
-            is_db_error = True
-            is_success = True
-            connection = connect_to_mysql()
+            connection = ConnectToMySQL()
             value = []
 
-            d = utilities.prepare_backtest_report_insert_to_db(d)
+            d = utilities.PrepareBacktestReportInsertToDB(d)
 
             with connection.cursor() as cursor:
                 sql = "UPDATE `backtest_report` SET `win_rate`=%s, `num_trade`=%s, `pnl`=%s, `net_pips`=%s, `profit_factor`=%s, `payoff_ratio`=%s, `roci`=%s, `sharpe_ratio`=%s, `standard_deviation`=%s, `standard_error`=%s, `tharp_expectancy`=%s, `expectancy`=%s, `mdd`=%s, `mdd_pct`=%s, `mdd_daily`=%s, `mdd_pct_daily`=%s, `dd_duration`=%s, `dd_duration_daily`=%s, `avg_pips_pre_contract`=%s, `report_folder_name`=%s, `report_full_path`=%s, `modified_time`=NOW() WHERE `id`=%s"
@@ -441,144 +353,125 @@ def update_backtest_report(config):
 
                 connection.commit()
 
-            if is_db_error:
-                is_success = False
+            return True
+
+        return False
 
     except:
         traceback.print_exc()
-        is_success = False
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "update backtest start time success"
-        else:
-            return "fail", "error found update backtest start time"
+        DisconnectToMySQL(connection)
 
 
-def update_backtest_start_time(backtest_id, table="backtest_report"):
+def UpdateBacktestStartTime(backtestId, table="backtest_report"):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "UPDATE `"+table+"` SET `backtest_start_time`=NOW() WHERE `id`=%s"
-            cursor.execute(sql, (backtest_id))
+            cursor.execute(sql, (backtestId))
             connection.commit()
 
-        if is_db_error:
-            is_success = False
+        return True
 
     except:
         traceback.print_exc()
-        is_success = False
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "update backtest start time success"
-        else:
-            return "fail", "error found update backtest start time"
+        DisconnectToMySQL(connection)
 
 
-def update_backtest_end_time(backtest_id, table="backtest_report"):
+def UpdateBacktestEndTime(backtestId, table="backtest_report"):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "UPDATE `"+table+"` SET `backtest_end_time`=NOW() WHERE `id`=%s"
-            cursor.execute(sql, (backtest_id))
+            cursor.execute(sql, (backtestId))
             connection.commit()
 
-            result, message, backtest = get_backtest_by_id(backtest_id, table)
+            result = GetBacktestById(backtestId, table)
+            if result == NOT_SET: return False
 
             if (backtest is not None) and (result == "success"):
-                sec_diff = (backtest['backtest_end_time'] - backtest['backtest_start_time']).total_seconds()
-                sec_diff = str(datetime.timedelta(seconds=int(sec_diff)))
+                secDiff = (backtest['backtest_end_time'] - backtest['backtest_start_time']).total_seconds()
+                secDiff = str(datetime.timedelta(seconds=int(secDiff)))
 
                 sql = "UPDATE `" + table + "` SET `backtest_used_time`=%s WHERE `id`=%s"
-                cursor.execute(sql, (sec_diff, backtest_id))
+                cursor.execute(sql, (secDiff, backtestId))
                 connection.commit()
 
-            is_db_error = False
-
-        if is_db_error:
-            is_success = False
+        return True
 
     except:
         traceback.print_exc()
-        is_success = False
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "update backtest end time success"
-        else:
-            return "fail", "error found update backtest end time"
+        DisconnectToMySQL(connection)
 
 
 
-def update_backtest_status(backtest_id, status, error_msg=""):
+def UpdateBacktestStatus(backtestId, status, errorMsg=""):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
-            result, message, backtest = get_backtest_by_id(backtest_id)
-            if (backtest is not None) and (result == "success"):
-                optimization_id = backtest['optimization_id']
+            result = GetBacktestById(backtestId)
+            if result == NOT_SET: return False
+
+            backtest = result
+            optimizationId = backtest['optimization_id']
 
 
             sql = "UPDATE `backtest_report` SET `status`=%s, `error_message`=%s, `modified_time`=NOW() WHERE `id`=%s"
-            cursor.execute(sql, (status, error_msg, backtest_id))
+            cursor.execute(sql, (status, errorMsg, backtestId))
             connection.commit()
-            is_db_error = False
-            if status == "running":
-                update_backtest_start_time(backtest_id)
 
-                if optimization_id != 0:
+
+
+            if status == "running":
+                UpdateBacktestStartTime(backtestId)
+
+                if optimizationId != 0:
                     sql = "SELECT COUNT(*) as `num_rows`, `status` FROM `backtest_report` WHERE `optimization_id`=%s GROUP BY `status`"
-                    cursor.execute(sql, (optimization_id))
+                    cursor.execute(sql, (optimizationId))
                     connection.commit()
 
                     result = cursor.fetchall()
-                    value = get_backtest_status_summary(result)
+                    value = GetBacktestStatusSummary(result)
                     if value['num_backtest'] == value['num_running'] + value['num_pending'] and value['num_running']==1:
-                        update_optimization_status(optimization_id, "running")
+                        UpdateOptimizationStatus(optimizationId, "running")
 
 
 
             elif status == "completed":
-                update_backtest_end_time(backtest_id)
+                UpdateBacktestEndTime(backtestId)
 
                 sql = "SELECT * FROM `backtest_report` WHERE `id`=%s LIMIT 1"
-                cursor.execute(sql, (backtest_id))
+                cursor.execute(sql, (backtestId))
                 connection.commit()
                 backtest = cursor.fetchone()
-                is_db_error = False
+                isDBError = False
 
                 if backtest is not None:
                     #check current backtest is a optimization
-                    if optimization_id != 0:
+                    if optimizationId != 0:
                         sql = "SELECT COUNT(*) as `num_rows`, `status` FROM `backtest_report` WHERE `optimization_id`=%s GROUP BY `status`"
-                        cursor.execute(sql, (optimization_id))
+                        cursor.execute(sql, (optimizationId))
                         connection.commit()
 
                         result = cursor.fetchall()
-                        value = get_backtest_status_summary(result)
+                        value = GetBacktestStatusSummary(result)
 
                         if value['num_backtest'] == value['num_completed']:
-                            update_optimization_status(optimization_id, "backtest_complete")
+                            UpdateOptimizationStatus(optimizationId, "backtest_complete")
 
                     if backtest['is_final_walk_forward_backtest'] == 'yes':
                         sql = "SELECT * FROM `backtest_report` WHERE `walk_forward_test_id`=%s and  `is_final_walk_forward_backtest`=%s ORDER BY `id` ASC"
@@ -594,179 +487,168 @@ def update_backtest_status(backtest_id, status, error_msg=""):
                                 break
 
                         if is_completed:
-                            update_walk_forward_test_status(backtest['walk_forward_test_id'], 'backtest_complete')
+                            UpdateWalkForwardTestStatus(backtest['walk_forward_test_id'], 'backtest_complete')
 
 
-                else:
-                    print("result is none")
 
             elif status=="error":
                 sql = "SELECT * FROM `backtest_report` WHERE `id`=%s LIMIT 1"
                 cursor.execute(sql, (backtest_id))
                 connection.commit()
                 result = cursor.fetchone()
-                is_db_error = False
 
-                if optimization_id != 0:
-                    update_optimization_status(optimization_id, "error")
+                if optimizationId != 0:
+                    UpdateOptimizationStatus(optimizationId, "error")
 
-        if is_db_error:
-            is_success = False
+        return True
 
     except:
         traceback.print_exc()
-        is_success = False
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "update backtest status success"
-        else:
-            return "fail", "error found update backtest status"
+        DisconnectToMySQL(connection)
 # endregion
 
 
 # region Create method
-def add_backtest(data):
-    is_db_error = True
-    is_success = True
-    connection = connect_to_mysql()
-    value = []
+def AddBacktest(data):
+    try:
+        connection = ConnectToMySQL()
+        value = []
 
-    strategy_class = utilities.get_class_from_name('ants.strategy.'+data['strategy'], data['strategy'])
-    data["strategy_name"] = strategy_class.STRATEGY_NAME
-    data["strategy_slug"] = strategy_class.STRATEGY_SLUG
-    data["last_update"] = strategy_class.VERSION
-    data["version"] = strategy_class.LAST_UPDATE_DATE
+        strategyClass = utilities.GetClassFromName('ants.strategy.'+data['strategy'], data['strategy'])
+        data["strategy_name"] = strategyClass.STRATEGY_NAME
+        data["strategy_slug"] = strategyClass.STRATEGY_SLUG
+        data["last_update"] = strategyClass.VERSION
+        data["version"] = strategyClass.LAST_UPDATE_DATE
 
-    data["backtest_mode_no"] = int(data["backtest_mode"])
-    if data["backtest_mode_no"] == 0:
-        data["backtest_mode"] = "Intra day single process"
-    elif data["backtest_mode_no"] == 1:
-        data["backtest_mode"] = "Inter day single process"
-    elif data["backtest_mode_no"] == 2:
-        data["backtest_mode"] = "Intra day multi process"
-    elif data["backtest_mode_no"] == 3:
-        data["backtest_mode"] = "Inter day multi process"
-    else:
-        data["backtest_mode"] = "not handle in db.py"
-
-    with connection.cursor() as cursor:
-        if "optimization_id" not in data:
-            data["optimization_id"] = 0
-
-        if "walk_forward_test_id" not in data:
-            data["walk_forward_test_id"] = 0
-
-        if "is_final_walk_forward_backtest" not in data:
-            data["is_final_walk_forward_backtest"] = 'no'
-
-        if "remark" not in data:
-            data["remark"] = ""
-
-        sql = "INSERT INTO `backtest_report` (`exchange`, `trade_ticker`, `data_ticker`, `data_resolution`, `contract`, `base_quantity`, `cash`, `data_start_date`, `start_date`, `end_date`, `backtest_mode_no`, `backtest_mode`, `commission`, `slippage_pips`, `data_provider_class`, `order_handler_class`, `portfolio_class`, `strategy_class`, `strategy_name`, `strategy_slug`, `last_update`, `version`, `strategy_parameter`, `optimization_id`, `walk_forward_test_id`,`is_final_walk_forward_backtest`,`remark`,`created_time`, `modified_time`) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())"
-        cursor.execute(sql, (
-        data["exchange"], data["trade_ticker"], data["data_ticker"], data["data_resolution"], data["contract"],
-        data["base_quantity"], data["cash"], data["data_start_date"], data["start_date"], data["end_date"],
-        data["backtest_mode_no"], data["backtest_mode"], data["commission"], data["slippage_pips"],
-        data["data_provider"], data["order_handler"], data["portfolio"], data["strategy"], data["strategy_name"],
-        data["strategy_slug"], data["last_update"], data["version"], data["parameter"], data["optimization_id"],
-        data["walk_forward_test_id"], data["is_final_walk_forward_backtest"], data["remark"]))
-
-        #25
-        connection.commit()
-        result = cursor.fetchone()
-        is_db_error = False
-
-        if is_db_error:
-            is_success = False
-        if is_success:
-            return "success", "add backtest success"
+        data["backtest_mode_no"] = int(data["backtest_mode"])
+        if data["backtest_mode_no"] == 0:
+            data["backtest_mode"] = "Intra day single process"
+        elif data["backtest_mode_no"] == 1:
+            data["backtest_mode"] = "Inter day single process"
+        elif data["backtest_mode_no"] == 2:
+            data["backtest_mode"] = "Intra day multi process"
+        elif data["backtest_mode_no"] == 3:
+            data["backtest_mode"] = "Inter day multi process"
         else:
-            return "fail", "error found on add backtest"
+            data["backtest_mode"] = "not handle in db.py"
 
-def create_backtest_job_from_optimization():
-    return
-    result, description, jobs = get_optimization("pending")
+        with connection.cursor() as cursor:
+            if "optimization_id" not in data:
+                data["optimization_id"] = 0
+
+            if "walk_forward_test_id" not in data:
+                data["walk_forward_test_id"] = 0
+
+            if "is_final_walk_forward_backtest" not in data:
+                data["is_final_walk_forward_backtest"] = 'no'
+
+            if "remark" not in data:
+                data["remark"] = ""
+
+            sql = "INSERT INTO `backtest_report` (`exchange`, `trade_ticker`, `data_ticker`, `data_resolution`, `contract`, `base_quantity`, `cash`, `data_start_date`, `start_date`, `end_date`, `backtest_mode_no`, `backtest_mode`, `commission`, `slippage_pips`, `data_provider_class`, `order_handler_class`, `portfolio_class`, `strategyClass`, `strategy_name`, `strategy_slug`, `last_update`, `version`, `StrategyParameter`, `optimization_id`, `walk_forward_test_id`,`is_final_walk_forward_backtest`,`remark`,`created_time`, `modified_time`) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())"
+            cursor.execute(sql, (
+            data["exchange"], data["trade_ticker"], data["data_ticker"], data["data_resolution"], data["contract"],
+            data["base_quantity"], data["cash"], data["data_start_date"], data["start_date"], data["end_date"],
+            data["backtest_mode_no"], data["backtest_mode"], data["commission"], data["slippage_pips"],
+            data["data_provider"], data["order_handler"], data["portfolio"], data["strategy"], data["strategy_name"],
+            data["strategy_slug"], data["last_update"], data["version"], data["parameter"], data["optimization_id"],
+            data["walk_forward_test_id"], data["is_final_walk_forward_backtest"], data["remark"]))
+
+            #25
+            connection.commit()
+            result = cursor.fetchone()
+
+            return True
+
+        return False
+
+    except:
+        traceback.print_exc()
+        return False
+
+    finally:
+        DisconnectToMySQL(connection)
+
+def CreateBacktestJobFromOptimization():
+
+    optimizations = GetOptimization("pending")
+    if optimizations == NOT_SET: return False
 
 
-    if len(jobs) == 0 or jobs is None or jobs == "not_set":
-        return None
-    else:
-        for job in jobs:
-            strategy_parameter_str = job['strategy_parameter']
-            strategy_parameter = json.loads(strategy_parameter_str)
-            strategy_class = utilities.get_class_from_name('ants.strategy.' + job['strategy_class'], job['strategy_class'])
-            optimization_parameter = strategy_class.OPTIMIZATION_PARAMETER
+    for job in jobs:
+        StrategyParameter_str = job['strategy_parameter']
+        StrategyParameter = json.loads(StrategyParameter_str)
+        strategyClass = utilities.GetClassFromName('ants.strategy.' + job['strategy_class'], job['strategy_class'])
+        optimization_parameter = strategyClass.OPTIMIZATION_PARAMETER
 
-            keys = []
-            values = []
-            for key, parameter in optimization_parameter.items():
-                print(parameter)
-                keys.append(key)
-                value = []
-                if key in strategy_parameter:
-                    print(key)
-                    for i in range(parameter['min_value'], parameter['max_value']+1, parameter['step']):
-                        value.append(i)
-                else:
-                    value.append(parameter['value'])
-                values.append(value)
+        keys = []
+        values = []
+        for key, parameter in optimization_parameter.items():
+            print(parameter)
+            keys.append(key)
+            value = []
+            if key in StrategyParameter:
+                print(key)
+                for i in range(parameter['min_value'], parameter['max_value']+1, parameter['step']):
+                    value.append(i)
+            else:
+                value.append(parameter['value'])
+            values.append(value)
 
-            data = {}
-            data["backtest_mode"] = int(job["backtest_mode_no"])
-            data["data_start_date"] = job['data_start_date']
-            data["start_date"] = job['start_date']
-            data["end_date"] = job['end_date']
-            data["data_ticker"] = job['data_ticker']
-            data["trade_ticker"] = job['trade_ticker']
-            data["exchange"] = job['exchange']
-            data["cash"] = job['cash']
-            data["base_quantity"] = job['base_quantity']
-            data["commission"] = job['commission']
-            data["slippage_pips"] = job['slippage_pips']
-            data["data_resolution"] = job['data_resolution']
-            data["portfolio"] = job['portfolio_class']
-            data["order_handler"] = job['order_handler_class']
-            data["data_provider"] = job['data_provider_class']
-            data["strategy"] = job['strategy_class']
-            data["strategy_name"] = job['strategy_name']
-            data["strategy_slug"] = job['strategy_slug']
-            data["last_update"] = job['last_update']
-            data["version"] = job['version']
-            data["contract"] = job['contract']
-            data["optimization_id"] = job['id']
-            for combination in itertools.product(*values):
-                parameter = {}
-                i = 0
-                for key in keys:
-                    parameter[key] = combination[i]
+        data = {}
+        data["backtest_mode"] = int(job["backtest_mode_no"])
+        data["data_start_date"] = job['data_start_date']
+        data["start_date"] = job['start_date']
+        data["end_date"] = job['end_date']
+        data["data_ticker"] = job['data_ticker']
+        data["trade_ticker"] = job['trade_ticker']
+        data["exchange"] = job['exchange']
+        data["cash"] = job['cash']
+        data["base_quantity"] = job['base_quantity']
+        data["commission"] = job['commission']
+        data["slippage_pips"] = job['slippage_pips']
+        data["data_resolution"] = job['data_resolution']
+        data["portfolio"] = job['portfolio_class']
+        data["order_handler"] = job['order_handler_class']
+        data["data_provider"] = job['data_provider_class']
+        data["strategy"] = job['strategy_class']
+        data["strategy_name"] = job['strategy_name']
+        data["strategy_slug"] = job['strategy_slug']
+        data["last_update"] = job['last_update']
+        data["version"] = job['version']
+        data["contract"] = job['contract']
+        data["optimization_id"] = job['id']
+        for combination in itertools.product(*values):
+            parameter = {}
+            i = 0
+            for key in keys:
+                parameter[key] = combination[i]
 
-                data["parameter"] = json.dumps(parameter)
+            data["parameter"] = json.dumps(parameter)
 
-                result, msg = add_backtest(data)
+            result, msg = addBacktest(data)
 # endregion
 
 
 # endregion
 
+############################################################################
 
 # region Optimization related
 # region Get method
-def get_optimization_with_walk_forward_test_id(walk_forward_test_id):
+def GetOptimizationwithWalkForwardTestId(wftId):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "SELECT COUNT(*) as `num_rows`, `status` FROM `optimization` WHERE `walk_forward_test_id`=%s GROUP BY `status`"
-            cursor.execute(sql, walk_forward_test_id)
+            cursor.execute(sql, wftId)
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             value = {}
             value['num_optimization'] = 0
@@ -787,38 +669,30 @@ def get_optimization_with_walk_forward_test_id(walk_forward_test_id):
                     value['num_optimization'] += row['num_rows']
 
             sql = "SELECT * FROM `optimization` WHERE `walk_forward_test_id`=%s ORDER BY `id` DESC, `created_time` DESC"
-            cursor.execute(sql, walk_forward_test_id)
+            cursor.execute(sql, wftId)
             connection.commit()
 
             result = cursor.fetchall()
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value['optimization'].append(row)
 
-        if is_db_error:
-            is_success = False
-        print(value)
+        return value
     except:
-        is_success = False
         print(traceback.print_exc())
+        return NOT_SET
+
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get optimization with pagination", value
-        else:
-            return "fail", "error found on get optimization with pagination", "not_set"
+        DisconnectToMySQL(connection)
 
 
-def get_optimization_with_pagination(page_size, page_no):
+def GetOptimizationWithPagination(pageSize, pageNo):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -826,7 +700,7 @@ def get_optimization_with_pagination(page_size, page_no):
             cursor.execute(sql)
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
+            isDBError = False
 
             value = {}
             value['num_optimization'] = 0
@@ -846,82 +720,64 @@ def get_optimization_with_pagination(page_size, page_no):
                     value["num_"+row['status']] += row['num_rows']
                     value['num_optimization'] += row['num_rows']
 
-            value['page_size'] = page_size
-            value['page_no'] = page_no
-            value['num_pages'] = int(math.ceil(value['num_optimization'] / page_size))
+            value['page_size'] = pageSize
+            value['page_no'] = pageNo
+            value['num_pages'] = int(math.ceil(value['num_optimization'] / pageSize))
 
             sql = "SELECT * FROM `optimization` ORDER BY `id` DESC, `created_time` DESC LIMIT %s, %s"
-            cursor.execute(sql, ((page_no-1)*page_size, page_size))
+            cursor.execute(sql, ((pageNo-1)*pageSize, pageSize))
             connection.commit()
 
             result = cursor.fetchall()
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value['optimization'].append(row)
 
-        if is_db_error:
-            is_success = False
-        print(value)
+        return value
     except:
-        is_success = False
-        print(traceback.print_exc())
+        traceback.print_exc()
+        return []
+
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get optimization with pagination", value
-        else:
-            return "fail", "error found on get optimization with pagination", "not_set"
+        DisconnectToMySQL(connection)
 
 
-def get_optimization_by_id(optimization_id):
+def GetOptimizationById(optimizationId):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
 
         with connection.cursor() as cursor:
             #1 if have running multi process -> skip
             #2 if working single process == max workers -> skip
             #3 find pending backtest
             sql = "SELECT * FROM `optimization` WHERE `id`=%s  ORDER BY `created_time` DESC"
-            cursor.execute(sql, (optimization_id))
+            cursor.execute(sql, (optimizationId))
             connection.commit()
             result = cursor.fetchone()
-            is_db_error = False
+            isDBError = False
 
             if result is not None:
-                result['backtest_start_time'] = mysql_time_to_string(result['backtest_start_time'])
-                result['backtest_end_time'] = mysql_time_to_string(result['backtest_end_time'])
-                result['created_time'] = mysql_time_to_string(result['created_time'])
-                result['modified_time'] = mysql_time_to_string(result['modified_time'])
+                result['backtest_start_time'] = MySQLTimeToString(result['backtest_start_time'])
+                result['backtest_end_time'] = MySQLTimeToString(result['backtest_end_time'])
+                result['created_time'] = MySQLTimeToString(result['created_time'])
+                result['modified_time'] = MySQLTimeToString(result['modified_time'])
 
-
-        if is_db_error:
-            is_success = False
-
+        return result
     except:
         traceback.print_exc()
-        is_success = False
+        return NOT_SET
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get optimization", result
-        else:
-            return "fail", "error found on get optimization.", "not_set"
+        DisconnectToMySQL(connection)
 
 
-def get_optimization(status="running"):
+def GetOptimization(status="running"):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -936,33 +792,26 @@ def get_optimization(status="running"):
                 cursor.execute(sql, (status))
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value.append(row)
 
-        if is_db_error:
-            is_success = False
+        return value
 
     except:
         traceback.print_exc()
-        is_success = False
+        return NOT_SET
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get optimization", value
-        else:
-            return "fail", "error found on get optimization.", "not_set"
+        DisconnectToMySQL(connection)
 
 
-def get_optimization_status_summary(result):
+def GetOptimizationStatusSummary(result):
     value = {}
     value['num_optimization'] = 0
     value['num_completed'] = 0
@@ -982,143 +831,136 @@ def get_optimization_status_summary(result):
 
 
 # region Update method
-def update_optimization(optimization_id:int, optimization_summary, first_backtest_report):
+def UpdateOptimization(optimizationId:int, optimizationSummary, firstBacktestReport):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        isDBError = True
+        isSuccess = True
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "UPDATE `optimization` SET `report_full_path`=%s, `report_folder_name`=%s, `num_trade`=%s, `num_trade_std`=%s, `num_trade_std_pct`=%s, `win_rate`=%s, `win_rate_std`=%s, `win_rate_std_pct`=%s, `pnl`=%s, `pnl_std`=%s, `pnl_std_pct`=%s, `net_pips`=%s, `net_pips_std`=%s, `net_pips_std_pct`=%s, `avg_pips_pre_contract`=%s, `avg_pips_pre_contract_std`=%s, `avg_pips_pre_contract_std_pct`=%s, `profit_factor`=%s, `profit_factor_std`=%s, `profit_factor_std_pct`=%s, `payoff_ratio`=%s, `payoff_ratio_std`=%s, `payoff_ratio_std_pct`=%s, `roci`=%s, `roci_std`=%s, `roci_std_pct`=%s, `sharpe_ratio`=%s, `sharpe_ratio_std`=%s, `sharpe_ratio_std_pct`=%s, `tharp_expectancy`=%s, `tharp_expectancy_std`=%s, `tharp_expectancy_std_pct`=%s, `expectancy`=%s, `expectancy_std`=%s, `expectancy_std_pct`=%s, `mdd`=%s, `mdd_std`=%s, `mdd_std_pct`=%s, `mdd_pct`=%s, `mdd_pct_std`=%s, `mdd_pct_std_pct`=%s, `mdd_daily`=%s, `mdd_daily_std`=%s, `mdd_daily_std_pct`=%s, `mdd_pct_daily`=%s, `mdd_pct_daily_std`=%s, `mdd_pct_daily_std_pct`=%s, `dd_duration`=%s, `dd_duration_std`=%s, `dd_duration_std_pct`=%s, `dd_duration_daily`=%s, `dd_duration_daily_std`=%s, `dd_duration_daily_std_pct`=%s, `modified_time`=NOW() WHERE `id`=%s"
-            cursor.execute(sql, (   first_backtest_report['performance']['report_full_path'],
-                                    first_backtest_report['performance']['report_folder_name'],
-                                    "{0:.8f}".format(float(optimization_summary['num_trade'])),
-                                    "{0:.8f}".format(float(optimization_summary['num_trade_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['num_trade_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['win_rate'])),
-                                    "{0:.8f}".format(float(optimization_summary['win_rate_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['win_rate_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['pnl'])),
-                                    "{0:.8f}".format(float(optimization_summary['pnl_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['pnl_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['net_pips'])),
-                                    "{0:.8f}".format(float(optimization_summary['net_pips_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['net_pips_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['avg_pips_pre_contract'])),
-                                    "{0:.8f}".format(float(optimization_summary['avg_pips_pre_contract_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['avg_pips_pre_contract_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['profit_factor'])),
-                                    "{0:.8f}".format(float(optimization_summary['profit_factor_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['profit_factor_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['payoff_ratio'])),
-                                    "{0:.8f}".format(float(optimization_summary['payoff_ratio_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['payoff_ratio_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['roci'])),
-                                    "{0:.8f}".format(float(optimization_summary['roci_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['roci_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['sharpe_ratio'])),
-                                    "{0:.8f}".format(float(optimization_summary['sharpe_ratio_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['sharpe_ratio_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['tharp_expectancy'])),
-                                    "{0:.8f}".format(float(optimization_summary['tharp_expectancy_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['tharp_expectancy_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['expectancy'])),
-                                    "{0:.8f}".format(float(optimization_summary['expectancy_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['expectancy_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_pct_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_pct_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_daily'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_daily_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_daily_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_pct_daily'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_pct_daily_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['mdd_pct_daily_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['dd_duration'])),
-                                    "{0:.8f}".format(float(optimization_summary['dd_duration_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['dd_duration_std_pct'])),
-                                    "{0:.8f}".format(float(optimization_summary['dd_duration_daily'])),
-                                    "{0:.8f}".format(float(optimization_summary['dd_duration_daily_std'])),
-                                    "{0:.8f}".format(float(optimization_summary['dd_duration_daily_std_pct'])),
-                                    optimization_id))
+            cursor.execute(sql, (   firstBacktestReport['performance']['report_full_path'],
+                                    firstBacktestReport['performance']['report_folder_name'],
+                                    "{0:.8f}".format(float(optimizationSummary['num_trade'])),
+                                    "{0:.8f}".format(float(optimizationSummary['num_trade_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['num_trade_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['win_rate'])),
+                                    "{0:.8f}".format(float(optimizationSummary['win_rate_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['win_rate_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['pnl'])),
+                                    "{0:.8f}".format(float(optimizationSummary['pnl_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['pnl_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['net_pips'])),
+                                    "{0:.8f}".format(float(optimizationSummary['net_pips_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['net_pips_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['avg_pips_pre_contract'])),
+                                    "{0:.8f}".format(float(optimizationSummary['avg_pips_pre_contract_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['avg_pips_pre_contract_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['profit_factor'])),
+                                    "{0:.8f}".format(float(optimizationSummary['profit_factor_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['profit_factor_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['payoff_ratio'])),
+                                    "{0:.8f}".format(float(optimizationSummary['payoff_ratio_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['payoff_ratio_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['roci'])),
+                                    "{0:.8f}".format(float(optimizationSummary['roci_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['roci_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['sharpe_ratio'])),
+                                    "{0:.8f}".format(float(optimizationSummary['sharpe_ratio_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['sharpe_ratio_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['tharp_expectancy'])),
+                                    "{0:.8f}".format(float(optimizationSummary['tharp_expectancy_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['tharp_expectancy_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['expectancy'])),
+                                    "{0:.8f}".format(float(optimizationSummary['expectancy_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['expectancy_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_pct_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_pct_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_daily'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_daily_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_daily_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_pct_daily'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_pct_daily_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['mdd_pct_daily_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['dd_duration'])),
+                                    "{0:.8f}".format(float(optimizationSummary['dd_duration_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['dd_duration_std_pct'])),
+                                    "{0:.8f}".format(float(optimizationSummary['dd_duration_daily'])),
+                                    "{0:.8f}".format(float(optimizationSummary['dd_duration_daily_std'])),
+                                    "{0:.8f}".format(float(optimizationSummary['dd_duration_daily_std_pct'])),
+                                    optimizationId))
             connection.commit()
-
-
-            is_db_error = False
-
-        if is_db_error:
-            is_success = False
+        return True
 
     except:
         traceback.print_exc()
-        is_success = False
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "update optimization status success"
-        else:
-            return "fail", "error found update optimization status"
+        DisconnectToMySQL(connection)
 
 
-def update_optimization_status(optimization_id, status, error_msg=""):
+def UpdateOptimizationStatus(optimizationId, status, errorMsg=""):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "UPDATE `optimization` SET `status`=%s, `error_message`=%s, `modified_time`=NOW() WHERE `id`=%s"
-            cursor.execute(sql, (status, error_msg, optimization_id))
+            cursor.execute(sql, (status, errorMsg, optimizationId))
             connection.commit()
 
             if status == "running":
-                update_backtest_start_time(optimization_id, 'optimization')
+                UpdateBacktestStartTime(optimizationId, 'optimization')
 
-                result, message, optimization = get_backtest_by_id(optimization_id, 'optimization')
+                result = GetBacktestById(optimizationId, 'optimization')
+
+                if result == NOT_SET: return False
+
                 if (optimization is not None) and (result == "success"):
-                    walk_forward_test_id = optimization['walk_forward_test_id']
+                    wftId = optimization['walk_forward_test_id']
 
-                    if walk_forward_test_id != 0 or walk_forward_test_id is not None:
+                    if wftId != 0 or wftId is not None:
                         sql = "SELECT COUNT(*) as `num_rows`, `status` FROM `optimization` WHERE `walk_forward_test_id`=%s GROUP BY `status`"
-                        cursor.execute(sql, (walk_forward_test_id))
+                        cursor.execute(sql, (wftId))
                         connection.commit()
 
 
                         result = cursor.fetchall()
-                        value = get_optimization_status_summary(result)
+                        value = GetOptimizationStatusSummary(result)
                         if value['num_optimization'] == value['num_running'] + value['num_pending'] and value['num_running']==1:
-                            update_walk_forward_test_status(walk_forward_test_id, "running")
+                            UpdateWalkForwardTestStatus(wftId, "running")
 
 
             elif status=="backtest_complete":
-                update_backtest_end_time(optimization_id, 'optimization')
+                UpdateBacktestEndTime(optimizationId, 'optimization')
 
             elif status == "completed":
-                walk_forward_test_id = 0
-                result, message, optimization = get_optimization_by_id(optimization_id)
+                wftId = 0
+                result = GetOptimizationById(optimizationId)
+
+                if result == NOT_SET: return False
 
                 if (optimization is not None) and (result == "success"):
-                    walk_forward_test_id = optimization['walk_forward_test_id']
+                    wftId = optimization['walk_forward_test_id']
 
                 if result is not None:
                     #check current optimization is a walk forward test
-                    if walk_forward_test_id != 0:
+                    if wftId != 0:
                         sql = "SELECT COUNT(*) as `num_rows`, `status` FROM `optimization` WHERE `walk_forward_test_id`=%s GROUP BY `status`"
-                        cursor.execute(sql, (walk_forward_test_id))
+                        cursor.execute(sql, (wftId))
                         connection.commit()
 
                         result = cursor.fetchall()
-                        value = get_optimization_status_summary(result)
+                        value = GetOptimizationStatusSummary(result)
 
                         if value['num_optimization'] == value['num_completed']:
-                            update_walk_forward_test_status(walk_forward_test_id, "optimization_complete")
+                            UpdateWalkForwardTestStatus(wftId, "optimization_complete")
                 else:
                     print("result is none")
 
@@ -1127,214 +969,198 @@ def update_optimization_status(optimization_id, status, error_msg=""):
                 cursor.execute(sql, (backtest_id))
                 connection.commit()
                 result = cursor.fetchone()
-                is_db_error = False
 
-                if optimization_id != 0:
-                    update_optimization_status(optimization_id, "error")
+                if optimizationId != 0:
+                    UpdateOptimizationStatus(optimizationId, "error")
 
 
-            is_db_error = False
-
-        if is_db_error:
-            is_success = False
-
-    except:
+        return True
+    except e:
         traceback.print_exc()
-        is_success = False
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "update optimization status success"
-        else:
-            return "fail", "error found update optimization status"
+        DisconnectToMySQL(connection)
 # endregion
 
 
 # region Create method
-def add_optimization(data, is_return_response = True):
-    is_db_error = True
-    is_success = True
-    connection = connect_to_mysql()
-    value = []
+def AddOptimization(data):
+    try:
+        connection = ConnectToMySQL()
+        value = []
 
-    strategy_class = utilities.get_class_from_name('ants.strategy.'+data['strategy'], data['strategy'])
-    data["strategy_name"] = strategy_class.STRATEGY_NAME
-    data["strategy_slug"] = strategy_class.STRATEGY_SLUG
-    data["last_update"] = strategy_class.VERSION
-    data["version"] = strategy_class.LAST_UPDATE_DATE
+        strategyClass = utilities.GetClassFromName('ants.strategy.'+data['strategy'], data['strategy'])
+        data["strategy_name"] = strategyClass.STRATEGY_NAME
+        data["strategy_slug"] = strategyClass.STRATEGY_SLUG
+        data["last_update"] = strategyClass.VERSION
+        data["version"] = strategyClass.LAST_UPDATE_DATE
 
-    # ToDo mark as filter backtest
-    strategy_parameter = strategy_class.OPTIMIZATION_PARAMETER
+        # ToDo mark as filter backtest
+        StrategyParameter = strategyClass.OPTIMIZATION_PARAMETER
 
-    data["backtest_mode_no"] = int(data["backtest_mode"])
-    if data["backtest_mode_no"] == 0:
-        data["backtest_mode"] = "Intra day single process"
-    elif data["backtest_mode_no"] == 1:
-        data["backtest_mode"] = "Inter day single process"
-    elif data["backtest_mode_no"] == 2:
-        data["backtest_mode"] = "Intra day multi process"
-    elif data["backtest_mode_no"] == 3:
-        data["backtest_mode"] = "Inter day multi process"
-    else:
-        data["backtest_mode"] = "not handle in db.py"
-
-    with connection.cursor() as cursor:
-        if "walk_forward_test_id" not in data:
-            data["walk_forward_test_id"] = 0
-
-        if "remark" not in data:
-            data["remark"] = 0
-
-        sql = "INSERT INTO `optimization` (`exchange`, `trade_ticker`, `data_ticker`, `data_resolution`, `contract`, `base_quantity`, `cash`, `data_start_date`, `start_date`, `end_date`, `backtest_mode_no`, `backtest_mode`, `commission`, `slippage_pips`, `data_provider_class`, `order_handler_class`, `portfolio_class`, `strategy_class`, `strategy_name`, `strategy_slug`, `last_update`, `version`, `strategy_parameter`, `walk_forward_test_id`, `remark`, `created_time`, `modified_time`) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())"
-        cursor.execute(sql, (
-        data["exchange"], data["trade_ticker"], data["data_ticker"], data["data_resolution"], data["contract"],
-        data["base_quantity"], data["cash"], data["data_start_date"], data["start_date"], data["end_date"],
-        data["backtest_mode_no"], data["backtest_mode"], data["commission"], data["slippage_pips"],
-        data["data_provider"], data["order_handler"], data["portfolio"], data["strategy"], data["strategy_name"],
-        data["strategy_slug"], data["last_update"], data["version"], data["parameter"], data["walk_forward_test_id"], data["remark"]))
-
-        connection.commit()
-        result = cursor.fetchone()
-        is_db_error = False
-
-        optimization_id = cursor.lastrowid
-        optimize_parameter = json.loads(data['parameter'])
-
-        strategy_parameter_combination = utilities.get_optimization_parameter_combination(strategy_parameter, optimize_parameter)
-        #add backtest job here
-        for parameter in strategy_parameter_combination:
-            new_data = copy.deepcopy(data)
-            new_data["backtest_mode"] = data["backtest_mode_no"]
-            new_data["parameter"] = json.dumps(parameter)
-            new_data["optimization_id"] = optimization_id
-            add_backtest(new_data)
-
-        if is_db_error:
-            is_success = False
-        if is_return_response:
-            if is_success:
-                return "success", "add optimization success"
-            else:
-                return "fail", "error found on add optimization"
+        data["backtest_mode_no"] = int(data["backtest_mode"])
+        if data["backtest_mode_no"] == 0:
+            data["backtest_mode"] = "Intra day single process"
+        elif data["backtest_mode_no"] == 1:
+            data["backtest_mode"] = "Inter day single process"
+        elif data["backtest_mode_no"] == 2:
+            data["backtest_mode"] = "Intra day multi process"
+        elif data["backtest_mode_no"] == 3:
+            data["backtest_mode"] = "Inter day multi process"
         else:
-            if is_success:
-                return optimization_id
-            else:
-                return None
+            data["backtest_mode"] = "not handle in db.py"
+
+        with connection.cursor() as cursor:
+            if "walk_forward_test_id" not in data:
+                data["walk_forward_test_id"] = 0
+
+            if "remark" not in data:
+                data["remark"] = 0
+
+            sql = "INSERT INTO `optimization` (`exchange`, `trade_ticker`, `data_ticker`, `data_resolution`, `contract`, `base_quantity`, `cash`, `data_start_date`, `start_date`, `end_date`, `backtest_mode_no`, `backtest_mode`, `commission`, `slippage_pips`, `data_provider_class`, `order_handler_class`, `portfolio_class`, `strategyClass`, `strategy_name`, `strategy_slug`, `last_update`, `version`, `StrategyParameter`, `walk_forward_test_id`, `remark`, `created_time`, `modified_time`) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())"
+            cursor.execute(sql, (
+            data["exchange"], data["trade_ticker"], data["data_ticker"], data["data_resolution"], data["contract"],
+            data["base_quantity"], data["cash"], data["data_start_date"], data["start_date"], data["end_date"],
+            data["backtest_mode_no"], data["backtest_mode"], data["commission"], data["slippage_pips"],
+            data["data_provider"], data["order_handler"], data["portfolio"], data["strategy"], data["strategy_name"],
+            data["strategy_slug"], data["last_update"], data["version"], data["parameter"], data["walk_forward_test_id"], data["remark"]))
+
+            connection.commit()
+            result = cursor.fetchone()
+            isDBError = False
+
+            optimizationId = cursor.lastrowid
+            optimize_parameter = json.loads(data['parameter'])
+
+            StrategyParameter_combination = utilities.get_optimization_parameter_combination(StrategyParameter, optimize_parameter)
+            #add backtest job here
+            for parameter in StrategyParameter_combination:
+                newData = copy.deepcopy(data)
+                newData["backtest_mode"] = data["backtest_mode_no"]
+                newData["parameter"] = json.dumps(parameter)
+                newData["optimization_id"] = optimizationId
+                addBacktest(newData)
+
+        return True
+
+    except e:
+        traceback.print_exc()
+        return False
+
+    finally:
+        DisconnectToMySQL(connection)
 
 # endregion
 
 
 # endregion
 
+############################################################################
 
 # region Walk forward test
-def add_walk_forward_test(data):
-    import copy
-    is_db_error = True
-    is_success = True
-    connection = connect_to_mysql()
-    value = []
+def AddWalkForwardTest(data):
+    try:
+        connection = ConnectToMySQL()
+        value = []
 
-    strategy_class = utilities.get_class_from_name('ants.strategy.'+data['strategy'], data['strategy'])
-    data["strategy_name"] = strategy_class.STRATEGY_NAME
-    data["strategy_slug"] = strategy_class.STRATEGY_SLUG
-    data["last_update"] = strategy_class.VERSION
-    data["version"] = strategy_class.LAST_UPDATE_DATE
+        strategyClass = utilities.GetClassFromName('ants.strategy.'+data['strategy'], data['strategy'])
+        data["strategy_name"] = strategyClass.STRATEGY_NAME
+        data["strategy_slug"] = strategyClass.STRATEGY_SLUG
+        data["last_update"] = strategyClass.VERSION
+        data["version"] = strategyClass.LAST_UPDATE_DATE
 
-    if "remark" not in data:
-        data["remark"] = ""
-    strategy_parameter = strategy_class.OPTIMIZATION_PARAMETER
+        if "remark" not in data:
+            data["remark"] = ""
+        StrategyParameter = strategyClass.OPTIMIZATION_PARAMETER
 
-    data["backtest_mode_no"] = int(data["backtest_mode"])
+        data["backtest_mode_no"] = int(data["backtest_mode"])
 
-    #1 add walk forward test
-    with connection.cursor() as cursor:
-        sql = "INSERT INTO `walk_forward_test` (`exchange`, `trade_ticker`, `data_ticker`, `data_resolution`, `contract`, `base_quantity`, `cash`, `data_start_date`, `start_date`, `end_date`, `backtest_mode_no`, `backtest_mode`, `commission`, `slippage_pips`, `data_provider_class`, `order_handler_class`, `portfolio_class`, `strategy_class`, `strategy_name`, `strategy_slug`, `last_update`, `version`, `remark`,  `walk_forward_test`, `no_of_month`, `created_time`, `modified_time`) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())"
-        cursor.execute(sql, (data["exchange"], data["trade_ticker"], data["data_ticker"], data["data_resolution"], data["contract"], data["base_quantity"], data["cash"], data["data_start_date"], data["start_date"], data["end_date"], data["backtest_mode_no"], data["backtest_mode"], data["commission"], data["slippage_pips"], data["data_provider"], data["order_handler"], data["portfolio"], data["strategy"], data["strategy_name"], data["strategy_slug"], data["last_update"], data["version"], data["remark"], data["walk_forward_test"], data["no_of_month"]))
-        connection.commit()
-        result = cursor.fetchone()
-        is_db_error = False
+        #1 add walk forward test
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO `walk_forward_test` (`exchange`, `trade_ticker`, `data_ticker`, `data_resolution`, `contract`, `base_quantity`, `cash`, `data_start_date`, `start_date`, `end_date`, `backtest_mode_no`, `backtest_mode`, `commission`, `slippage_pips`, `data_provider_class`, `order_handler_class`, `portfolio_class`, `strategyClass`, `strategy_name`, `strategy_slug`, `last_update`, `version`, `remark`,  `walk_forward_test`, `no_of_month`, `created_time`, `modified_time`) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())"
+            cursor.execute(sql, (data["exchange"], data["trade_ticker"], data["data_ticker"], data["data_resolution"], data["contract"], data["base_quantity"], data["cash"], data["data_start_date"], data["start_date"], data["end_date"], data["backtest_mode_no"], data["backtest_mode"], data["commission"], data["slippage_pips"], data["data_provider"], data["order_handler"], data["portfolio"], data["strategy"], data["strategy_name"], data["strategy_slug"], data["last_update"], data["version"], data["remark"], data["walk_forward_test"], data["no_of_month"]))
+            connection.commit()
+            result = cursor.fetchone()
+            isDBError = False
 
-        data['walk_forward_test_id'] = cursor.lastrowid
+            data['walk_forward_test_id'] = cursor.lastrowid
 
 
-        #add optimization
-        optimization_pair = strategy_class.OPTIMIZATION_PAIR
-        optimization_parameter = strategy_class.OPTIMIZATION_PARAMETER
-        optimization_pair_for_checking = list(itertools.chain.from_iterable(optimization_pair))
+            #add optimization
+            optimization_pair = strategyClass.OPTIMIZATION_PAIR
+            optimization_parameter = strategyClass.OPTIMIZATION_PARAMETER
+            optimization_pair_for_checking = list(itertools.chain.from_iterable(optimization_pair))
 
-        all_parameter_exist_in_pair = True
+            allParameterExistInPair = True
 
-        for key in optimization_parameter:
-            if key not in optimization_pair_for_checking:
-                all_parameter_exist_in_pair = False
+            for key in optimization_parameter:
+                if key not in optimization_pair_for_checking:
+                    allParameterExistInPair = False
 
-        if not all_parameter_exist_in_pair:
-            return "fail", "error found on add walk forward test, optimization pair and optimization parameter not match"
+            if not allParameterExistInPair:
+                return "fail", "error found on add walk forward test, optimization pair and optimization parameter not match"
 
-        data_start_date_dt = datetime.datetime.strptime(data['data_start_date'], "%Y-%m-%d").date()
-        start_date_dt = datetime.datetime.strptime(data['start_date'], "%Y-%m-%d").date()
-        end_date_dt = datetime.datetime.strptime(data['end_date'], "%Y-%m-%d").date()
+            dataStartDateDt = datetime.datetime.strptime(data['data_start_date'], "%Y-%m-%d").date()
+            startDateDt = datetime.datetime.strptime(data['start_date'], "%Y-%m-%d").date()
+            endDateDt = datetime.datetime.strptime(data['end_date'], "%Y-%m-%d").date()
 
-        month_diff = abs(utilities.diff_month(data_start_date_dt, start_date_dt))
-        total_no_of_month = abs(utilities.diff_month(start_date_dt, end_date_dt)) + 1
+            monthDiff = abs(utilities.diffMonth(dataStartDateDt, startDateDt))
+            totalNoOfMonth = abs(utilities.diff_month(startDateDt, endDateDt)) + 1
 
-        optimization_id_batch = []
+            optimizationIdBatch = []
 
-        for i in range(0, total_no_of_month):
-            optimization_id_single_batch = []
-            next_start_date_dt = utilities.add_months(start_date_dt, i)
+            for i in range(0, totalNoOfMonth):
+                optimization_id_single_batch = []
+                next_startDateDt = utilities.add_months(startDateDt, i)
 
-            # for optimization
-            new_start_date_dt = utilities.add_months(next_start_date_dt, int(data['no_of_month'])*-1)
-            new_data_start_date_dt = utilities.add_months(new_start_date_dt, -month_diff)
-            new_end_date_dt = utilities.add_months_with_last_date(new_start_date_dt, int(data['no_of_month']))
+                # for optimization
+                newStartDateDt = utilities.add_months(next_startDateDt, int(data['no_of_month'])*-1)
+                newDataStartDateDt = utilities.add_months(newStartDateDt, -monthDiff)
+                newEndDateDt = utilities.add_months_with_last_date(newStartDateDt, int(data['no_of_month']))
 
-            new_backtest_start_date = next_start_date_dt
-            new_backtest_data_start_date = utilities.add_months(new_backtest_start_date, -month_diff)
-            new_backtest_end_date_dt = utilities.add_months_with_last_date(new_backtest_start_date, 1)
+                newBacktestStartDate = next_startDateDt
+                newBacktestDataStartDate = utilities.add_months(newBacktestStartDate, -monthDiff)
+                newBacktestEndDateDt = utilities.add_months_with_last_date(newBacktestStartDate, 1)
 
-            for pair in optimization_pair:
-                new_optimize_parameter = {}
-                for key in pair:
-                    new_optimize_parameter[key] = optimization_parameter[key]
+                for pair in optimization_pair:
+                    newOptimizeParameter = {}
+                    for key in pair:
+                        newOptimizeParameter[key] = optimization_parameter[key]
 
-                new_data = copy.deepcopy(data)
-                new_data['data_start_date'] = new_data_start_date_dt.strftime("%Y-%m-%d")
-                new_data['start_date'] = new_start_date_dt.strftime("%Y-%m-%d")
-                new_data['end_date'] = new_end_date_dt.strftime("%Y-%m-%d")
-                new_data['parameter'] = json.dumps(new_optimize_parameter)
+                    newData = copy.deepcopy(data)
+                    newData['data_start_date'] = newDataStartDateDt.strftime("%Y-%m-%d")
+                    newData['start_date'] = newStartDateDt.strftime("%Y-%m-%d")
+                    newData['end_date'] = newEndDateDt.strftime("%Y-%m-%d")
+                    newData['parameter'] = json.dumps(newOptimizeParameter)
 
-                optimization_id = add_optimization(new_data, False)
-                optimization_id_single_batch.append(optimization_id)
-                # add optimization here
-                print("add optimization:", optimization_id)
-            optimization_id_batch.append(optimization_id_single_batch)
+                    optimization_id = add_optimization(newData, False)
+                    optimization_id_single_batch.append(optimization_id)
+                    # add optimization here
+                    print("add optimization:", optimization_id)
+                optimizationIdBatch.append(optimization_id_single_batch)
 
-        optimization_id_batch = json.dumps(optimization_id_batch)
+            optimizationIdBatch = json.dumps(optimizationIdBatch)
 
-        print("optimization_id_batch", optimization_id_batch)
-        print("optimization_id_batch", type(optimization_id_batch))
-        print("data['walk_forward_test_id']", data['walk_forward_test_id'])
+            print("optimizationIdBatch", optimizationIdBatch)
+            print("optimizationIdBatch", type(optimizationIdBatch))
+            print("data['walk_forward_test_id']", data['walk_forward_test_id'])
 
-        sql = "UPDATE `walk_forward_test` SET `optimization_batch`=%s, `modified_time`=NOW() WHERE `id`=%s"
-        cursor.execute(sql, (optimization_id_batch, data['walk_forward_test_id']))
-        connection.commit()
-        result = cursor.fetchone()
-        is_db_error = False
+            sql = "UPDATE `walk_forward_test` SET `optimization_batch`=%s, `modified_time`=NOW() WHERE `id`=%s"
+            cursor.execute(sql, (optimizationIdBatch, data['walk_forward_test_id']))
+            connection.commit()
+            result = cursor.fetchone()
 
+        return True
 
-        if is_db_error:
-            is_success = False
-        if is_success:
-            return "success", "add walk forward test success"
-        else:
-            return "fail", "error found on add walk forward test"
+    except e:
+        traceback.print_exc()
+        return []
 
-def get_walk_forward_test_status_summary(result):
+    finally:
+        DisconnectToMySQL(connection)
+
+def GetWalkForwardTestStatusSummary(result):
     value = {}
     value['num_walk_forward_test'] = 0
     value['num_completed'] = 0
@@ -1356,22 +1182,21 @@ def get_walk_forward_test_status_summary(result):
 
     return value
 
-def update_walk_forward_test_status(walk_forward_test_id, status, error_msg=""):
+
+def UpdateWalkForwardTestStatus(walkForwardTestId, status, errorMsg=""):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
 
         with connection.cursor() as cursor:
             sql = "UPDATE `walk_forward_test` SET `status`=%s, `error_message`=%s, `modified_time`=NOW() WHERE `id`=%s"
-            cursor.execute(sql, (status, error_msg, walk_forward_test_id))
+            cursor.execute(sql, (status, errorMsg, walkForwardTestId))
             connection.commit()
 
             if status == "running":
-                update_backtest_start_time(walk_forward_test_id, 'walk_forward_test')
+                UpdateBacktestStartTime(walkForwardTestId, 'walk_forward_test')
 
             elif status=="optimization_complete":
-                update_backtest_end_time(walk_forward_test_id, 'walk_forward_test')
+                UpdateBacktestEndTime(walkForwardTestId, 'walk_forward_test')
 
             elif status == "completed":
                 pass
@@ -1379,29 +1204,18 @@ def update_walk_forward_test_status(walk_forward_test_id, status, error_msg=""):
             elif status=="error":
                 pass
 
-            is_db_error = False
-
-        if is_db_error:
-            is_success = False
-
+        return True
     except:
         traceback.print_exc()
-        is_success = False
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "update walk forward test status success"
-        else:
-            return "fail", "error found update walk forward test status"
+        DisconnectToMySQL(connection)
 
 
-def get_walk_forward_test(status="running"):
+def GetWalkForwardTest(status="running"):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -1416,36 +1230,27 @@ def get_walk_forward_test(status="running"):
                 cursor.execute(sql, (status))
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value.append(row)
 
-        if is_db_error:
-            is_success = False
+        return value
 
     except:
         traceback.print_exc()
-        is_success = False
+        return []
 
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "get optimization", value
-        else:
-            return "fail", "error found on get optimization.", "not_set"
-
-def get_walk_forward_test_with_pagination(page_size, page_no):
+def GetWalkForwardTestWithPagination(pageSize, pageNo):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -1453,172 +1258,160 @@ def get_walk_forward_test_with_pagination(page_size, page_no):
             cursor.execute(sql)
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
+            isDBError = False
 
             value = get_walk_forward_test_status_summary(result)
-            value['page_size'] = page_size
-            value['page_no'] = page_no
-            value['num_pages'] = int(math.ceil(value['num_walk_forward_test'] / page_size))
+            value['page_size'] = pageSize
+            value['page_no'] = pageNo
+            value['num_pages'] = int(math.ceil(value['num_walk_forward_test'] / pageSize))
 
             value['walk_forward_test'] = []
 
             sql = "SELECT * FROM `walk_forward_test` ORDER BY `id` DESC LIMIT %s, %s"
-            cursor.execute(sql, ((page_no-1)*page_size, page_size))
+            cursor.execute(sql, ((pageNo-1)*pageSize, pageSize))
             connection.commit()
 
             result = cursor.fetchall()
             if result is not None:
                 for row in result:
-                    row['backtest_start_time'] = mysql_time_to_string(row['backtest_start_time'])
-                    row['backtest_end_time'] = mysql_time_to_string(row['backtest_end_time'])
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['backtest_start_time'] = MySQLTimeToString(row['backtest_start_time'])
+                    row['backtest_end_time'] = MySQLTimeToString(row['backtest_end_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value['walk_forward_test'].append(row)
 
-        if is_db_error:
-            is_success = False
+        return value
     except:
-        is_success = False
         print(traceback.print_exc())
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get walk forward test with pagination", value
-        else:
-            return "fail", "error found on get walk forward test with pagination", "not_set"
+        DisconnectToMySQL(connection)
 
 # endregion
 
+############################################################################
 
 # region Strategy related
-def reformat_timestr_in_strategy(strategy_record):
-    if strategy_record['created_time'] is None:
-        strategy_record['created_time'] = "0000-00-00 00:00:00"
+def ReformatTimestrInStrategy(strategyRecord):
+    if strategyRecord['created_time'] is None:
+        strategyRecord['created_time'] = "0000-00-00 00:00:00"
     else:
-        strategy_record['created_time'] = strategy_record['created_time'].strftime('%Y-%m-%d %H:%M:%S')
+        strategyRecord['created_time'] = strategyRecord['created_time'].strftime('%Y-%m-%d %H:%M:%S')
 
-    if strategy_record['modified_time'] is None:
-        strategy_record['modified_time'] = "0000-00-00 00:00:00"
+    if strategyRecord['modified_time'] is None:
+        strategyRecord['modified_time'] = "0000-00-00 00:00:00"
     else:
-        strategy_record['modified_time'] = strategy_record['modified_time'].strftime('%Y-%m-%d %H:%M:%S')
+        strategyRecord['modified_time'] = strategyRecord['modified_time'].strftime('%Y-%m-%d %H:%M:%S')
 
-    if strategy_record['last_handshake_time'] is None:
-        strategy_record['last_handshake_time'] = "0000-00-00 00:00:00"
+    if strategyRecord['last_handshake_time'] is None:
+        strategyRecord['last_handshake_time'] = "0000-00-00 00:00:00"
     else:
-        strategy_record['last_handshake_time'] = strategy_record['last_handshake_time'].strftime('%Y-%m-%d %H:%M:%S')
+        strategyRecord['last_handshake_time'] = strategyRecord['last_handshake_time'].strftime('%Y-%m-%d %H:%M:%S')
 
-    if strategy_record['online_time'] is None:
-        strategy_record['online_time'] = "0000-00-00 00:00:00"
+    if strategyRecord['online_time'] is None:
+        strategyRecord['online_time'] = "0000-00-00 00:00:00"
     else:
-        strategy_record['online_time'] = strategy_record['online_time'].strftime('%Y-%m-%d %H:%M:%S')
+        strategyRecord['online_time'] = strategyRecord['online_time'].strftime('%Y-%m-%d %H:%M:%S')
 
-    if strategy_record['offline_time'] is None:
-        strategy_record['offline_time'] = "0000-00-00 00:00:00"
+    if strategyRecord['offline_time'] is None:
+        strategyRecord['offline_time'] = "0000-00-00 00:00:00"
     else:
-        strategy_record['offline_time'] = strategy_record['offline_time'].strftime('%Y-%m-%d %H:%M:%S')
+        strategyRecord['offline_time'] = strategyRecord['offline_time'].strftime('%Y-%m-%d %H:%M:%S')
 
-    return strategy_record
+    return strategyRecord
 
 
+############################################################################
 
 # region Create method
-def add_strategy(data):
-    is_db_error = True
-    is_success = True
-    connection = connect_to_mysql()
-    value = []
+def AddStrategy(data):
+    try:
+        connection = ConnectToMySQL()
+        value = []
 
-    with connection.cursor() as cursor:
-        sql = "INSERT INTO `strategy` (`name`, `slug`, `filename`, `class_name`, `data_ticker`, `trade_ticker`, `data_resolution`, `contract`, `exchange`, `sec_type`, `action`, `base_qty`, `parameter`, `description`, `version`, `parent_id`, `status`, `created_time`, `modified_time`) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())"
-        cursor.execute(sql, (data['name'], data['slug'], data['filename'], data['class_name'], data['data_ticker'], data['trade_ticker'], data['data_resolution'], data['contract'], data['exchange'], data['sec_type'], data['action'], data['base_qty'], data['parameter'], data['description'], data['version'], data['parent_id'], data['status']))
-        connection.commit()
-        result = cursor.fetchone()
-        is_db_error = False
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO `strategy` (`name`, `slug`, `filename`, `class_name`, `data_ticker`, `trade_ticker`, `data_resolution`, `contract`, `exchange`, `sec_type`, `action`, `base_qty`, `parameter`, `description`, `version`, `parent_id`, `status`, `created_time`, `modified_time`) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())"
+            cursor.execute(sql, (data['name'], data['slug'], data['filename'], data['class_name'], data['data_ticker'], data['trade_ticker'], data['data_resolution'], data['contract'], data['exchange'], data['sec_type'], data['action'], data['base_qty'], data['parameter'], data['description'], data['version'], data['parent_id'], data['status']))
+            connection.commit()
+            result = cursor.fetchone()
 
-    if is_db_error:
-        is_success = False
-    if is_success:
-        return "success", "add strategy success"
-    else:
-        return "fail", "error found on add strategy"
+        return True
+
+    except:
+        traceback.print_exc()
+        return False
+
+    finally:
+        DisconnectToMySQL(connection)
 # endregion
 
+############################################################################
 
 # region Update method
-def update_strategy(data):
-    is_db_error = True
-    is_success = True
-    connection = connect_to_mysql()
-    value = []
+def UpdateStrategy(data):
+    try:
+        connection = ConnectToMySQL()
+        value = []
 
-    with connection.cursor() as cursor:
-        sql = "UPDATE `strategy` SET `name`=%s, `slug`=%s, `filename`=%s, `class_name`=%s, `data_ticker`=%s, `trade_ticker`=%s, `data_resolution`=%s, `contract`=%s, `exchange`=%s, `sec_type`=%s, `action`=%s, `base_qty`=%s, `parameter`=%s, `description`=%s, `version`=%s, `parent_id`=%s, `status`=%s, `modified_time`=NOW() WHERE `id`=%s"
-        cursor.execute(sql, (data['name'], data['slug'], data['filename'], data['class_name'], data['data_ticker'], data['trade_ticker'], data['data_resolution'], data['contract'], data['exchange'], data['sec_type'], data['action'], data['base_qty'], data['parameter'], data['description'], data['version'], data['parent_id'], data['status'], data['strategy_id']))
-        connection.commit()
-        result = cursor.fetchone()
-        is_db_error = False
+        with connection.cursor() as cursor:
+            sql = "UPDATE `strategy` SET `name`=%s, `slug`=%s, `filename`=%s, `class_name`=%s, `data_ticker`=%s, `trade_ticker`=%s, `data_resolution`=%s, `contract`=%s, `exchange`=%s, `sec_type`=%s, `action`=%s, `base_qty`=%s, `parameter`=%s, `description`=%s, `version`=%s, `parent_id`=%s, `status`=%s, `modified_time`=NOW() WHERE `id`=%s"
+            cursor.execute(sql, (data['name'], data['slug'], data['filename'], data['class_name'], data['data_ticker'], data['trade_ticker'], data['data_resolution'], data['contract'], data['exchange'], data['sec_type'], data['action'], data['base_qty'], data['parameter'], data['description'], data['version'], data['parent_id'], data['status'], data['strategy_id']))
+            connection.commit()
+            result = cursor.fetchone()
 
-    if is_db_error:
-        is_success = False
-    if is_success:
-        return "success", "add strategy success"
-    else:
-        return "fail", "error found on add strategy"
+        return True
+
+    except:
+        traceback.print_exc()
+        return False
+
+    finally:
+        DisconnectToMySQL(connection)
 # endregion
 
+############################################################################
 
 # region Delete method
-def delete_strategy(strategy_id):
+def Deletestrategy(strategyId):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "UPDATE `strategy` SET `status`='delete' WHERE `id`=%s"
-            cursor.execute(sql, (strategy_id))
+            cursor.execute(sql, (strategyId))
             connection.commit()
             result = cursor.fetchone()
-            is_db_error = False
 
-        if is_db_error:
-            is_success = False
+        return True
 
     except:
-        is_success = False
+        traceback.print_exc()
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "strategy marked as delete"
-        else:
-            return "fail", "error found on delete strategy"
+        DisconnectToMySQL(connection)
 # endregion
 
+############################################################################
 
 # region Get method
-def get_strategy(status=None, strategy_id=None, parent_id=None):
+def GetStrategy(status=None, strategyId=None, parentId=None):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
-            if status is None and strategy_id is None and parent_id is not None:
+            if status is None and strategyId is None and parentId is not None:
                 # search by parent_id
                 if parent_id == -1:
                     parent_id = ""
                 sql = "SELECT * FROM `strategy` WHERE `parent_id`=%s ORDER BY `created_time`"
-                cursor.execute(sql, (parent_id))
-            elif status is None and parent_id is None and strategy_id is not None:
-                # search by strategy_id
+                cursor.execute(sql, (parentId))
+            elif status is None and parent_id is None and strategyId is not None:
+                # search by strategyId
                 sql = "SELECT * FROM `strategy` WHERE `id`=%s ORDER BY `created_time`"
-                cursor.execute(sql, (strategy_id))
-            elif strategy_id is None and parent_id is None and status is not None:
+                cursor.execute(sql, (strategyId))
+            elif strategyId is None and parent_id is None and status is not None:
                 # search by status
                 sql = "SELECT * FROM `strategy` WHERE `status`=%s ORDER BY `created_time`"
                 cursor.execute(sql, (status))
@@ -1628,68 +1421,50 @@ def get_strategy(status=None, strategy_id=None, parent_id=None):
 
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             if result is not None:
                 for row in result:
                     value.append(reformat_timestr_in_strategy(row))
 
-        if is_db_error:
-            is_success = False
+        return value
 
     except:
-        is_success = False
+        traceback.print_exc()
+        return []
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get strategy success", value
-        else:
-            return "fail", "error found on get strategy", value
+        DisconnectToMySQL(connection)
 
 
-def get_strategy_by_id(strategy_id):
+def GetStrategyById(strategyId):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
-        value = []
+        connection = ConnectToMySQL()
+        value = {}
 
         with connection.cursor() as cursor:
             sql = "SELECT * FROM `strategy` WHERE `id`=%s ORDER BY `id` ASC"
-            cursor.execute(sql, (strategy_id))
+            cursor.execute(sql, (strategyId))
 
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             if result is not None:
                 for row in result:
                     value = reformat_timestr_in_strategy(row)
 
-        if is_db_error:
-            is_success = False
-
+        return value
     except e:
-        is_success = False
+        traceback.print_exc()
+        return NOT_SET
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get strategy success", value
-        else:
-            return "fail", "error found on get strategy", value
+        DisconnectToMySQL(connection)
 
 
-def get_strategy_to_daily_backtest(status=None):
+def GetStrategyTo_dailyBacktest(status=None):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
-
         online = "online"
         offline = "offline"
 
@@ -1699,32 +1474,24 @@ def get_strategy_to_daily_backtest(status=None):
 
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
+            isDBError = False
 
             if result is not None:
                 for row in result:
                     value.append(reformat_timestr_in_strategy(row))
 
-        if is_db_error:
-            is_success = False
-
+        return value
     except e:
-        is_success = False
+        traceback.print_exc()
+        return NOT_SET
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get strategy success", value
-        else:
-            return "fail", "error found on get strategy", value
+        DisconnectToMySQL(connection)
 
 
-def get_available_strategy_equity(status, date):
+def GetAvailableStrategyEquity(status, date):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -1733,7 +1500,6 @@ def get_available_strategy_equity(status, date):
 
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             if result is not None:
                 for row in result:
@@ -1755,37 +1521,29 @@ def get_available_strategy_equity(status, date):
                         row["equity"] = equity_row
                 value.append(row)
 
-        if is_db_error:
-            is_success = False
-
+        return value
     except:
-        is_success = False
+        traceback.print_exc()
+        return []
 
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "get available strategy equity success", value
-        else:
-            return "fail", "error found on get available strategy equity", value
 
-def get_single_strategy_equity(strategy_id):
+def GetSingleStrategyEquity(strategyId):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = {}
 
         with connection.cursor() as cursor:
             sql = "SELECT * FROM `strategy_equity` WHERE `strategy_id`=%s ORDER BY `date` ASC"
-            cursor.execute(sql, (strategy_id))
+            cursor.execute(sql, (strategyId))
 
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
-            live_equity = []
-            backtest_equity = []
+            liveEquity = []
+            backtestEquity = []
 
             if result is not None:
                 for row in result:
@@ -1794,33 +1552,26 @@ def get_single_strategy_equity(strategy_id):
                     row['modified_time'] = row['modified_time'].strftime('%Y-%m-%d %H:%M:%S')
 
                     if row['equity_type'] == "live":
-                        live_equity.append(row)
+                        liveEquity.append(row)
                     else:
-                        backtest_equity.append(row)
+                        backtestEquity.append(row)
 
-            value['live_equity'] = live_equity
-            value['backtest_equity'] = backtest_equity
+            value['live_equity'] = liveEquity
+            value['backtest_equity'] = backtestEquity
 
-        if is_db_error:
-            is_success = False
+        return value
 
     except:
-        is_success = False
+        traceback.print_exc()
+        return NOT_SET
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get single strategy equity success", value
-        else:
-            return "fail", "error found on get single strategy equity", value
+        DisconnectToMySQL(connection)
 
 
-def get_next_strategy_to_online(exchange):
+def GetNextStrategyToOnline(exchange):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = {}
 
         with connection.cursor() as cursor:
@@ -1831,7 +1582,6 @@ def get_next_strategy_to_online(exchange):
 
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             strategies = []
 
@@ -1860,92 +1610,72 @@ def get_next_strategy_to_online(exchange):
                     strategies.append(row)
             value['strategy'] = strategies
 
-        if is_db_error:
-            is_success = False
-
+        return value
     except:
-        is_success = False
+        traceback.print_exc()
+        return []
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get online strategy success", value
-        else:
-            return "fail", "error found on get online strategy", value
+        DisconnectToMySQL(connection)
 
 # endregion
-
-
 # endregion
 
+############################################################################
 
 # region Filter test
 
 # region Create method
-def add_filter_test(filter_class, backtest_name, remark=""):
-    import copy
-    is_db_error = True
-    is_success = True
-    connection = connect_to_mysql()
-    value = []
+def AddFilterTest(filterClass, backtestName, remark=""):
+    try:
+        connection = ConnectToMySQL()
+        value = []
 
-    with connection.cursor() as cursor:
-        sql = "INSERT INTO `filter_test` (`filter_class`, `backtest_name`, `status`, `remark`, `created_time`, `modified_time`) VALUES (%s,%s,%s,%s,NOW(),NOW())"
-        cursor.execute(sql, (filter_class, backtest_name, "pending", remark))
-        connection.commit()
-        result = cursor.fetchone()
-        is_db_error = False
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO `filter_test` (`filter_class`, `backtest_name`, `status`, `remark`, `created_time`, `modified_time`) VALUES (%s,%s,%s,%s,NOW(),NOW())"
+            cursor.execute(sql, (filterClass, backtestName, "pending", remark))
+            connection.commit()
+            result = cursor.fetchone()
 
-        filter_test_id = cursor.lastrowid
+            return cursor.lastrowid
 
-        if is_db_error:
-            is_success = False
-        if is_success:
-            return "success", "add filter test success"
-        else:
-            return "fail", "error found on add filter test"
+    except:
+        traceback.print_exc()
+        return False
+
+    finally:
+        DisconnectToMySQL(connection)
 # endregion
 
 
 # region Update method
-def update_filter_test_status(filter_test_id, status, error_msg=""):
+def UpdateFilterTestStatus(filterTestId, status, errorMsg=""):
         try:
-            is_db_error = True
-            is_success = True
-            connection = connect_to_mysql()
+            connection = ConnectToMySQL()
             value = []
 
             with connection.cursor() as cursor:
                 sql = "UPDATE `filter_test` SET `status`=%s, `error_message`=%s, `modified_time`=NOW() WHERE `id`=%s"
-                cursor.execute(sql, (status, error_msg, filter_test_id))
+                cursor.execute(sql, (status, errorMsg, filterTestId))
                 connection.commit()
-                is_db_error = False
 
-
-            if is_db_error:
-                is_success = False
+            return True
 
         except:
             traceback.print_exc()
-            is_success = False
+            return False
 
         finally:
-            disconnect_to_mysql(connection)
+            DisconnectToMySQL(connection)
 
-            if is_success:
-                return "success", "update filter test status success"
-            else:
-                return "fail", "error found update filter test status"
+
 # endregion
 
 
 # region Get method
-def get_filter_test(status="running"):
+def GetFilterTest(status="running"):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -1960,35 +1690,26 @@ def get_filter_test(status="running"):
                 cursor.execute(sql, (status))
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             if result is not None:
                 for row in result:
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value.append(row)
 
-        if is_db_error:
-            is_success = False
+        return value
 
     except:
         traceback.print_exc()
-        is_success = False
+        return []
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get optimization", value
-        else:
-            return "fail", "error found on get optimization.", "not_set"
+        DisconnectToMySQL(connection)
 
 
-def get_filter_test_with_pagination(page_size, page_no):
+def GetFilterTestWithPagination(pageSize, pageNo):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -1996,7 +1717,6 @@ def get_filter_test_with_pagination(page_size, page_no):
             cursor.execute(sql)
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             value = {}
             value['num_filter_test'] = 0
@@ -2016,44 +1736,39 @@ def get_filter_test_with_pagination(page_size, page_no):
                     value["num_"+row['status']] += row['num_rows']
                     value['num_filter_test'] += row['num_rows']
 
-            value['page_size'] = page_size
-            value['page_no'] = page_no
-            value['num_pages'] = int(math.ceil(value['num_filter_test'] / page_size))
+            value['page_size'] = pageSize
+            value['page_no'] = pageNo
+            value['num_pages'] = int(math.ceil(value['num_filter_test'] / pageSize))
 
             sql = "SELECT * FROM `filter_test` ORDER BY `created_time` DESC LIMIT %s, %s"
-            cursor.execute(sql, ((page_no-1)*page_size, page_size))
+            cursor.execute(sql, ((pageNo-1)*pageSize, pageSize))
             connection.commit()
 
             result = cursor.fetchall()
             if result is not None:
                 for row in result:
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     value['filter_test'].append(row)
 
-        if is_db_error:
-            is_success = False
-        print(value)
+        return value
     except:
-        is_success = False
         print(traceback.print_exc())
+        return []
+
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "get filter test with pagination", value
-        else:
-            return "fail", "error found on get filter test with pagination", "not_set"
-# endregion
 # endregion
 
+# endregion
+
+############################################################################
 
 # region Service related
-def get_server():
+def GetServer():
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -2062,7 +1777,6 @@ def get_server():
 
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
 
             if result is not None:
                 for row in result:
@@ -2070,76 +1784,59 @@ def get_server():
                     row['modified_time'] = row['modified_time'].strftime('%Y-%m-%d %H:%M:%S')
                     value.append(row)
 
-        if is_db_error:
-            is_success = False
-
+        return value
     except:
-        is_success = False
+        print(traceback.print_exc())
+        return []
 
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "get services success", value
-        else:
-            return "fail", "error found on get services", value
+        DisconnectToMySQL(connection)
 # endregion
 
-
+############################################################################
 
 # region Live Order related
 
 # region Add method
-def add_live_order(order):
+def AddOrder(order, tradeType="backtest"):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
-        value = []
-
+        connection = ConnectToMySQL()
         with connection.cursor() as cursor:
-            sql = "INSERT INTO `live_orders` ( `oid`, `sid`, `client_id`, " \
+            sql = "INSERT INTO `trade_orders` ( `oid`, `sid`, `client_id`, `trade_type`," \
                                                 "`exchange`, `ticker`, `contract`, `action`," \
                                                 " `qty`, `order_type`, `trigger_price`, `label`, " \
                                                 "`account`, `status`, `adjusted_date`, `adjusted_time`, " \
                                                 "`created_time`, `modified_time`) " \
-                                                "VALUES (%s,%s,%s," \
+                                                "VALUES (%s,%s,%s,%s," \
                                                         "%s,%s,%s,%s," \
                                                         "%s,%s,%s,%s," \
                                                         "%s,%s,%s,%s," \
                                                         "NOW(), NOW())"
-            cursor.execute(sql, (order['oid'], order['sid'], order['client_id'],
+
+            order['trade_type'] = tradeType
+            cursor.execute(sql, (order['oid'], order['sid'], order['clientId'], order['tradeType'],
                                  order['exchange'],order['ticker'],order['contract'], order['action'],
-                                 order['qty'], order['order_type'],order['trigger_price'],order['label'],
-                                 order['account'], order['status'], order['adjusted_date'],order['adjusted_time']))
+                                 order['qty'], order['orderType'],order['triggerPrice'],order['label'],
+                                 order['account'], order['status'], order['adjustedDate'],order['adjustedTime']))
             connection.commit()
             result = cursor.fetchone()
-            is_db_error = False
 
-            filter_test_id = cursor.lastrowid
-
-            if is_db_error:
-                is_success = False
+            filterTestId = cursor.lastrowid
+            return filterTestId
     except:
         traceback.print_exc()
-        is_success = False
+        return NOT_SET
 
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "update filter test status success"
-        else:
-            return "fail", "error found update filter test status"
 # endregion
 
 
 # region Get method
-def get_live_order_by_date(date_str):
+def GetLiveOrderByDate(date_str):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
@@ -2147,185 +1844,321 @@ def get_live_order_by_date(date_str):
             cursor.execute(sql, (date_str))
             connection.commit()
             result = cursor.fetchall()
-            is_db_error = False
+            isDBError = False
 
             if result is not None:
                 for row in result:
-                    row['created_time'] = mysql_time_to_string(row['created_time'])
-                    row['modified_time'] = mysql_time_to_string(row['modified_time'])
-                    row['filled_time'] = mysql_time_to_string(row['filled_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
+                    row['filled_time'] = MySQLTimeToString(row['filled_time'])
                     value.append(row)
 
-        if is_db_error:
-            is_success = False
+        return value
 
     except:
         traceback.print_exc()
-        is_success = False
+        return []
 
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "get live order by date string success", value
-        else:
-            return "fail", "error found on get live order by date string.", "not_set"
+def GetOrderById(oid, permId):
+    try:
+        connection = ConnectToMySQL()
+        value = []
+
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM `trade_orders` WHERE `oid`=%s AND `perm_id`=%s LIMIT 1"
+            cursor.execute(sql, (oid, permId))
+            connection.commit()
+            result = cursor.fetchall()
+
+
+            if result is not None:
+                for row in result:
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
+                    row['filled_time'] = MySQLTimeToString(row['filled_time'])
+                    value.append(row)
+
+        return value
+
+    except:
+        traceback.print_exc()
+        return []
+
+    finally:
+        DisconnectToMySQL(connection)
 
 
 # endregion
 
 
 # region Update method
-def update_live_order_status(order_id, sid, status):
+def UpdateLiveOrderStatus(orderId, sid, status):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "UPDATE `live_orders` SET `status`=%s, `modified_time`=NOW() WHERE `oid`=%s AND `sid`=%s"
-            cursor.execute(sql, (status, order_id, sid))
+            cursor.execute(sql, (status, orderId, sid))
             connection.commit()
-            is_db_error = False
 
-        if is_db_error:
-            is_success = False
-
+        return True
     except:
         traceback.print_exc()
-        is_success = False
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "update live order status success"
-        else:
-            return "fail", "error found update live order status"
-
-
-def update_live_order_column(order_id, sid, column, value):
+def UpdateLiveOrderColumn(orderId, sid, column, value):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "UPDATE `live_orders` SET `"+column+"`=%s, `modified_time`=NOW() WHERE `oid`=%s AND `sid`=%s"
-            cursor.execute(sql, (value, order_id, sid))
+            cursor.execute(sql, (value, orderId, sid))
             connection.commit()
-            is_db_error = False
 
-        if is_db_error:
-            is_success = False
-
+        return True
     except:
         traceback.print_exc()
-        is_success = False
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "update live order column success"
-        else:
-            return "fail", "error found update live order column"
-
-def update_live_order_commission(order_id, commission):
+def UpdateOrderCommission(orderId, commission):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
-        value = []
+        connection = ConnectToMySQL()
 
         with connection.cursor() as cursor:
-            sql = "UPDATE `live_orders` SET `commission`=%s, `modified_time`=NOW() WHERE `oid`=%s"
-            cursor.execute(sql, (commission, order_id))
+            sql = "UPDATE `trade_orders` SET `commission`=%s, `modified_time`=NOW() WHERE `id`=%s"
+            cursor.execute(sql, (commission, orderId))
             connection.commit()
-            is_db_error = False
-
-        if is_db_error:
-            is_success = False
-
+        return True
     except:
         traceback.print_exc()
-        is_success = False
+        return False
 
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "update live order commission success"
-        else:
-            return "fail", "error found update live order commission"
-
-
-def update_live_order_from_open_order(order_id, perm_id, status):
+'''
+#if no problem will remove this
+def UpdateLiveOrderWithOrderStatus(orderId, permId, status):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
             sql = "UPDATE `live_orders` SET `status`=%s, `perm_id`=%s, `modified_time`=NOW() WHERE `oid`=%s"
             cursor.execute(sql, (status, perm_id, order_id))
             connection.commit()
-            is_db_error = False
 
-        if is_db_error:
-            is_success = False
+        return value
 
     except:
         traceback.print_exc()
-        is_success = False
-
+        return []
     finally:
-        disconnect_to_mysql(connection)
-
-        if is_success:
-            return "success", "update live order status success"
-        else:
-            return "fail", "error found update live order status"
-
-
-def update_live_order_from_order_status(order_id, perm_id, status, filled, avg_fill_price):
+        DisconnectToMySQL(connection)
+'''
+#old update_live_order_from_open_order
+'''
+def update_live_order_from_open_order(order_id, perm_id, status):
     try:
-        is_db_error = True
-        is_success = True
-        connection = connect_to_mysql()
+        isDBError = True
+        isSuccess = True
+        connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
-            if status =="Filled":
-                sql = "UPDATE `live_orders` SET `perm_id`=%s, `status`=%s, `filled_qty`=%s, `filled_price`=%s, `modified_time`=NOW(), `filled_time`=NOW() WHERE `oid`=%s"
-                cursor.execute(sql, (perm_id, status, filled, avg_fill_price, order_id))
-            else:
-                sql = "UPDATE `live_orders` SET `perm_id`=%s, `status`=%s, `filled_qty`=%s, `filled_price`=%s, `modified_time`=NOW() WHERE `oid`=%s"
-                cursor.execute(sql, (perm_id, status, filled, avg_fill_price, order_id))
+            sql = "UPDATE `live_orders` SET `status`=%s, `perm_id`=%s, `modified_time`=NOW() WHERE `oid`=%s"
+            cursor.execute(sql, (status, perm_id, order_id))
             connection.commit()
-            is_db_error = False
+            isDBError = False
 
-        if is_db_error:
-            is_success = False
+        if isDBError:
+            isSuccess = False
 
     except:
         traceback.print_exc()
-        is_success = False
+        isSuccess = False
 
     finally:
-        disconnect_to_mysql(connection)
+        DisconnectToMySQL(connection)
 
-        if is_success:
-            return "success", "update live order success"
+        if isSuccess:
+            return "success", "update live order status success"
         else:
-            return "fail", "error found update live order"
+            return "fail", "error found update live order status"
+'''
+
+
+
+#def UpdateOrderWithOrderStatus(orderId, permId, status, filled, avgFillPrice):
+def UpdateOrderWithOrderStatus(orderStatus):
+    try:
+        connection = ConnectToMySQL()
+        value = []
+        #db.data['order_id'], data['perm_id'], data['status'], data['filled'], data['avg_fill_price'])
+
+        with connection.cursor() as cursor:
+            orderId = orderStatus['order_id']
+            permId = orderStatus['perm_id']
+            status = orderStatus['status']
+
+            if status =="Filled":
+                orders = GetOrderById(orderId, permId)
+
+                if len(orders) > 0:
+                    order = orders[0]
+
+                    #Skip update order status if order already filled
+                    if order['status'] == "Filled":
+                        return False
+
+                    filled = orderStatus['filled']
+                    avgFillPrice = orderStatus['avg_fill_price']
+
+                    if order['action'] == "BUY":
+                        slippage = avgFillPrice - order['trigger_price']
+                    else:
+                        slippage = order['trigger_price'] - avgFillPrice
+
+                    print("Update Order:", orderId, slippage)
+                    sql = "UPDATE `trade_orders` SET `perm_id`=%s, `status`=%s, `filled_qty`=%s, `filled_price`=%s, `slippage`=%s, `modified_time`=NOW(), `filled_time`=NOW() WHERE `oid`=%s"
+                    cursor.execute(sql, (permId, status, filled, avgFillPrice, slippage, orderId))
+                    connection.commit()
+
+                    UpdatePositionFromFilledOrder(orderStatus)
+
+            else:
+                sql = "UPDATE `trade_orders` SET `perm_id`=%s, `status`=%s, `modified_time`=NOW() WHERE `oid`=%s"
+                cursor.execute(sql, (permId, status, orderId))
+                connection.commit()
+
+        return True
+    except:
+        traceback.print_exc()
+        return False
+
+    finally:
+        DisconnectToMySQL(connection)
+# endregion
+
+# endregion
+
+
+
+# region Position related
+# region Add method
+#def UpdatePositionFromFilledOrder(orderId, permId, status):
+def UpdatePositionFromFilledOrder(orderStatus):
+    status = orderStatus['status']
+    if status != "Filled": return
+    try:
+        connection = ConnectToMySQL()
+        value = []
+
+        with connection.cursor() as cursor:
+            # 1 Selected order with same permId and orderId
+            # 2 Select position
+            # 3 Create a new position if no position exist else update it
+
+            # 1 Selected order with same permId and orderId
+            orderId = orderStatus['order_id']
+            permId = orderStatus['perm_id']
+            orders = GetOrderById(orderId, permId)
+            if len(orders)==0: return False
+
+            #1 Check with position table which has created position
+            order = orders[0]
+            sql = "SELECT * FROM `trade_positions` WHERE `sid`=%s AND `entry_date`=%s LIMIT 1"
+            cursor.execute(sql, (order['sid'], order['adjusted_date']))
+            connection.commit()
+            result = cursor.fetchall()
+
+            positions = []
+            if result is not None:
+                for row in result:
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
+                    positions.append(row)
+
+            if len(positions)==0:
+                #Condition: No position created today
+                #Action: Create a new position with filled order
+                status = "Open"
+
+                sql = "INSERT INTO `trade_positions` (`sid`, `account`, `client_id`, `trade_type`, `exchange`, " \
+                                                        "`ticker`, `contract`, `action`, `entry_oid`, `entry_date`, " \
+                                                        "`entry_time`, `entry_label`, `entry_price`, `entry_qty`, `qty`, " \
+                                                        "`commission`, `slippage`, `status`, `created_time`, `modified_time`)" \
+                                                        " VALUES( %s, %s, %s, %s, %s," \
+                                                                " %s, %s, %s, %s, %s," \
+                                                                " %s, %s, %s, %s, %s," \
+                                                                " %s, %s, %s, Now(),Now())"
+                cursor.execute(sql, (order['sid'], order['account'], order['client_id'], order['trade_type'], order['exchange'],
+                                     order['ticker'], order['contract'], order['action'], order['oid'], order['adjusted_date'],
+                                     order['adjusted_time'], order['label'], order['filled_price'], order['qty'], order['qty'],
+                                     order['commission'], order['slippage'], status))
+                connection.commit()
+                result = cursor.fetchone()
+                pass
+
+            else:
+                # Condition: Today position created
+                # Action: Update it
+                status = "Closed"
+                position = positions[0]
+
+                # Do not update if status is closed
+                if position['status'] == status:
+                    return False
+
+                slippage = int(order['slippage']) + int(position['slippage'])
+                commission = int(position['commission']) + int(order['commission'])
+
+                if position['action'] == 'BUY':
+                    pnl = int(order['filled_price']) - int(position['entry_price'])
+                else:
+                    pnl = int(position['entry_price']) - int(order['filled_price'])
+                pnl *= static.CONTRACT_MULTIPLY[position['ticker']]
+                pnl -= commission
+
+                result = "LOSS"
+                if pnl > 0:
+                    result = "WIN"
+
+                sql = "UPDATE `trade_positions` SET `exit_oid`=%s, `exit_date`=%s, `exit_time`=%s, `exit_label`=%s, " \
+                                                "`exit_price`=%s, `exit_qty`=%s, `commission`=%s, `pnl`=%s, " \
+                                                "`result`=%s, `slippage`=%s, `status`=%s, " \
+                                                "`modified_time`=NOW() WHERE `id`=%s"
+
+                cursor.execute(sql, (order['oid'], order['adjusted_date'], order['adjusted_time'], order['label'],
+                                     order['filled_price'], order['qty'], commission, pnl,
+                                     result, slippage, status,
+                                     position['id']))
+
+                connection.commit()
+
+        return True
+    except:
+        traceback.print_exc()
+        return False
+
+    finally:
+        DisconnectToMySQL(connection)
 
 # endregion
 
 # endregion
+############################################################################
 
 
 

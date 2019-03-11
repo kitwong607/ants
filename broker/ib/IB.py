@@ -8,6 +8,8 @@ import logging
 import time
 import os.path
 
+
+
 from ibapi import wrapper
 from ibapi.client import EClient
 from ibapi.utils import iswrapper
@@ -26,14 +28,14 @@ from ibapi.ticktype import *
 
 from ibapi.account_summary_tags import *
 
-
+from . import Static
 from .IBContract import IBContract
 from .IBOrder import IBOrder
 from .IBAvailableAlgoParams import IBAvailableAlgoParams
 from .IBScannerSubscription import IBScannerSubscription
 from .IBFaAllocation import IBFaAllocation
 
-from ..session_config import SessionStaticVariable
+from ...session import SessionStaticVariable
 
 def SetupLogger():
     if not os.path.exists("log"):
@@ -187,7 +189,7 @@ class IBAPIWrapper(wrapper.EWrapper):
 
 # ! [socket_init]
 class IB(IBAPIWrapper, IBAPIClient):
-    def __init__(self, func_to_ws):
+    def __init__(self, IBEventHandler):
         IBAPIWrapper.__init__(self)
         IBAPIClient.__init__(self, wrapper=self)
         # ! [socket_init]
@@ -200,12 +202,65 @@ class IB(IBAPIWrapper, IBAPIClient):
         self.simplePlaceOid = None
 
         self.account_info = {}
-        self.func_to_ws = func_to_ws
+        self.IBEventHandler = IBEventHandler
+
+    def convert_order_state_to_dict(self, orderState):
+        d = {}
+        d['status'] = orderState.status
+        d['initMarginBefore'] = orderState.initMarginBefore
+        d['maintMarginBefore'] = orderState.maintMarginBefore
+        d['equityWithLoanBefore'] = orderState.equityWithLoanBefore
+        d['initMarginChange'] = orderState.initMarginChange
+        d['maintMarginChange'] = orderState.maintMarginChange
+        d['equityWithLoanChange'] = orderState.equityWithLoanChange
+        d['initMarginAfter'] = orderState.initMarginAfter
+        d['maintMarginAfter'] = orderState.maintMarginAfter
+        d['equityWithLoanAfter'] = orderState.equityWithLoanAfter
+
+        d['commission'] = orderState.commission
+        d['minCommission'] = orderState.minCommission
+        d['maxCommission'] = orderState.maxCommission
+        d['commissionCurrency'] = orderState.commissionCurrency
+        d['warningText'] = orderState.warningText
 
 
+        return d
+
+    def convert_order_to_dict(self, order):
+        d = {}
+        d['orderId'] = order.orderId
+        d['clientId'] = order.clientId
+        d['permId'] = order.permId
+
+        d['orderType'] = order.orderType
+        d['action'] = order.action
+        d['totalQuantity'] = order.totalQuantity
+
+        d['lmtPrice'] = order.lmtPrice
 
 
-    def request_account_update_multi(self, account=None):
+        return d
+
+    def convert_contract_to_dict(self, contract):
+        d = {}
+        d['conId'] = contract.conId
+        d['symbol'] = contract.symbol
+        d['secType'] = contract.secType
+        d['lastTradeDateOrContractMonth'] = contract.lastTradeDateOrContractMonth
+        d['strike'] = contract.strike
+        d['right'] = contract.right
+        d['multiplier'] = contract.multiplier
+        d['exchange'] = contract.exchange
+        d['primaryExchange'] = contract.primaryExchange
+        d['currency'] = contract.currency
+        d['localSymbol'] = contract.localSymbol
+        d['tradingClass'] = contract.tradingClass
+        d['includeExpired'] = contract.includeExpired
+        d['secIdType'] = contract.secIdType
+        d['secId'] = contract.secId
+        return d
+
+    def requestAccountUpdateMulti(self, account=None):
         if account == self.account:
             return
 
@@ -216,10 +271,10 @@ class IB(IBAPIWrapper, IBAPIClient):
             self.reqAccountUpdatesMulti(req_id, account, "", False)
 
 
-    def to_ws(self, event, data):
+    def dispatchEvent(self, event, data):
         try:
-            if self.func_to_ws is not None:
-                self.func_to_ws(event, data)
+            if self.IBEventHandler is not None:
+                self.IBEventHandler(event, data)
         except:
             pass
         finally:
@@ -275,7 +330,7 @@ class IB(IBAPIWrapper, IBAPIClient):
 
         self.started = True
 
-        self.to_ws("ib_start", {"status":"success"})
+        self.dispatchEvent(Static.APIStartEvent, {"status":Static.SuccessStatus})
         self.reqManagedAccts()
 
     def subscribeMktData(self):
@@ -308,7 +363,7 @@ class IB(IBAPIWrapper, IBAPIClient):
     # ! [error]
     def error(self, reqId: TickerId, errorCode: int, errorString: str):
         super().error(reqId, errorCode, errorString)
-        self.to_ws("error", {"reqId":reqId, "errorCode":errorCode, "errorString":errorString})
+        self.dispatchEvent(Static.APIErrorEvent, {"reqId":reqId, "errorCode":errorCode, "errorString":errorString})
         #print("Error. Id: ", reqId, " Code: ", errorCode, " Msg: ", errorString)
 
     # ! [error] self.reqId2nErr[reqId] += 1
@@ -317,7 +372,7 @@ class IB(IBAPIWrapper, IBAPIClient):
     @iswrapper
     def winError(self, text: str, lastError: int):
         super().winError(text, lastError)
-        self.to_ws("winError", {"text": text, "lastError": lastError})
+        self.dispatchEvent(Static.WinEvent, {"text": text, "lastError": lastError})
         #ws.ib_win_error(text, lastError)
 
 
@@ -330,7 +385,12 @@ class IB(IBAPIWrapper, IBAPIClient):
               "@", contract.exchange, ":", order.action, order.orderType,
               order.totalQuantity, orderState.status)
 
-        self.to_ws("open_order", {"order_id": orderId, "contract": contract, "order": order, "order_state": orderState})
+
+        contractDict = self.convert_contract_to_dict(contract)
+        orderDict = self.convert_order_to_dict(order)
+        orderStateDict  = self.convert_order_state_to_dict(orderState)
+
+        self.dispatchEvent(Static.OpenOrderEvent, {"order_id": orderId, "contract": contractDict, "order": orderDict, "order_state": orderStateDict})
 
         # ! [openorder]
 
@@ -343,7 +403,7 @@ class IB(IBAPIWrapper, IBAPIClient):
     def openOrderEnd(self):
         super().openOrderEnd()
         # ! [openorderend]
-        self.to_ws("open_order_end", {})
+        self.dispatchEvent(Static.OpenOrderEndEvent, {})
         logging.debug("Received %d openOrders", len(self.permId2ord))
 
 
@@ -365,7 +425,7 @@ class IB(IBAPIWrapper, IBAPIClient):
               whyHeld, ", MktCapPrice: ", mktCapPrice)
         '''
 
-        self.to_ws("order_status", {"order_id": orderId, "status": status, "filled": filled, "remaining": remaining,
+        self.dispatchEvent(Static.OrderStatusEvent, {"order_id": orderId, "status": status, "filled": filled, "remaining": remaining,
                                    "avg_fill_price": avgFillPrice, "perm_id": permId, "parent_id": parentId,
                                    "last_fill_price": lastFillPrice, "client_id": clientId, "why_held": whyHeld, "mkt_cap_price": mktCapPrice})
 
@@ -383,14 +443,14 @@ class IB(IBAPIWrapper, IBAPIClient):
             if account != "":
                 self.accountsList.append(account)
 
-        self.to_ws("managed_accounts", {"accounts": self.accountsList})
+        self.dispatchEvent(Static.ManagedAccountsEvent, {"accounts": self.accountsList})
 
         print("subscribe account update")
         self.reqAccountUpdates(True, self.account)
 
         print("subscribe account update multi")
         for account in self.accountsList:
-            self.request_account_update_multi(account)
+            self.requestAccountUpdateMulti(account)
 
         print("subscribe open order")
         self.reqOpenOrders()
@@ -407,7 +467,7 @@ class IB(IBAPIWrapper, IBAPIClient):
               "Tag: ", tag, "Value:", value, "Currency:", currency)
         '''
 
-        self.to_ws("managed_summary", {"req_id":reqId, "account":account, "tag":tag, "value":value, "currency":currency})
+        self.dispatchEvent(Static.ManagedSummaryEvent, {"req_id":reqId, "account":account, "tag":tag, "value":value, "currency":currency})
     # ! [accountsummary]
 
 
@@ -417,7 +477,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         super().accountSummaryEnd(reqId)
         #print("AccountSummaryEnd. Req Id: ", reqId)
 
-        self.to_ws("managed_summary_end", {"req_id": reqId})
+        self.dispatchEvent(Static.ManagedSummaryEndEvent, {"req_id": reqId})
     # ! [accountsummaryend]
 
 
@@ -436,7 +496,7 @@ class IB(IBAPIWrapper, IBAPIClient):
 
         self.account_info[accountName][currency][key] = val
 
-        self.to_ws("account_update", {"key":key, "val":val, "currency":currency, "account": accountName})
+        self.dispatchEvent(Static.AccountUpdateEvent, {"key":key, "val":val, "currency":currency, "account": accountName})
     # ! [updateaccountvalue]
 
 
@@ -467,7 +527,7 @@ class IB(IBAPIWrapper, IBAPIClient):
                     "realized_pnl": realizedPNL,
                     "account": accountName
                 }
-        self.to_ws("portfolio_update", data)
+        self.dispatchEvent(Static.PortfolioUpdateEvent, data)
 
     # ! [updateportfolio]
 
@@ -476,7 +536,7 @@ class IB(IBAPIWrapper, IBAPIClient):
     # ! [updateaccounttime]
     def updateAccountTime(self, timestamp: str):
         super().updateAccountTime(timestamp)
-        self.to_ws("account_update_time", {"time": timestamp})
+        self.dispatchEvent(Static.AccountUpdateTimeEvent, {"time": timestamp})
     # ! [updateaccounttime]
 
 
@@ -484,7 +544,7 @@ class IB(IBAPIWrapper, IBAPIClient):
     # ! [accountdownloadend]
     def accountDownloadEnd(self, accountName: str):
         super().accountDownloadEnd(accountName)
-        self.to_ws("account_download_end", {"account": accountName})
+        self.dispatchEvent(Static.AccountDownloadEndEvent, {"account": accountName})
 
     # ! [accountdownloadend]
 
@@ -498,7 +558,7 @@ class IB(IBAPIWrapper, IBAPIClient):
               contract.secType, "Currency:", contract.currency,
               "Position:", position, "Avg cost:", avgCost)
 
-        self.to_ws("position", {"account": account, "contract": contract, "position": position, "avg_cost": avgCost})
+        self.dispatchEvent(Static.PositionEvent, {"account": account, "contract": contract, Static.PositionEvent: position, "avg_cost": avgCost})
 
     # ! [position]
 
@@ -509,7 +569,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         super().positionEnd()
         #print("PositionEnd")
 
-        self.to_ws("position_end", {})
+        self.dispatchEvent(Static.PositionEndEvent, {})
     # ! [positionend]
 
 
@@ -523,7 +583,7 @@ class IB(IBAPIWrapper, IBAPIClient):
               contract.secType, "Currency:", contract.currency, ",Position:",
               position, "AvgCost:", avgCost)
 
-        self.to_ws("position_multi", {"req_id": reqId, "account": account, "model_code": modelCode, "contract": contract, "position": position, "avg_cost": avgCost})
+        self.dispatchEvent(Static.PositionMultiEvent, {"req_id": reqId, "account": account, "model_code": modelCode, "contract": contract, Static.PositionEvent: position, "avg_cost": avgCost})
     # ! [positionmulti]
 
 
@@ -533,7 +593,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         super().positionMultiEnd(reqId)
         print("Position Multi End. Request:", reqId)
 
-        self.to_ws("position_multi_end", {})
+        self.dispatchEvent(Static.PositionMultiEndEventEvent, {})
     # ! [positionmultiend]
 
 
@@ -552,7 +612,7 @@ class IB(IBAPIWrapper, IBAPIClient):
 
         self.account_info[accountName][currency][key] = val
 
-        self.to_ws("account_update_multi", {"req_id": reqId, "account": accountName, "model_code": modelCode, "key": key, "val": val, "currency": currency})
+        self.dispatchEvent(Static.AccountUpdateMultiEvent, {"req_id": reqId, "account": accountName, "model_code": modelCode, "key": key, "val": val, "currency": currency})
 
     # ! [accountupdatemulti]
 
@@ -563,7 +623,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         super().accountUpdateMultiEnd(reqId)
         print("Account Update Multi End. Request:", reqId)
 
-        self.to_ws("account_update_multi_end", {"req_id": reqId})
+        self.dispatchEvent(Static.AccountUpdateMultiEndEvent, {"req_id": reqId})
     # ! [accountupdatemultiend]
 
 
@@ -575,7 +635,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         for familyCode in familyCodes:
             print("Account ID: %s, Family Code Str: %s" % (
                 familyCode.accountID, familyCode.familyCodeStr))
-            self.to_ws("family_codes",
+            self.dispatchEvent(Static.FamilyCodesEvent,
                        {"account_id": familyCode.accountID, "family_code":familyCode.familyCodeStr})
 
     # ! [familyCodes]
@@ -595,7 +655,7 @@ class IB(IBAPIWrapper, IBAPIClient):
               " AskSize: ", askSize, end='')
         '''
 
-        self.to_ws("tick_by_tick_bid_ask",
+        self.dispatchEvent(Static.TickByTickBidAskEvent,
                    {"req_id": reqId, "ticker_id": reqId, "bid_price": bidPrice, "ask_price": askPrice,
                    "bid_size": bidSize, "ask_size": askSize,
                    "time":time})
@@ -621,7 +681,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         super().marketDataType(reqId, marketDataType)
         print("MarketDataType. ", reqId, "Type:", marketDataType)
 
-        self.to_ws("market_data_type", {"req_id": reqId, "ticker_id": reqId, "market_data_type": marketDataType})
+        self.dispatchEvent(Static.MarketDataTypeEvent, {"req_id": reqId, "ticker_id": reqId, "market_data_type": marketDataType})
 
     # ! [marketdatatype]
 
@@ -639,7 +699,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         '''
 
 
-        self.to_ws("tick_price", {"req_id": reqId, "ticker_id": reqId, "tick_type": tickType, "price": price, "tick_attrib": attrib})
+        self.dispatchEvent(Static.TickPriceEvent, {"req_id": reqId, "ticker_id": reqId, "tick_type": tickType, "price": price, "tick_attrib": attrib})
     # ! [tickprice]
 
 
@@ -651,7 +711,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         '''
         print("Tick Size. Ticker Id:", reqId, "tickType:", tickType, "Size:", size)
         '''
-        self.to_ws("tick_size", {"req_id": reqId, "ticker_id": reqId, "size": size, "tick_type": tickType})
+        self.dispatchEvent(Static.TickSizeEvent, {"req_id": reqId, "ticker_id": reqId, "size": size, "tick_type": tickType})
     # ! [ticksize]
 
 
@@ -663,7 +723,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         print("Tick Generic. Ticker Id:", reqId, "tickType:", tickType, "Value:", value)
         '''
 
-        #self.to_ws("tick_generic", {"req_id": reqId, "ticker_id": reqId, "value": value, "tick_type": tickType})
+        #self.dispatchEvent("tick_generic", {"req_id": reqId, "ticker_id": reqId, "value": value, "tick_type": tickType})
     # ! [tickgeneric]
 
 
@@ -675,7 +735,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         print("Tick string. Ticker Id:", reqId, "Type:", tickType, "Value:", value)
         '''
 
-        self.to_ws("tick_string", {"req_id": reqId, "ticker_id": reqId, "value": value, "tick_type": tickType})
+        self.dispatchEvent(Static.TickStringEvent, {"req_id": reqId, "ticker_id": reqId, "value": value, "tick_type": tickType})
     # ! [tickstring]
 
 
@@ -685,7 +745,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         super().tickSnapshotEnd(reqId)
         print("TickSnapshotEnd:", reqId)
 
-        self.to_ws("tick_snapshot_End", {"req_id": reqId})
+        self.dispatchEvent(Static.TickSnapshotEndEvent, {"req_id": reqId})
     # ! [ticksnapshotend]
 
 
@@ -697,7 +757,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         print("UpdateMarketDepth. ", reqId, "Position:", position, "Operation:",
               operation, "Side:", side, "Price:", price, "Size", size)
 
-        self.to_ws("update_mkt_depth", {"req_id": reqId, "ticker_id": reqId, "position": position, "operation": operation,
+        self.dispatchEvent(Static.UpdateMktDepthEvent, {"req_id": reqId, "ticker_id": reqId, Static.PositionEvent: position, "operation": operation,
                                         "side": side, "price": price, "size": size})
     # ! [updatemktdepth]
 
@@ -711,8 +771,8 @@ class IB(IBAPIWrapper, IBAPIClient):
         print("UpdateMarketDepthL2. ", reqId, "Position:", position, "Operation:",
               operation, "Side:", side, "Price:", price, "Size", size)
 
-        self.to_ws("update_mkt_depth_l2",
-                   {"req_id": reqId, "ticker_id": reqId, "position": position, "market_maker": marketMaker,
+        self.dispatchEvent(Static.UpdateMktDepthL2Event,
+                   {"req_id": reqId, "ticker_id": reqId, Static.PositionEvent: position, "market_maker": marketMaker,
                     "operation": operation, "side": side, "price": price, "size": size})
 
     # ! [updatemktdepthl2]
@@ -762,14 +822,14 @@ class IB(IBAPIWrapper, IBAPIClient):
     # ! [headTimestamp]
     def headTimestamp(self, reqId:int, headTimestamp:str):
         print("HeadTimestamp: ", reqId, " ", headTimestamp)
-        self.to_ws("head_timestamp", {"req_id": reqId, "head_timestamp": headTimestamp})
+        self.dispatchEvent(Static.HeadTimestampEvent, {"req_id": reqId, "head_timestamp": headTimestamp})
     # ! [headTimestamp]
 
     @iswrapper
     # ! [histogramData]
     def histogramData(self, reqId:int, items:HistogramDataList):
         print("HistogramData: ", reqId, " ", items)
-        self.to_ws("histogram_data", {"req_id": reqId, "histogram_data_list": items})
+        self.dispatchEvent(Static.HistogramDataEvent, {"req_id": reqId, "histogram_data_list": items})
     # ! [histogramData]
 
     @iswrapper
@@ -778,7 +838,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         print("HistoricalData. ", reqId, " Date:", bar.date, "Open:", bar.open,
               "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:", bar.volume,
               "Count:", bar.barCount, "WAP:", bar.average)
-        self.to_ws("historical_data", {"req_id": reqId, "bar": bar})
+        self.dispatchEvent(Static.HistoricalDataEvent, {"req_id": reqId, "bar": bar})
     # ! [historicaldata]
 
     @iswrapper
@@ -786,7 +846,7 @@ class IB(IBAPIWrapper, IBAPIClient):
     def historicalDataEnd(self, reqId: int, start: str, end: str):
         super().historicalDataEnd(reqId, start, end)
         print("HistoricalDataEnd ", reqId, "from", start, "to", end)
-        self.to_ws("historical_data_end", {"req_id": reqId, "start": start, "end": end})
+        self.dispatchEvent(Static.HistoricalDataEndEvent, {"req_id": reqId, "start": start, "end": end})
     # ! [historicaldataend]
 
     @iswrapper
@@ -795,7 +855,7 @@ class IB(IBAPIWrapper, IBAPIClient):
         print("HistoricalDataUpdate. ", reqId, " Date:", bar.date, "Open:", bar.open,
               "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:", bar.volume,
               "Count:", bar.barCount, "WAP:", bar.average)
-        self.to_ws("historical_data_update", {"req_id": reqId, "bar": bar})
+        self.dispatchEvent(Static.HistoricalDataUpdateEvent, {"req_id": reqId, "bar": bar})
     #! [historicalDataUpdate]
 
 
