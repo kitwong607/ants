@@ -6,7 +6,6 @@ import sys, traceback
 from enum import IntEnum
 import json, os
 
-from . import utilities
 from datetime import datetime, timedelta
 
 from .data.csvdatasource import CSVOHLCDataSource
@@ -142,6 +141,9 @@ class SessionStaticVariable:
 # region Class: SessionConfig
 class SessionConfig:
     def __init__(self, **kwargs):
+        from . import utilities
+
+
         # region Directory path, file path related
         self.isDebug = False
         self.productType = "index"
