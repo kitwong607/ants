@@ -26,6 +26,7 @@ class CSVOHLCDataSource(AbstractBarDataSource):
 
 
     def LoadCsvFile(self):
+
         dataFolderPath = self.config.dataPath + self.config.productType + "/" + self.config.exchange
 
         if self.tradeDate is None:
@@ -42,8 +43,10 @@ class CSVOHLCDataSource(AbstractBarDataSource):
         is_first = True
         dfs = []
         for resolution in self.config.dataResolution:
+
             csvFilename = self.config.dataPeriod[self.currentCsvFileIdx] + "_" + self.config.dataTicker + "_" + resolution + ".csv"
             csvFilePath = dataFolderPath + "/csv/" + resolution + "/" + csvFilename
+
 
             if utilities.checkFileExist(csvFilePath):
                 #print(CSVOHLCDataSource.NAME, "load csv:", resolution, self.config.exchange, self.config.dataTicker)
@@ -105,6 +108,7 @@ class CSVOHLCDataSource(AbstractBarDataSource):
         for row in self.dataDf:
             barData = OHLC(row)
 
+
             if self.inPeriodData:
                 if barData.timestamp >= self.config.endDate:
                     self.inPeriodData = False
@@ -118,6 +122,7 @@ class CSVOHLCDataSource(AbstractBarDataSource):
 
         #load another month after looping
         if self.currentCsvFileIdx != len(self.config.dataPeriod):
+            print("Laod Month:", self.currentCsvFileIdx+1, "/", len(self.config.dataPeriod))
             self.LoadCsvFile()
             self.StartStreaming()
             return

@@ -20,11 +20,11 @@ class Signal(AbstractSignal):
 
     def IsTAAdded(self, TAClass, taList, para):
         for ta in taList:
-            if issubclass(type(ta), DualWindowTA):
+            if issubclass(type(TAClass), DualWindowTA):
                 if ta.slug == TAClass.GetSlug(para['xDataName'], para['XWindowSize'], para['yDataName'],
                                               para['yWindowSize']):
                     return ta
-            elif issubclass(type(ta), WindowTA):
+            elif issubclass(type(TAClass), WindowTA):
                 if ta.slug == TAClass.GetSlug(para['dataName'], para['windowSize']):
                     return ta
             elif type(ta) == type(OffsetTA):

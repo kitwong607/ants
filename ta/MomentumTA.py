@@ -1,32 +1,31 @@
-from .base import TA, WindowTA
+from .base import TA, WindowTA, DualWindowTA
 from .. import utilities, static
 from ..cmath import cmath
 import datetime
 import numpy as np, copy
 
-###########################################################
-#Please also update SMA.py and SMASlop.py
-###########################################################
 
-class SMA(WindowTA):
+class RSI(WindowTA):
     @staticmethod
-    def GetSlug(dataName, windowSize):
-        return dataName +"-"+str(windowSize)+"_sma"
+    def GetSlug(dataName="close", windowSize=14):
+        return dataName +"-"+str(windowSize)+"_rsi"
 
     @staticmethod
     def GetName(dataName, windowSize):
-        return dataName+"("+str(windowSize)+") SMA"
+        return dataName+"("+str(windowSize)+") RSI"
 
-    def __init__(self, session, dataName, windowSize: int, isSave=True):
+
+    def __init__(self, session, dataName, windowSize: int, isIntraDay, isSave=True):
         resolution = session.strategy.signalResolution
-        isIntraDay = utilities.IsIntraDayData(dataName)
 
         super().__init__(session, windowSize, resolution, isIntraDay, isSave)
         self.dataName = dataName
-
-        self.name = SMA.GetName(self.dataName, self.windowSize)
-        self.slug = SMA.GetSlug(self.dataName, self.windowSize)
+        self.name = RSI.GetName(dataName, windowSize)
+        self.slug = RSI.GetSlug(dataName, windowSize)
         self.data = utilities.GetDataByName(session, dataName)
+
+    def GetRSI(self):
+        return cmath.RSI(self.data, -self.windowSize, len(self.data))
 
     def OnNewDay(self, date_ts):
         self.currentDate = utilities.dtGetDateStr(date_ts)
@@ -36,8 +35,7 @@ class SMA(WindowTA):
             self.valuesTimestamp[self.currentDate] = []
         else:
             #do pre calculation before TA
-            mean = cmath.AverageOfRange(self.data, -self.windowSize, len(self.data))
-            self.values.append(mean)
+            self.values.append(self.GetRSI())
             self.valuesTimestamp.append(self.currentDate)
 
     def OnDayEnd(self):
@@ -46,23 +44,20 @@ class SMA(WindowTA):
 
         if not self.isIntraDay:
             # update last bar on day end
-            mean = cmath.AverageOfRange(self.data, -self.windowSize, len(self.data))
-            self.values[-1] = mean
-
+            self.values[-1] = self.GetRSI()
 
     def Calculate(self, bar):
-        if len(self.data) < self.windowSize:
+        if len(self.data) <= self.windowSize:
             return
 
         self.isReady = True
         if self.isIntraDay:
             if self.resolution == bar.resolution:
-                mean = cmath.AverageOfRange(self.data, -self.windowSize, len(self.data))
-                self.values[self.currentDate].append(mean)
+                self.values[self.currentDate].append(self.GetRSI())
                 self.valuesTimestamp[self.currentDate].append(bar.timestamp)
 
-                self.continueValues.append(mean)
+                self.continueValues.append(self.GetRSI())
                 self.continueValuesTimestamp.append(bar.timestamp)
         else:
-            mean = cmath.AverageOfRange(self.data, -self.windowSize, len(self.data))
-            self.values[-1] = mean
+            mean = cmath.Average(self.data, self.windowSize)
+            self.values[-1] = self.GetRSI()
