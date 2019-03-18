@@ -1,7 +1,4 @@
 from .signal.base import Signal
-
-from .strategy.future_strategy import FutureAbstractStrategy
-
 import time, json, math, os, importlib
 from pathlib import Path
 from dateutil.rrule import rrule, MONTHLY
@@ -593,6 +590,8 @@ def CalculatePositionSummary(positions):
         _summary['slippage'] += position['totalSlippage']
         _summary['numContract'] += position['qty']
 
+
+        #print(" _summary['netPips']",  _summary['netPips'])
 
         if position['result'] == "WIN":
             _summary['numWinner'] += 1
