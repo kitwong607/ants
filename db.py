@@ -1323,14 +1323,15 @@ def ReformatTimestrInStrategy(strategyRecord):
 ############################################################################
 
 # region Create method
-def AddStrategy(data):
+def AddStrategy(name, slug, filename, className, dataTicker, tradeTicker, resolution, contract, exchange, secType,
+                action, qty, parameter, description, status):
     try:
         connection = ConnectToMySQL()
         value = []
 
         with connection.cursor() as cursor:
-            sql = "INSERT INTO `strategy` (`name`, `slug`, `filename`, `class_name`, `data_ticker`, `trade_ticker`, `data_resolution`, `contract`, `exchange`, `sec_type`, `action`, `base_qty`, `parameter`, `description`, `version`, `parent_id`, `status`, `created_time`, `modified_time`) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())"
-            cursor.execute(sql, (data['name'], data['slug'], data['filename'], data['class_name'], data['data_ticker'], data['trade_ticker'], data['data_resolution'], data['contract'], data['exchange'], data['sec_type'], data['action'], data['base_qty'], data['parameter'], data['description'], data['version'], data['parent_id'], data['status']))
+            sql = "INSERT INTO `strategy` (`name`, `slug`, `filename`, `class_name`, `data_ticker`, `trade_ticker`, `data_resolution`, `contract`, `exchange`, `sec_type`, `action`, `base_qty`, `parameter`, `description`, `status`, `created_time`, `modified_time`) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())"
+            cursor.execute(sql, (name, slug, filename, className, dataTicker, tradeTicker, resolution, contract, exchange, secType, action, qty, parameter, description, status))
             connection.commit()
             result = cursor.fetchone()
 
@@ -1407,11 +1408,11 @@ def GetStrategy(status=None, strategyId=None, parentId=None):
                     parent_id = ""
                 sql = "SELECT * FROM `strategy` WHERE `parent_id`=%s ORDER BY `created_time`"
                 cursor.execute(sql, (parentId))
-            elif status is None and parent_id is None and strategyId is not None:
+            elif status is None and parentId is None and strategyId is not None:
                 # search by strategyId
                 sql = "SELECT * FROM `strategy` WHERE `id`=%s ORDER BY `created_time`"
                 cursor.execute(sql, (strategyId))
-            elif strategyId is None and parent_id is None and status is not None:
+            elif strategyId is None and parentId is None and status is not None:
                 # search by status
                 sql = "SELECT * FROM `strategy` WHERE `status`=%s ORDER BY `created_time`"
                 cursor.execute(sql, (status))
@@ -1424,7 +1425,7 @@ def GetStrategy(status=None, strategyId=None, parentId=None):
 
             if result is not None:
                 for row in result:
-                    value.append(reformat_timestr_in_strategy(row))
+                    value.append(ReformatTimestrInStrategy(row))
 
         return value
 
@@ -1450,7 +1451,7 @@ def GetStrategyById(strategyId):
 
             if result is not None:
                 for row in result:
-                    value = reformat_timestr_in_strategy(row)
+                    value = ReformatTimestrInStrategy(row)
 
         return value
     except e:
@@ -1459,6 +1460,32 @@ def GetStrategyById(strategyId):
 
     finally:
         DisconnectToMySQL(connection)
+
+
+def GetStrategyByName(strategyName):
+    try:
+        connection = ConnectToMySQL()
+        value = []
+
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM `strategy` WHERE `name`=%s ORDER BY `id` ASC"
+            cursor.execute(sql, (strategyName))
+
+            connection.commit()
+            result = cursor.fetchall()
+
+            if result is not None:
+                for row in result:
+                    value.append(row)
+
+        return value
+    except:
+        traceback.print_exc()
+        return NOT_SET
+
+    finally:
+        DisconnectToMySQL(connection)
+
 
 
 def GetStrategyTo_dailyBacktest(status=None):
@@ -1478,7 +1505,7 @@ def GetStrategyTo_dailyBacktest(status=None):
 
             if result is not None:
                 for row in result:
-                    value.append(reformat_timestr_in_strategy(row))
+                    value.append(ReformatTimestrInStrategy(row))
 
         return value
     except e:
@@ -2154,6 +2181,106 @@ def UpdatePositionFromFilledOrder(orderStatus):
 
     finally:
         DisconnectToMySQL(connection)
+
+def AddPositionFromBacktestReport(sid, account, clientId, tradeType, exchange, ticker, contract, action, entryOid,
+                                       exitOid, entryDate, entryTime, exitDate, exitTime, entryLabel, exitLabel,
+                                        entryPrice, exitPrice, entryQty, exitQty, qty, filledQty, commission, pnl, result, slippage, status):
+    try:
+        value = NOT_SET
+        connection = ConnectToMySQL()
+
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO `trade_positions` (`sid`, `account`, `client_id`, `trade_type`, `exchange`, `ticker`, `contract`, `action`, `entry_oid`, `exit_oid`, " \
+                  "`entry_date`, `entry_time`, `exit_date`, `exit_time`, `entry_label`, `exit_label`, `entry_price`, `exit_price`, `entry_qty`, `exit_qty`, " \
+                  "`qty`, `filled_qty`, `commission`, `pnl`, `result`, `slippage`, `status`, `created_time`, `modified_time`) " \
+                  "VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, " \
+                  "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, " \
+                  "%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())"
+
+            cursor.execute(sql, (sid, account, clientId, tradeType, exchange, ticker, contract, action, entryOid, exitOid,
+                                 entryDate, entryTime, exitDate, exitTime, entryLabel, exitLabel, entryPrice, exitPrice, entryQty, exitQty,
+                                 qty, filledQty, commission, pnl, result, slippage, status))
+            connection.commit()
+            result = cursor.fetchone()
+
+
+        return True
+    except Exception as e:
+        traceback.print_exc()
+        return False
+    finally:
+        DisconnectToMySQL(connection)
+
+# endregion
+# region Get method
+def GetAllPositionInPeriod(sid, fromDate, toDate):
+    try:
+        connection = ConnectToMySQL()
+        value = []
+
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM `trade_positions` WHERE `sid`=%s AND `entry_date`>=%s AND `entry_date`<=%s  ORDER BY `entry_date` ASC, `entry_time` ASC"
+            cursor.execute(sql, (sid, fromDate, toDate))
+            connection.commit()
+            result = cursor.fetchall()
+
+        return result
+    except:
+        traceback.print_exc()
+        return value
+    finally:
+        DisconnectToMySQL(connection)
+
+
+def GetPositionByStrategyId(sid):
+    try:
+        connection = ConnectToMySQL()
+        value = []
+
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM `trade_positions` WHERE `sid`=%s ORDER BY `entry_date` ASC, `entry_time` ASC"
+
+            cursor.execute(sql, (sid))
+            connection.commit()
+            result = cursor.fetchall()
+
+            if result is not None:
+                for row in result:
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
+                    value.append(row)
+        return value
+    except:
+        traceback.print_exc()
+        return value
+    finally:
+        DisconnectToMySQL(connection)
+
+
+def GetPositionByStrategyIdAndTradeInfo(sid, ticker, exchange, entryDate, entryTime, exitDate, exitTime):
+    try:
+        connection = ConnectToMySQL()
+        value = []
+
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM `trade_positions` WHERE `sid`=%s AND `ticker`=%s AND `exchange`=%s AND `entry_date`=%s AND `entry_time`=%s AND `exit_date`=%s AND `exit_time`=%s ORDER BY `created_time` DESC"
+
+            cursor.execute(sql, (sid, ticker, exchange, entryDate, entryTime, exitDate, exitTime))
+            connection.commit()
+            result = cursor.fetchall()
+
+            if result is not None:
+                for row in result:
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
+                    value.append(row)
+        return value
+    except:
+        traceback.print_exc()
+        return value
+    finally:
+        DisconnectToMySQL(connection)
+
 
 # endregion
 

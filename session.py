@@ -54,17 +54,20 @@ class SessionStaticVariable:
     # region Directory, file location, python path
     dataPath = "X:/"
     logDirectory = "C:/log/" #"X:/log/"
+    logDirectory = "X:/log/"
     api_path = "http://127.0.0.1/antXXXXXXX/XXXXXXXX/XXXXXXXX"
 
     baseReportDirectory = "Y:/ReportData/BacktestReport/Reports/"
     baseTADirectory = "Y:/ReportData/BacktestReport/TA/"
     base_filter_directory = "Y:/ReportData/BacktestReport/Filter/"
 
-
-    base_live_data_directory = "X:/index/ib/Live/"
+    #base_live_data_directory = "X:/index/ib/Live/"
     baseLiveDataDirectory = "C:/tmp/index/IB/Live/"
-    base_live_reportDirectory = "Y:/ReportData/LiveReport/Reports/"
-    base_live_ta_directory = "Y:/ReportData/LiveReport/LiveReport/TA/"
+
+    baseLiveStrategyRotationDirectory = "Y:/ReportData/LiveReport/StrategyRotation/"
+    baseLiveReportDirectory = "Y:/ReportData/LiveReport/Reports/"
+    baseLiveTaDirectory = "Y:/ReportData/LiveReport/LiveReport/TA/"
+
     base_live_filter_directory = "Y:/ReportData/LiveReport/Filter/"
 
     pythonw_path = 'C:/Anaconda3/pythonw.exe'
@@ -151,7 +154,7 @@ class SessionConfig:
         self.isDebug = False
         self.productType = "index"
         self.dataPath = SessionStaticVariable.dataPath
-        self.logDirectory = SessionStaticVariable.log_directory
+        self.logDirectory = SessionStaticVariable.logDirectory
         self.apiPath = SessionStaticVariable.api_path
         self.baseReportDirectory = SessionStaticVariable.baseReportDirectory
         self.baseTADirectory = SessionStaticVariable.baseTADirectory
@@ -292,6 +295,8 @@ class Session(object):
 
 
     def OnComplete(self):
+        from . import utilities
+
         print("Saving config")
         self.config.Save()
 
