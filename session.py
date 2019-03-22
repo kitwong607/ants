@@ -15,7 +15,7 @@ from .data.datamodel import DataType
 class SessionMode(IntEnum):
     SYNC_BACKTEST = 0
     ASYNC_BACKTEST = 1
-    IB = 2
+    IB_LIVE = 2
 # endregion
 
 
@@ -53,20 +53,24 @@ class SessionStaticVariable:
 
     # region Directory, file location, python path
     dataPath = "X:/"
-    logDirectory = "C:/log/" #"X:/log/"
+    dataPath = "C:/tmp/"
     logDirectory = "X:/log/"
+    logDirectory = "C:/log/" #"X:/log/"
     api_path = "http://127.0.0.1/antXXXXXXX/XXXXXXXX/XXXXXXXX"
 
     baseReportDirectory = "Y:/ReportData/BacktestReport/Reports/"
     baseTADirectory = "Y:/ReportData/BacktestReport/TA/"
+
+    baseLiveReportDirectory = "C:/tmp/ReportData/LiveReport/Reports/"
+    baseLiveTADirectory = "C:/tmp/ReportData/LiveReport/TA/"
+
     base_filter_directory = "Y:/ReportData/BacktestReport/Filter/"
 
     #base_live_data_directory = "X:/index/ib/Live/"
     baseLiveDataDirectory = "C:/tmp/index/IB/Live/"
 
     baseLiveStrategyRotationDirectory = "Y:/ReportData/LiveReport/StrategyRotation/"
-    baseLiveReportDirectory = "Y:/ReportData/LiveReport/Reports/"
-    baseLiveTaDirectory = "Y:/ReportData/LiveReport/LiveReport/TA/"
+
 
     base_live_filter_directory = "Y:/ReportData/LiveReport/Filter/"
 
@@ -164,6 +168,12 @@ class SessionConfig:
 
         # region Session setting
         self.mode = kwargs["mode"] if "mode" in kwargs else SessionMode.SYNC_BACKTEST
+        self.sid = kwargs["sid"] if "sid" in kwargs else -1
+
+        if self.mode == SessionMode.IB_LIVE:
+            self.baseReportDirectory = SessionStaticVariable.baseLiveReportDirectory
+            self.baseTADirectory = SessionStaticVariable.baseLiveTADirectory
+
         self.sessionId = kwargs["sessionId"] if "sessionId" in kwargs else 999999
 
         self.numReferenceDay = kwargs["numReferenceDay"] if "numReferenceDay" in kwargs else 31
@@ -175,6 +185,7 @@ class SessionConfig:
         self.tradeTicker = kwargs["tradeTicker"] if "tradeTicker" in kwargs else "MHI"
         self.dataTicker = kwargs["dataTicker"] if "dataTicker" in kwargs else "MHI"
 
+        self.expiryMonth = kwargs["expiryMonth"] if "expiryMonth" in kwargs else "201705"
         self.contract = kwargs["contract"] if "contract" in kwargs else "MHIF17"
         self.baseQuantity = kwargs["baseQuantity"] if "baseQuantity" in kwargs else 1
         self.exchange = kwargs["exchange"] if "exchange" in kwargs else "HKFE"
@@ -199,10 +210,16 @@ class SessionConfig:
         self.slippage = kwargs["slippage"] if "slippage" in kwargs else 3
         self.commission = kwargs["commission"] if "commission" in kwargs else 17
 
-        self.reportFolderName = datetime.now().strftime(
+        if self.signalResolution in self.strategyClass.STRATEGY_SLUG:
+            self.reportFolderName = datetime.now().strftime(
+                "%Y%m%d_") + str(self.sessionId).zfill(
+                6) + "_" + self.strategyClass.STRATEGY_SLUG
+        else:
+            self.reportFolderName = datetime.now().strftime(
             "%Y%m%d_") + str(self.sessionId).zfill(6) + "_" + self.strategyClass.STRATEGY_SLUG + "_" + self.signalResolution
         self.reportDirectory = self.baseReportDirectory + self.reportFolderName
 
+        print("self.reportDirectory:", self.reportDirectory)
         try:
             if not os.path.exists(self.reportDirectory):
                 os.makedirs(self.reportDirectory)
@@ -216,9 +233,12 @@ class SessionConfig:
         try:
             import shutil
             shutil.rmtree(self.reportDirectory)
-
-            self.reportFolderName = dateStr + str(self.sessionId).zfill(
-                6) + "_" + self.strategyClass.STRATEGY_SLUG + "_" + self.signalResolution
+            if self.signalResolution in self.strategyClass.STRATEGY_SLUG:
+                self.reportFolderName = dateStr + str(self.sessionId).zfill(
+                    6) + "_" + self.strategyClass.STRATEGY_SLUG
+            else:
+                self.reportFolderName = dateStr + str(self.sessionId).zfill(
+                    6) + "_" + self.strategyClass.STRATEGY_SLUG + "_" + self.signalResolution
 
             if cat != "":
                 self.reportFolderName += "_" + cat
@@ -268,7 +288,7 @@ class SessionConfig:
 # endregion
 
 
-# region Class: Session
+# region Class: Session (Backtest)
 class Session(object):
     def __init__(self, config):
         self.config = config
@@ -278,6 +298,7 @@ class Session(object):
         self.portfolio = self.config.portfolioClass(self)
         self.orderHandler = self.config.orderHandlerClass(self)
 
+        self.mode = config.mode
 
         self.strategy = self.config.strategyClass()
         self.strategy.Setup(self)
@@ -310,109 +331,64 @@ class Session(object):
         utilities.CreateReportSummary(self.config.reportDirectory)
 
 
+    def NextValidOrderId(self):
+        self.order_id += 1
+        return self.order_id
+    # endregion
 
+class IBLiveSession(object):
+    def __init__(self, config, proxyClient):
+        self.proxyClient = proxyClient
+        self.mode = SessionMode.IB_LIVE
+
+        self.config = config
+
+        self.dataQueue = queue.Queue()
+
+        self.dataSource = self.config.dataSourceClass(self)
+        self.portfolio = self.config.portfolioClass(self)
+        self.orderHandler = self.config.orderHandlerClass(self)
+
+        self.strategy = self.config.strategyClass()
+        self.strategy.Setup(self)
+
+
+    def Run(self):
+        self.dataSource.FeedBackfillData()
+
+
+    def OnData(self, data):
+        print("OnData:", data.type)
+        if data.type == DataType.OHLC:
+            self.strategy.CalculateBar(data)
+        elif data.type == DataType.TICK:
+            print("===== CalculateTick =====")
+            self.strategy.CalculateTick(data)
+        else:
+            raise NotImplemented("Unsupported event.type '%s'" % data.type)
+
+
+    def OnComplete(self):
+        from . import utilities
+
+        print("Saving config")
+        self.config.Save()
+
+        print("Saving portfolio")
+        self.portfolio.Save()
+
+        print("Saving strategy")
+        self.strategy.Save()
+
+        print("saving creating summary report:", self.config.reportFolderName)
+        utilities.CreateReportSummary(self.config.reportDirectory)
 
 
     def NextValidOrderId(self):
         self.order_id += 1
         return self.order_id
 
-    '''
-    def merge_inter_ta_json(self, obj_name):
-        import json, os
-        obj_d = None
-        for i in range(1, self.config.num_sub_process + 1):
-            json_filename = "//"+obj_name+"_" + str(i) + ".json"
-            with open(self.config.reportDirectory + json_filename) as json_data:
-                new_come_obj_d = json.load(json_data)
-                if obj_d is None:
-                    obj_d = new_come_obj_d
-                else:
-                    for key in obj_d:
-                        obj_d[key]["values"] = obj_d[key]["values"] +  new_come_obj_d[key]["values"]
-                        obj_d[key]["calculated_values"] = obj_d[key]["calculated_values"] +  new_come_obj_d[key]["calculated_values"]
-                        obj_d[key]["values_ts"] = obj_d[key]["values_ts"] +  new_come_obj_d[key]["values_ts"]
-                        obj_d[key]["calculated_values_ts"] = obj_d[key]["calculated_values_ts"] +  new_come_obj_d[key]["calculated_values_ts"]
-            os.remove(self.config.reportDirectory + json_filename)
-
-        for key in obj_d:
-            new_values = []
-            new_calculated_values = []
-            new_values_ts = []
-            new_calculated_values_ts = []
-
-            i = 0
-            for ts_key in obj_d[key]["values_ts"]:
-                if ts_key not in new_values_ts:
-                    new_values_ts.append(ts_key)
-                    new_values.append(obj_d[key]["values"][i])
-                i += 1
 
 
-            i = 0
-            for ts_key in obj_d[key]["calculated_values_ts"]:
-                if ts_key not in new_calculated_values_ts:
-                    new_calculated_values_ts.append(ts_key)
-                    new_calculated_values.append(obj_d[key]["calculated_values"][i])
-                i += 1
 
-            obj_d[key]["values"] = new_values
-            obj_d[key]["values_ts"] = new_values_ts
-            obj_d[key]["calculated_values"] = new_calculated_values
-            obj_d[key]["calculated_values_ts"] = new_calculated_values_ts
-
-        with open(self.config.reportDirectory + "//"+obj_name+".json", 'w') as fp:
-            json.dump(obj_d, fp, cls=utilities.AntJSONEncoder)
-
-    def merge_intra_ta_json(self, obj_name):
-        import json, os
-        obj_d = None
-
-        new_values = {}
-        new_calculated_values = {}
-        new_values_ts = {}
-        new_calculated_values_ts = {}
-
-        for i in range(1, self.config.num_sub_process + 1):
-            json_filename = "//"+obj_name+"_" + str(i) + ".json"
-            with open(self.config.reportDirectory + json_filename) as json_data:
-                new_come_obj_d = json.load(json_data)
-                if obj_d is None:
-                    obj_d = new_come_obj_d
-                    for ta_key in new_come_obj_d:
-                        new_values[ta_key] = new_come_obj_d[ta_key]["values"]
-                        new_calculated_values[ta_key] = new_come_obj_d[ta_key]["calculated_values"]
-                        new_values_ts[ta_key] = new_come_obj_d[ta_key]["values_ts"]
-                        new_calculated_values_ts[ta_key] = new_come_obj_d[ta_key]["calculated_values_ts"]
-                else:
-
-                    for ta_key in new_come_obj_d:
-                        for date_key in new_come_obj_d[ta_key]["values"]:
-                            new_values[ta_key][date_key] = new_come_obj_d[ta_key]["values"][date_key]
-
-                        for date_key in new_come_obj_d[ta_key]["calculated_values"]:
-                            new_calculated_values[ta_key][date_key] = new_come_obj_d[ta_key]["calculated_values"][date_key]
-
-                        for date_key in new_come_obj_d[ta_key]["values_ts"]:
-                            new_values_ts[ta_key][date_key] = new_come_obj_d[ta_key]["values_ts"][date_key]
-
-                        for date_key in new_come_obj_d[ta_key]["calculated_values_ts"]:
-                            new_calculated_values_ts[ta_key][date_key] = new_come_obj_d[ta_key]["calculated_values_ts"][date_key]
-            os.remove(self.config.reportDirectory + json_filename)
-
-            for ta_key in new_values:
-                obj_d[ta_key]["values"] = new_values[ta_key]
-
-            for ta_key in new_values_ts:
-                obj_d[ta_key]["values_ts"] = new_values_ts[ta_key]
-
-            for ta_key in new_calculated_values:
-                obj_d[ta_key]["calculated_values"] = new_calculated_values[ta_key]
-
-            for ta_key in new_calculated_values_ts:
-                obj_d[ta_key]["calculated_values_ts"] = new_calculated_values_ts[ta_key]
-
-        with open(self.config.reportDirectory + "//"+obj_name+".json", 'w') as fp:
-            json.dump(obj_d, fp, cls=utilities.AntJSONEncoder)
-    '''
     # endregion

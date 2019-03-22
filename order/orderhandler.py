@@ -2,6 +2,8 @@ from abc import ABCMeta
 from ..broker.ib.IBContract import IBContract
 from ..broker.ib.IBOrder import IBOrder
 from ..order.base import OrderType, OrderAction
+from .. import socket as antSocket
+from .. import utilities
 
 
 class AbstractOrderHandler(object):
@@ -35,18 +37,18 @@ class AbstractOrderHandler(object):
         contract.expiryMonth = expiryMonth
         return contract
 
-    def PrepareOrder(self, action, contract, orderId, bar, orderType, label, quantity, limitPrice):
+    def PrepareOrder(self, action, contract, orderId, price, adjustedDate, adjustedTime, orderType, label, quantity, limitPrice):
         if orderType == OrderType.MARKET:
-            order = IBOrder.MarketOrder(action, quantity, bar.closePrice)
+            order = IBOrder.MarketOrder(action, quantity, price)
         elif orderType == OrderType.LIMIT:
-            order = IBOrder.LimitOrder(action, quantity, bar.closePrice, limitPrice)
+            order = IBOrder.LimitOrder(action, quantity, price, limitPrice)
         else:
             raise ValueError("Order type: " + orderType + " not support")
 
         #setup default variable for Order object
         order.filledTime = None
-        order.adjustedDate = bar.adjustedDate
-        order.adjustedTime = bar.adjustedTime
+        order.adjustedDate = adjustedDate
+        order.adjustedTime = adjustedTime
 
         order.exchange = self.session.config.exchange
         order.orderId = orderId
@@ -116,3 +118,109 @@ class BacktestOrderHandler(AbstractOrderHandler):
                 self.filledOrder[self.lastActiveDate].append(self.unfilledOrder[self.lastActiveDate].pop(self.unfilledOrder[self.lastActiveDate].index(order)))
                 self.session.portfolio.TransactOrder(order)
                 break
+
+
+class IBProxyServerOrderHandler(AbstractOrderHandler):
+    IS_DISPLAY_IN_OPTION = True
+    NAME = "IBProxyServerOrderHandler"
+
+    def __init__(self, session):
+        super().__init__(session)
+        self.session = session
+        self.proxyClient = session.proxyClient
+
+
+    def PlaceOrder(self, orderId, contract, order):
+        ######################################################################
+        #Send to Proxy server to place order in IB
+        data = {}
+        data['uid'] = utilities.GetOrderUid(self.session.config.sid)
+        data['sid'] = self.session.config.sid
+        if order.action == OrderAction.BUY:
+            data['action'] = "BUY"
+        else:
+            data['action'] = "SELL"
+        data['qty'] = order.totalQuantity
+        if order.type == OrderType.MARKET:
+            data['limitPrice'] = int(order.signalPrice)
+            data['signalPrice'] = int(order.signalPrice)
+            data['triggerPrice'] = int(order.signalPrice)
+        elif order.type == OrderType.LIMIT:
+            data['limitPrice'] = int(order.lmtPrice)
+            data['signalPrice'] = int(order.signalPrice)
+            data['triggerPrice'] = int(order.signalPrice)
+        else:
+            raise ValueError("not support order type")
+        data['expiryMonth'] = str(contract.expiryMonth)
+        data['orderType'] = order.orderType
+        data['ticker'] = order.ticker
+        data['label'] = order.label
+
+
+        self.proxyClient.SendMessage(antSocket.ACTION_PLACE_ORDER, data)
+        ######################################################################
+
+        if order.adjustedDate not in self.unfilledOrder:
+            self.lastActiveDate = order.adjustedDate
+            self.unfilledOrder[order.adjustedDate] = []
+            self.filledOrder[order.adjustedDate] = []
+        self.unfilledOrder[order.adjustedDate].append(order)
+
+    #this is for socket to call...
+    #def FillOrder(self):
+
+    def OnOrderPlaced(self, data):
+        lastOrder = self.unfilledOrder[self.lastActiveDate]
+        lastOrder.orderId = data['oid']
+
+    def OnOpenOrderEvent(self, data):
+        pass
+
+    def OnOpenOrderEndEvent(self, data):
+        pass
+
+    def OnOpenOrderUpdateEvent(self, data):
+        #Check order is belong to this strategy with its order id
+        for order in self.unfilledOrder[self.lastActiveDate]:
+            if order.orderId == data['order_id']:
+                if order_id['status'] == "Filled":
+                    order.status = "filled"
+                    order.filledPrice = data['avg_fill_price']
+                    order.filledTime = data['adjusted_time']
+
+                    # here have to change
+                    order.commission = 0
+
+                    if order.action == OrderAction.BUY:
+                        order.slippage = order.filledPrice - order.signalPrice
+                    elif order.action == OrderAction.SELL:
+                        order.slippage = order.signalPrice - order.filledPrice
+                    else:
+                        raise ValueError("Unexprected orderAction: " + order.action)
+
+                    self.filledOrder[self.lastActiveDate].append(self.unfilledOrder[self.lastActiveDate].pop(
+                        self.unfilledOrder[self.lastActiveDate].index(order)))
+                    self.session.portfolio.TransactOrder(order)
+
+
+    '''
+    def FillOrder(self, orderId, filledPrice, getLastTime, comission):
+        for order in self.unfilledOrder[self.lastActiveDate]:
+            if order.orderId == orderId:
+                order.status = "filled"
+                order.filledPrice = filledPrice
+                order.filledTime = getLastTime
+                order.commission = comission
+
+                if order.action == OrderAction.BUY:
+                    order.slippage = filledPrice - order.signalPrice
+                elif order.action == OrderAction.SELL:
+                    order.slippage = order.signalPrice - filledPrice
+                else:
+                    raise ValueError("Unexprected orderAction: " + order.action)
+
+
+                self.filledOrder[self.lastActiveDate].append(self.unfilledOrder[self.lastActiveDate].pop(self.unfilledOrder[self.lastActiveDate].index(order)))
+                self.session.portfolio.TransactOrder(order)
+                break
+    '''

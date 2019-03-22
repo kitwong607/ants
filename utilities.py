@@ -1,8 +1,9 @@
 from .signal.base import Signal
-import time, json, math, os, importlib
+import time, json, math, os, importlib, random, string
 from pathlib import Path
 from dateutil.rrule import rrule, MONTHLY
 from datetime import datetime, timedelta
+
 
 
 from os import listdir
@@ -22,6 +23,8 @@ def getMonthList(startDate,endDate,is_return_str_list=True):
 
 
 def clearTimeInDatetime(dtToClear):
+    #print("clearTimeInDatetime: ", dtToClear, type(dtToClear))
+
     return dtToClear - timedelta(
                 hours=dtToClear.hour,
                 minutes=dtToClear.minute,
@@ -84,6 +87,19 @@ def toAdjustedTime(time_int):
     if time_int<90000:
         time_int += 240000
     return time_int
+
+def ConvertAdjustedDateTimeToTimestamp(_date, _time):
+    _isNextDate = False
+    if int(_time) >= 240000:
+        _time = str(int(_time) - 240000).zfill(6)
+        _isNextDate = True
+
+    dt = datetime.strptime(_date + " " + _time, "%Y%m%d %H%M%S")
+
+    if _isNextDate:
+        dt += timedelta(days=1)
+
+    return pd.Timestamp(year=dt.year, month=dt.month, day=dt.day, hour=dt.hour, minute=dt.minute, second=dt.second)
 # endregion
 
 
@@ -929,19 +945,21 @@ def IsIntraDayData(dataName):
 
 
 def GetDataByName(instance, dataName):
-    from .session import Session
+    from .session import Session, IBLiveSession
     from .signal.base import Signal
     from .strategy.future_strategy import FutureAbstractStrategy
 
+    print(type(instance), instance)
 
     strategy = None
     if issubclass(type(instance), FutureAbstractStrategy):
+
         strategy = instance
     elif issubclass(type(instance), Signal):
         strategy = instance.strategy
     elif issubclass(type(instance), Session):
         strategy = instance.strategy
-    elif issubclass(type(instance), Session):
+    elif issubclass(type(instance), IBLiveSession):
         strategy = instance.strategy
 
     dataName = dataName.lower()
@@ -1005,3 +1023,43 @@ def GetDataByName(instance, dataName):
         return strategy.afternoonBodyD
 
     return None
+
+
+def GetLiveTradeDayInfo(todayStrHourOffset=5, LogFunction = None):
+    from .session import SessionStaticVariable
+    #todayStrHourOffset: in case started after 0000 still using yesterday as todayStr
+    today = datetime.today() - timedelta(hours=todayStrHourOffset)
+    todayStr = today.strftime('%Y%m%d')
+    todayStrWithSperator = today.strftime('%Y-%m-%d')
+    tradeDateCSVFilePath = SessionStaticVariable.baseLiveDataDirectory + "trade_date/trade_date.csv"
+
+    isFindTradeDate = False
+    with open(tradeDateCSVFilePath) as f:
+        for line in f:
+            line = line.replace('\n', ' ').replace('\r', '')
+            cell = line.split(',')
+            if cell[0] == todayStrWithSperator:
+                marketAdjustedAfternoonBreakTime = cell[2]
+                marketAdjustedEndTime = cell[3]
+                expiryMonth = str(cell[4].replace(' ', ''))
+
+                if LogFunction is not None:
+                    LogFunction("please check how to handle the night which have no night market")
+                    LogFunction("GetTradeDayInfo()", "trade date info:", todayStr, todayStrWithSperator, marketAdjustedAfternoonBreakTime, marketAdjustedEndTime, expiryMonth)
+                #Log("trade date info:", todayStr, todayStrWithSperator, marketAdjustedAfternoonBreakTime, marketAdjustedEndTime, expiryMonth)
+
+                isFindTradeDate = True
+
+                break;
+        f.close()
+
+    if not isFindTradeDate:
+        if LogFunction is not None:
+            LogFunction("no trade date found:")
+            LogFunction("make raise error")
+
+    return todayStr, marketAdjustedAfternoonBreakTime, marketAdjustedEndTime, expiryMonth
+
+
+def GetOrderUid(sid):
+    return str(sid) + "_" + "".join(random.choice(string.ascii_uppercase) for _ in range(6))

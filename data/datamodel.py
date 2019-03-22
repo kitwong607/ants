@@ -1,21 +1,24 @@
 from enum import IntEnum
 
+'''
 class OHLC(object):
     IS_DISPLAY_IN_OPTION = False
     def __init__(self):
         pass
+'''
 
 
 class DataType(IntEnum):
-    IS_DISPLAY_IN_OPTION = False
     TICK = 0
     OHLC = 1
 
 
 class OHLC():
     IS_DISPLAY_IN_OPTION = False
+
     def __init__(self, row):
         timestamp, openPrice, highPrice, lowPrice, closePrice, vol, ticker, resolution, resolutionInSec, adjustedDate, adjustedTime = row
+
         self.type = DataType.OHLC
         self.ticker = ticker
         self.resolution = resolution
@@ -31,6 +34,7 @@ class OHLC():
 
 class TickData():
     IS_DISPLAY_IN_OPTION = False
+
     def __init__(self, ticker, timestamp, bid, ask, adjustedDate=None, adjustedTime=None):
         self.type = DataType.TICK
         self.ticker = ticker

@@ -108,7 +108,6 @@ class ProxySocketClientThread(threading.Thread):
 
         self.logFile = "clientSocket_" + str(sid) + datetime.datetime.now().strftime("_%Y%m%d_%H%M%S") +".log"
 
-
         self.isConnected = False
         self.isLongMessage = False
 
@@ -141,7 +140,11 @@ class ProxySocketClientThread(threading.Thread):
             return
         print("Connected")
         self.isConnected = True
-        self.SendMessage(ACTION_SET_TYPE, {"type": self.type})
+
+        if self.type == TYPE_STRATEGY:
+            self.SendMessage(ACTION_SET_TYPE, {"type": self.type, "sid":self.sid})
+        else:
+            self.SendMessage(ACTION_SET_TYPE, {"type": self.type})
         self.messageHandler({"socketEvent":CONNECTED_TO_SERVER_EVENT})
 
 
@@ -171,7 +174,6 @@ class ProxySocketClientThread(threading.Thread):
         while True:
             try:
                 if self.isConnected:
-                    print("Waiting for input...")
                     clientMsg = self._ReceiveInput()
                     if(clientMsg==None):
                         continue
@@ -261,6 +263,13 @@ class SocketConnectionThread(threading.Thread):
             self.connection.sendall(msg.encode('utf-8'))
         except ConnectionAbortedError as e:
             self.proxyFunctions["On_ClientDisconnect"](self)
+            self.Close()
+        except ConnectionResetError as e:
+            traceback.print_exc()
+            self.Close()
+        except:
+            traceback.print_exc()
+            self.Close()
             return
 
     def run(self):
