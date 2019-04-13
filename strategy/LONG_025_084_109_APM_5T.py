@@ -62,5 +62,5 @@ class LONG_025_084_109_APM_5T(FutureAbstractStrategy):
                 self.Log(LONG_025_084_109_APM_5T.STRATEGY_NAME, "Entry signal["+str(self.session.config.sid)+"-"+signal.Label() + "]: False")
 
         if count == len(self.entrySignals):
-            self.Entry(bar, OrderType.MARKET, label, self.baseQuantity)
+            self.Entry(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, label, self.baseQuantity)
 

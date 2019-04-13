@@ -743,12 +743,16 @@ class FutureAbstractStrategy(AbstractStrategy):
                 try:
                     previousDf = pd.read_json(jsonFile, orient='index')
                     #previousDf = pd.read_csv(csvFile, index_col="date")
-                    previousDf['date'] = previousDf.index
-                    previousDf = previousDf.reset_index(drop=True)
+                    if 'value' in previousDf.columns:
+                        previousDf['date'] = previousDf.index
+                        previousDf = previousDf.reset_index(drop=True)
 
-                    previousDf['date'] = previousDf['date'].astype(str)
-                    previousDf['value'] = previousDf['value'].astype(float)
-                    previousDf = previousDf[['date', 'value']]
+                        previousDf['date'] = previousDf['date'].astype(str)
+                        previousDf['value'] = previousDf['value'].astype(float)
+                        previousDf = previousDf[['date', 'value']]
+
+                        previousDf['value'] = previousDf['value'].round(2)
+                        df['value'] = df['value'].round(2)
 
                     if taDebug:
                         #for debug when value not match with previous, it cannot merge
@@ -777,9 +781,6 @@ class FutureAbstractStrategy(AbstractStrategy):
                         print(previousDf.dtypes)
                         print(df.dtypes)
 
-
-                    previousDf['value'] = previousDf['value'].round(2)
-                    df['value'] = df['value'].round(2)
 
                     previousDf = previousDf.dropna()
                     df = df.dropna()
