@@ -226,7 +226,6 @@ class WindowTA(object):
         return d
 
 
-
 class DualWindowTA(object):
     __metaclass__ = ABCMeta
 
@@ -309,6 +308,99 @@ class DualWindowTA(object):
 
         d['values'] = self.values
 
+        if self.isIntraDay:
+            d['isIntraDay'] = "true"
+
+            d['valuesTimestamp'] = {}
+            for dateKey in self.valuesTimestamp:
+                d['valuesTimestamp'][dateKey] = []
+                for ts in self.valuesTimestamp[dateKey]:
+                    d['valuesTimestamp'][dateKey].append((ts + timeOffset).timestamp())
+        else:
+            d['isIntraDay'] = "false"
+            d['valuesTimestamp'] = self.valuesTimestamp
+        return d
+
+
+class TALibTA(object):
+    __metaclass__ = ABCMeta
+
+    def __init__(self, paramsDict):
+        self.session = paramsDict["session"]
+        self.lastTimestamp = None
+        self.params = paramsDict
+        self.resolution = paramsDict["resolution"]
+        self.strategy = self.session.strategy
+        self.isReady = False
+
+        self.isSave = paramsDict["isSave"]
+        self.isIntraDay = paramsDict["isIntraDay"]
+
+        self.continueValue = []
+        self.continueValueTimestamp = []
+
+        if self.isIntraDay:
+            self.resolution = self.strategy.signalResolution
+            self.currentDate = None
+            self.values = {}
+            self.valuesTimestamp = {}
+            self.continueValues = []
+            self.continueValuesTimestamp = []
+
+            self.strategy.AddIntraDayTA(self)
+        else:
+            self.resolution = "1D"
+            self.values = []
+            self.valuesTimestamp = []
+
+            self.strategy.AddInterDayTA(self)
+
+
+    def OnNewDay(self, date_ts):
+        self.currentDate = utilities.dtGetDateStr(date_ts)
+
+        if self.isIntraDay:
+            self.values[self.currentDate] = []
+            self.valuesTimestamp[self.currentDate] = []
+        else:
+            #do pre calculation before TA
+            pass
+
+    def OnDayEnd(self):
+        if len(self.data) < self.windowSize:
+            return
+
+        if not self.isIntraDay:
+            # update last bar on day end
+            pass
+
+    def __getitem__(self, key):
+        if self.isIntraDay:
+            return self.continueValues[key]
+        return self.values[key]
+
+    def __len__(self):
+        if self.isIntraDay:
+            return len(self.continueValues)
+        return len(self.values)
+
+
+    def ToDict(self):
+        if not self.isSave:
+            return
+
+        from .. import static
+        from datetime import timedelta
+        timeOffset = timedelta(minutes=static.EXCHANGE_TIME_ZONE[self.session.config.exchange])
+
+        d = {}
+        d['name'] = self.name
+        d['slug'] = self.slug
+        d['params'] = self.params
+        d['resolution'] = self.resolution
+        d['type'] = "TALibTA"
+
+        d['values'] = self.values
         if self.isIntraDay:
             d['isIntraDay'] = "true"
 

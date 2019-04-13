@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from .. import utilities
-from ..ta.base import OffsetTA, WindowTA, DualWindowTA
+from ..ta.base import OffsetTA, WindowTA, DualWindowTA, TALibTA
 
 
 class AbstractSignal(object):
@@ -24,6 +24,9 @@ class Signal(AbstractSignal):
                 if ta.slug == TAClass.GetSlug(para['xDataName'], para['XWindowSize'], para['yDataName'],
                                               para['yWindowSize']):
                     return ta
+            elif issubclass(type(TAClass), TALibTA):
+                if ta.slug == TAClass.GetSlug(para):
+                    return ta
             elif issubclass(type(TAClass), WindowTA):
                 if ta.slug == TAClass.GetSlug(para['dataName'], para['windowSize']):
                     return ta
@@ -40,6 +43,12 @@ class Signal(AbstractSignal):
         elif issubclass(TAClass, WindowTA) or TAClass == WindowTA:
             newTA = TAClass(self.session, para['dataName'], para['windowSize'], para['isIntraDay'])
             return newTA
+
+        elif issubclass(TAClass, TALibTA) or TAClass == TALibTA:
+            para["session"] = self.session
+            newTA = TAClass(para)
+            return newTA
+
         else:
             newTA = TAClass(self.session, para['dataName'], para['offset'], para['isIntraDay'])
             return newTA
@@ -60,7 +69,6 @@ class Signal(AbstractSignal):
             if result is not False:
                 return result
             return self.SetupNewTA(TAClass, para)
-
         else:
             result = self.IsTAAdded(TAClass, self.strategy.interDayTA, para)
             if result is not False:

@@ -946,10 +946,14 @@ def CreateSocketioResponse(status, description, action, data={}):
 
 def IsIntraDayData(dataName):
     dataName = dataName.lower()
-    if dataName in ["opend", "highd", "lowd", "closed", "vold", "volumed", "afternoonopend", "afternoonhighd",
-                    "afternoonlowd", "afternoonclosed", "afternoonvold", "afternoonvolumed", "ranged",
-                    "uppershadowd", "lowershadowd", "bodyd", "afternoonranged", "afternoonuppershadowd",
-                    "afternoonlowershadowd", "afternoonbodyd"]:
+    if dataName in ["opend", "highd", "lowd", "closed", "vold", "volumed",
+                    "morningopend", "morninghighd", "morninglowd", "morningclosed", "morningvold", "morningvolumed",
+                    "afternoonopend", "afternoonhighd", "afternoonlowd", "afternoonclosed", "afternoonvold", "afternoonvolumed",
+
+                    "ranged", "uppershadowd", "lowershadowd", "bodyd",
+                    "morningranged", "morninguppershadowd", "morninglowershadowd", "morningbodyd",
+                    "afternoonranged", "afternoonuppershadowd", "afternoonlowershadowd", "afternoonbodyd"]:
+
         return False
     return True
 
@@ -988,7 +992,6 @@ def GetDataByName(instance, dataName):
     elif dataName == "vol" or dataName == "volume":
         return strategy.volume
 
-
     elif dataName == "opend":
         return strategy.openD
     elif dataName == "highd":
@@ -1000,6 +1003,16 @@ def GetDataByName(instance, dataName):
     elif dataName == "vold" or dataName == "volumed":
         return strategy.volumeD
 
+    elif dataName == "morningopend":
+        return strategy.morningOpenD
+    elif dataName == "morninghighd":
+        return strategy.morningHighD
+    elif dataName == "morninglowd":
+        return strategy.morningLowD
+    elif dataName == "morningclosed":
+        return strategy.morningCloseD
+    elif dataName == "morningvold" or dataName == "morningvolumed":
+        return strategy.morningVolumeD
 
     elif dataName == "afternoonopend":
         return strategy.afternoonOpenD
@@ -1012,7 +1025,6 @@ def GetDataByName(instance, dataName):
     elif dataName == "afternoonvold" or dataName == "afternoonvolumed":
         return strategy.afternoonVolumeD
 
-
     elif dataName == "ranged":
         return strategy.ranged
     elif dataName == "uppershadowd":
@@ -1022,6 +1034,14 @@ def GetDataByName(instance, dataName):
     elif dataName == "bodyd":
         return strategy.bodyD
 
+    elif dataName == "morningranged":
+        return strategy.morningRangeD
+    elif dataName == "morninguppershadowd":
+        return strategy.morningUpperShadowD
+    elif dataName == "morninglowershadowd":
+        return strategy.morningLowerShadowD
+    elif dataName == "morningbodyd":
+        return strategy.morningBodyD
 
     elif dataName == "afternoonranged":
         return strategy.afternoonRangeD
