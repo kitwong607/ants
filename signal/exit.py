@@ -12,6 +12,9 @@ class StopLossWithFixedPrice(ExitSignal):
         super().__init__(strategy)
         self.stopLoss = self.defaultStopLoss = stopLoss
         self.exitPrice = None
+        self.isTrigger = False
+
+
 
     def Label(self):
         if getattr(self, "trailingStopCount", None) is None:
@@ -28,6 +31,9 @@ class StopLossWithFixedPrice(ExitSignal):
         self.Reset()
 
     def CalculateSignalByBidAsk(self, bidAsk):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -38,6 +44,7 @@ class StopLossWithFixedPrice(ExitSignal):
 
             if bidAsk < self.exitPrice:
                 self.stopLoss = self.defaultStopLoss
+                self.isTrigger = True
                 return True
 
         elif OrderAction.SELL == position.action:
@@ -45,11 +52,15 @@ class StopLossWithFixedPrice(ExitSignal):
 
             if bidAsk > self.exitPrice:
                 self.stopLoss = self.defaultStopLoss
+                self.isTrigger = True
                 return True
 
         return False
 
     def CalculateSignal(self, bar):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -60,6 +71,7 @@ class StopLossWithFixedPrice(ExitSignal):
 
             if bar.lowPrice < self.exitPrice:
                 self.stopLoss = self.defaultStopLoss
+                self.isTrigger = True
                 return True
             return False
 
@@ -68,6 +80,7 @@ class StopLossWithFixedPrice(ExitSignal):
 
             if bar.highPrice > self.exitPrice:
                 self.stopLoss = self.defaultStopLoss
+                self.isTrigger = True
                 return True
 
         return False
@@ -191,6 +204,7 @@ class DollarTrailingStop(ExitSignal):
         self.amount = amount
         self.profitWatemark = 0
         self.exitPrice = None
+        self.isTrigger = False
 
 
     def Label(self):
@@ -200,6 +214,7 @@ class DollarTrailingStop(ExitSignal):
     def Reset(self):
         self.profitWatemark = 0
         self.exitPrice = None
+        self.isTrigger = False
 
 
     def OnNewDay(self, bar):
@@ -207,6 +222,9 @@ class DollarTrailingStop(ExitSignal):
 
 
     def CalculateSignalByBidAsk(self, bidAsk):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -223,6 +241,7 @@ class DollarTrailingStop(ExitSignal):
 
             self.exitPrice = position.entryPrice + self.profitWatemark - self.amount
             if bidAsk < self.exitPrice:
+                self.isTrigger = True
                 return True
 
         elif OrderAction.SELL == position.action:
@@ -234,12 +253,16 @@ class DollarTrailingStop(ExitSignal):
 
             self.exitPrice = position.entryPrice - self.profitWatemark + self.amount
             if bidAsk > self.exitPrice:
+                self.isTrigger = True
                 return True
 
         return False
 
 
     def CalculateSignal(self, bar):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -256,6 +279,7 @@ class DollarTrailingStop(ExitSignal):
 
             self.exitPrice = position.entryPrice + self.profitWatemark - self.amount
             if bar.lowPrice < self.exitPrice:
+                self.isTrigger = True
                 return True
 
         elif OrderAction.SELL == position.action:
@@ -267,6 +291,7 @@ class DollarTrailingStop(ExitSignal):
 
             self.exitPrice = position.entryPrice - self.profitWatemark + self.amount
             if bar.highPrice > self.exitPrice:
+                self.isTrigger = True
                 return True
 
         return False
@@ -282,12 +307,14 @@ class TrailingStopWithFixedPrice(ExitSignal):
         self.stepUpAmount = stepUpAmount
         self.count = 0
         self.exitPrice = None
+        self.isTrigger = False
 
     def Label(self):
         return self.name
 
 
     def Reset(self):
+        self.isTrigger = False
         self.count = 0
         self.exitPrice = None
         for signal in self.strategy.exitSignals:
@@ -301,6 +328,9 @@ class TrailingStopWithFixedPrice(ExitSignal):
 
 
     def CalculateSignalByBidAsk(self, bidAsk):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -332,10 +362,10 @@ class TrailingStopWithFixedPrice(ExitSignal):
         return False
 
 
-        pass
-
-
     def CalculateSignal(self, bar):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -377,6 +407,7 @@ class TrailingStopCountExit(ExitSignal):
         self.countToExit = countToExit
         self.count = 0
         self.exitPrice = None
+        self.isTrigger = False
 
 
     def Label(self):
@@ -385,6 +416,7 @@ class TrailingStopCountExit(ExitSignal):
 
     def Reset(self):
         self.count = 0
+        self.isTrigger = False
         self.exitPrice = None
 
 
@@ -393,6 +425,9 @@ class TrailingStopCountExit(ExitSignal):
 
 
     def CalculateSignalByBidAsk(self, bidAsk):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
         position = self.strategy.session.portfolio.positions[self.strategy.config.tradeTicker]
@@ -415,6 +450,9 @@ class TrailingStopCountExit(ExitSignal):
 
 
     def CalculateSignal(self, bar):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -432,6 +470,7 @@ class TrailingStopCountExit(ExitSignal):
                 self.count += 1
 
         if self.count == self.countToExit:
+            self.isTrigger = True
             return True
 
         return False

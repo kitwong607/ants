@@ -7,6 +7,7 @@ import inspect
 import logging
 import time
 import os.path
+import traceback
 
 
 
@@ -276,6 +277,7 @@ class IB(IBAPIWrapper, IBAPIClient):
             if self.IBEventHandler is not None:
                 self.IBEventHandler(event, data)
         except:
+            traceback.print_exc()
             pass
         finally:
             #todo do log here?
@@ -835,9 +837,12 @@ class IB(IBAPIWrapper, IBAPIClient):
     @iswrapper
     # ! [historicaldata]
     def historicalData(self, reqId:int, bar: BarData):
+        '''
         print("HistoricalData. ", reqId, " Date:", bar.date, "Open:", bar.open,
               "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:", bar.volume,
               "Count:", bar.barCount, "WAP:", bar.average)
+        '''
+
         self.dispatchEvent(Static.HistoricalDataEvent, {"req_id": reqId, "bar": bar})
     # ! [historicaldata]
 
@@ -845,7 +850,9 @@ class IB(IBAPIWrapper, IBAPIClient):
     # ! [historicaldataend]
     def historicalDataEnd(self, reqId: int, start: str, end: str):
         super().historicalDataEnd(reqId, start, end)
+        '''
         print("HistoricalDataEnd ", reqId, "from", start, "to", end)
+        '''
         self.dispatchEvent(Static.HistoricalDataEndEvent, {"req_id": reqId, "start": start, "end": end})
     # ! [historicaldataend]
 

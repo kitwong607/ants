@@ -50,7 +50,7 @@ class FutureAbstractStrategy(AbstractStrategy):
             if isOptimizationParameter:
                 for i in range(OPTIMIZATION_PARAMETER[key]['min'], OPTIMIZATION_PARAMETER[key]['max'] + 1,
                                OPTIMIZATION_PARAMETER[key]['step']):
-                    if isPrint: print(key, i)
+                    if isPrint: self.Log(key, i)
                     parameterValueList.append(i)
                 keyOrder.append(key)
                 parameterLists.append(parameterValueList)
@@ -60,12 +60,12 @@ class FutureAbstractStrategy(AbstractStrategy):
         finalOptimizationParameterSetList = []
 
         if isPrint:
-            print("productList")
-            print(keyOrder)
-            print(productList)
+            self.Log("ProductList")
+            self.Log(keyOrder)
+            self.Log(productList)
 
         for parameter in productList:
-            if isPrint: print(parameter)
+            if isPrint: self.Log(parameter)
             singleOptimizationParameterSet = copy.deepcopy(newOptimizationParameter)
             i = 0
             for key in keyOrder:
@@ -76,7 +76,7 @@ class FutureAbstractStrategy(AbstractStrategy):
 
         if isPrint:
             for set in finalOptimizationParameterSetList:
-                print(set)
+                self.Log(set)
 
         return finalOptimizationParameterSetList
 
@@ -88,6 +88,7 @@ class FutureAbstractStrategy(AbstractStrategy):
     def Setup(self, session):
         self.config = session.config
         self.session = session
+        self.Log = self.session.Log
         self.orderHandler = self.session.orderHandler
         self.strategy_class = self.config.strategyClass
         self.contract = self.config.contract
@@ -105,6 +106,7 @@ class FutureAbstractStrategy(AbstractStrategy):
 
 
         #common
+        self.lastTick = None
         self.bars = []
         self.interDayTA = []
         self.intraDayTA = []
@@ -185,6 +187,9 @@ class FutureAbstractStrategy(AbstractStrategy):
         if self.parameter is None:
             self.parameter = strategy_class.OPTIMIZATION_PARAMETER
 
+        for key in self.parameter:
+            self.session.Log("[Stragtegy parameter]", key +":", self.parameter[key]['value'])
+
 
     def isEntry(self):
         if self.entryCount == 0:
@@ -219,7 +224,12 @@ class FutureAbstractStrategy(AbstractStrategy):
             self.CalculateExitSignalByBidAsk(bidAsk, tick.adjustedDate, tick.adjustedTime)
 
 
+
     def CalculateTick(self, tick):
+        if self.lastTick!=None and self.lastTick.adjustedDate == tick.adjustedDate and self.lastTick.adjustedTime == tick.adjustedTime:
+            return
+
+        self.lastTick = tick
         bidAsk = int((int(tick.bid) + int(tick.ask)) / 2)
         if self.CanCalculateExitSignalByBidAsk(bidAsk):
             self.CalculateExitSignalByBidAsk(bidAsk, tick.adjustedDate, tick.adjustedTime)
@@ -227,12 +237,19 @@ class FutureAbstractStrategy(AbstractStrategy):
 
     def CalculateBar(self, bar):
         # 1 is day end
-        #print(bar.resolution)
         if bar.resolution == "1D":
             self.isDayEnd = True
             self.OnDayEnd(bar)
         else:   # (bar.resolution in utilities.INTRADAY_BAR_SIZE) #assum all are intra day
-            print("CalculateBar:", bar.resolution, bar.adjustedTime)
+            if bar.resolution not in self.config.dataResolution:
+                return
+
+            if len(self.bars)>0 and bar.resolution == self.signalResolution:
+                lastAdjustedDate = self.bars[-1].adjustedDate
+                currentAdjustedDate = bar.adjustedDate
+                if lastAdjustedDate != currentAdjustedDate and self.isDayEnd == False:
+                    self.isDayEnd = True
+                    self.OnDayEnd(self.bars[-1])
 
             if (self.isDayEnd):
                 self.isDayEnd = False
@@ -301,19 +318,6 @@ class FutureAbstractStrategy(AbstractStrategy):
                 self.UpdateContact()
                 self.OnNewDay(bar)
 
-            '''
-            if len(self.closeD) == 0:
-                self.openD.append(bar.openPrice)
-                self.highD.append(bar.highPrice)
-                self.lowD.append(bar.lowPrice)
-                self.closeD.append(bar.closePrice)
-                self.volumeD.append(bar.volume)
-
-                self.upperShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
-                self.lowerShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
-                self.bodyD.append(abs(self.openD[-1] - self.closeD[-1]))
-                self.rangeD.append(self.highD[-1] - self.lowD[-1])
-            '''
 
             #Update current Open high low close and volume
             if bar.highPrice > self.highD[-1]: self.highD[-1] = bar.highPrice
@@ -378,8 +382,6 @@ class FutureAbstractStrategy(AbstractStrategy):
 
             self.CalculateTA(bar)
 
-            self.inTradePeriod = True
-
             if self.inTradePeriod is False:
                 return
 
@@ -392,16 +394,18 @@ class FutureAbstractStrategy(AbstractStrategy):
                 if bar.resolution != self.signalResolution:
                     return
 
-                print("Try to Entry:", self.entryCount, self.tradeLimit)
                 if self.entryCount >= self.tradeLimit:
+                    self.Log("sid:", self.session.config.sid, "["+str(bar.adjustedTime)+"] Reach trade limit:", self.tradeLimit)
                     return
 
-                print("Try to Entry:", bar.adjustedTime, self.entryHourLimitInAdjustedTime["START"], self.entryHourLimitInAdjustedTime["END"])
                 if self.entryHourLimitInAdjustedTime is not None:
                     if not (bar.adjustedTime > self.entryHourLimitInAdjustedTime["START"] and bar.adjustedTime < self.entryHourLimitInAdjustedTime["END"]):
+                        self.Log("sid:", self.session.config.sid, "["+str(bar.adjustedTime)+"] Out of entry hour limit:", bar.adjustedTime, self.entryHourLimitInAdjustedTime)
                         return
 
+                self.Log("sid:", self.session.config.sid, "[" + str(bar.adjustedTime)+"]")
                 self.CalculateEntrySignal(bar)
+                self.Log("")
 
 
     def CanCalculateExitSignal(self, bar):
@@ -414,9 +418,10 @@ class FutureAbstractStrategy(AbstractStrategy):
         if self.minsToExitBeforeMarketClose is not None:
             diff = utilities.mintueBetweenTwoDatetime(self.mktCloseTime, bar.timestamp, False)
             if diff <= self.minsToExitBeforeMarketClose:
-                self.Exit(bar.closePrice, OrderType.LIMIT, "ExitBeforeMktClose", self.baseQuantity)
+                self.Exit(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, "ExitBeforeMktClose", self.baseQuantity)
                 return False
         return True
+
 
     def CanCalculateExitSignalByBidAsk(self, bidAsk):
         if self.config.tradeTicker not in self.session.portfolio.positions:
@@ -426,44 +431,37 @@ class FutureAbstractStrategy(AbstractStrategy):
 
 
     def CalculateEntrySignal(self, bar):
-        print("CalculateEntrySignal:", bar.timestamp)
         count = 0
         for signal in self.entrySignals:
             if signal.CalculateSignal(bar):
+                self.Log("Entry signal["+str(self.session.config.sid)+"-"+signal.Label()+"]: True")
                 count += 1
+            else:
+                self.Log("Entry signal["+str(self.session.config.sid)+"-"+signal.Label() + "]: False")
 
         if count == len(self.entrySignals):
             self.Entry(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, signal.Label(), self.baseQuantity)
 
 
     def CalculateExitSignalByBidAsk(self, bidAsk, adjustedDate, adjustedTime):
-        print("CalculateExitSignalByBidAsk:", bidAsk)
+        c = 0
         if self.session.mode == SessionMode.IB_LIVE:
             #For live sesion only use
             for signal in self.exitSignals:
                 if signal.CalculateSignalByBidAsk(bidAsk):
                     self.Exit(bidAsk, adjustedDate, adjustedTime, OrderType.LIMIT, signal.Label(), self.baseQuantity)
                     return
+                c += 1
 
     def CalculateExitSignal(self, bar):
-        print("CalculateExitSignal:", bar.timestamp)
+        c = 0
         for signal in self.exitSignals:
             if signal.CalculateSignal(bar):
                 self.Exit(signal.exitPrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, signal.Label(), self.baseQuantity)
                 return
-
-
-    '''
-    def CalculateExitSignalByTick(self, bid, ask):
-        for signal in self.exitSignals:
-            if signal.CalculateSignal(bar):
-                self.Exit(bar, OrderType.MARKET, signal.Label(), self.baseQuantity)
-                return
-    '''
-
+            c+=1
 
     def Entry(self, price, adjustedDate, adjustedTime, orderType, label, quantity, triggerLimit=None):
-        print("entry:", price, adjustedDate, adjustedTime, entryCount, label)
         self.entryCount += 1
 
         price = int(price)
@@ -481,10 +479,11 @@ class FutureAbstractStrategy(AbstractStrategy):
         orderId = self.orderHandler.GetNextOrderId()
         contract = self.orderHandler.PrepareContract(self.config.tradeTicker,
                                                      self.tradeDateData["expected_expiry_month"])
-        order = self.orderHandler.PrepareOrder(self.action, contract, orderId, price, adjustedDate, adjustedTime, orderType, label, quantity, limitPrice)
+        order = self.orderHandler.PrepareOrder(self.action, contract, orderId, price, limitPrice, adjustedDate, adjustedTime, orderType, label, quantity)
         order.stopLossThreshold = self.stopLoss
 
-        self.orderHandler.PlaceOrder(orderId, contract, order)
+        self.orderHandler.PlaceOrder(orderId, contract, order, "True")
+        self.Log("========== Entry:", price, adjustedDate, adjustedTime, self.entryCount, label)
 
 
 
@@ -496,22 +495,20 @@ class FutureAbstractStrategy(AbstractStrategy):
         else:
             triggerLimit = int(triggerLimit)
 
-        #IF live use tick by tick to exit
-        if self.session.mode == SessionMode.IB_LIVE:
-            pass
-        else:
-            orderId = self.orderHandler.GetNextOrderId()
-            contract = self.orderHandler.PrepareContract(self.config.tradeTicker, self.tradeDateData["expected_expiry_month"])
 
-            if self.action == OrderAction.BUY:
-                limitPrice = price + triggerLimit
-                order = self.orderHandler.PrepareOrder(OrderAction.SELL, contract, orderId, price, adjustedDate, adjustedTime, orderType, label, quantity, limitPrice)
-            else:
-                limitPrice = price - triggerLimit
-                order = self.orderHandler.PrepareOrder(OrderAction.BUY, contract, orderId, price, adjustedDate, adjustedTime, orderType, label, quantity, limitPrice)
+        orderId = self.orderHandler.GetNextOrderId()
+        contract = self.orderHandler.PrepareContract(self.config.tradeTicker, self.tradeDateData["expected_expiry_month"])
+
+
+        if self.action == OrderAction.BUY:      #Strategy is BUY Than Exit should be SELL
+            limitPrice = price - triggerLimit
+            order = self.orderHandler.PrepareOrder(OrderAction.SELL, contract, orderId, price, limitPrice, adjustedDate, adjustedTime, orderType, label, quantity)
+        else:
+            limitPrice = price + triggerLimit
+            order = self.orderHandler.PrepareOrder(OrderAction.BUY, contract, orderId, price, limitPrice, adjustedDate, adjustedTime, orderType, label, quantity)
 
         self.orderHandler.PlaceOrder(orderId, contract, order)
-        print("Exit:", price, orderType, label, quantity, triggerLimit)
+        self.Log("========== Exit:", price, orderType, label, quantity, triggerLimit)
 
 
     def UpdateContact(self):
@@ -527,7 +524,7 @@ class FutureAbstractStrategy(AbstractStrategy):
         if self.config.tradeTicker in HKEX_FUTURE:
             self.contract = "HKFE.F." + self.config.tradeTicker + month + year
         else:
-            print("future_strategy.UpdateContact not develop for " + self.config.tradeTicker)
+            self.Log("future_strategy.UpdateContact not develop for " + self.config.tradeTicker)
 
 
     def OnNewDay(self, bar):
@@ -546,57 +543,14 @@ class FutureAbstractStrategy(AbstractStrategy):
         for signal in self.exitSignals:
             signal.OnNewDay(bar)
 
+        self.Log("OnNewDate:", bar.timestamp, self.config.startDate, self.config.endDate)
+
         if self.inTradePeriod is False:
             if bar.timestamp >= self.config.startDate and bar.timestamp<=self.config.endDate:
                 self.inTradePeriod = True
         else:
             if bar.timestamp >= self.config.endDate:
                 self.inTradePeriod = False
-
-        '''
-        #update range filter
-        if self.rangeType == 1:
-            if len(self.highD) >= 2:
-                self.range = self.highD[-2] - self.lowD[-2]
-
-        elif self.rangeType == 2:
-            if len(self.highD) >= 3:
-                _range1 = self.highD[-2] - self.lowD[-2]
-                _range2 = self.highD[-3] - self.lowD[-3]
-                if _range1 < _range2:
-                    self.range = _range1
-                else:
-                    self.range = _range2
-
-        elif self.rangeType == 3:
-            if len(self.highD) >= 2:
-                self.range = (self.highD[-2] - self.lowD[-2]) / 2
-
-        elif self.rangeType == 4:
-            if len(self.highD) >= 3:
-                self.range = (self.highD[-3] - self.lowD[-3]) / 2
-
-        elif self.rangeType == 5:
-            if len(self.highD) >= 2:
-                _range1 = self.highD[-2] - self.closeD[-2]
-                _range2 = self.closeD[-2] - self.lowD[-2]
-                _range3 = self.highD[-2] - self.openD[-2]
-                _range4 = self.openD[-2] - self.lowD[-2]
-
-                self.range = _range1
-                if _range2 > self.range:
-                    self.range = _range2
-
-                if _range3 > self.range:
-                    self.range = _range3
-
-                if _range4 > self.range:
-                    self.range = _range4
-
-        elif self.rangeType == 6:
-            if len(self.highD) >= 2:
-                self.range = (self.highD[-2] - self.lowD[-2]) / 5
-        '''
 
 
     def OnDayEnd(self, bar):
@@ -757,23 +711,28 @@ class FutureAbstractStrategy(AbstractStrategy):
             df['date'] = df['date'].astype(str)
             df['value'] = df['value'].astype(float)
 
-
-            print("jsonFile:", jsonFile)
+            self.Log("Save() jsonFile:", jsonFile)
             tryCount = 0
             lockFile = jsonFile.replace(".json", ".lock")
             isCheckLockFile = utilities.isFileExist(lockFile)
 
             while isCheckLockFile:
-                print("Lock file exist, please exit:", lockFile)
+                self.Log("Lock file exist, please exit:", lockFile)
                 tryCount += 1
                 time.sleep(1)
                 isCheckLockFile = utilities.isFileExist(lockFile)
 
-                if tryCount >= 10:
+                maxTryCount = 10
+                if self.session.mode == SessionMode.IB_DALIY_BACKTEST or self.session.mode == SessionMode.IB_LIVE:
+                    import random
+                    time.sleep(random.randint(2,5))
+                    maxTryCount = 30
+
+                if tryCount >= maxTryCount:
                     isCheckLockFile = False
                     raise ValueError
 
-            print("create lock file:", lockFile)
+            self.Log("Save() create lock file:", lockFile)
             with open(lockFile, 'w') as fp:
                 json.dump({}, fp, indent=4)
 
@@ -839,8 +798,11 @@ class FutureAbstractStrategy(AbstractStrategy):
             if taDebug: df.to_csv("X:/log/b4Save.csv")
             df.to_json(jsonFile, orient='index')
 
-            print("remove lock file:", lockFile)
-            os.remove(lockFile)
+            try:
+                self.Log("Remove lock file:", lockFile)
+                os.remove(lockFile)
+            except:
+                self.Log("Remove lock file fail:", lockFile)
 
         taDict = self.TAToDict(self.interDayTA)
         jsonFilename = "//interDayTA.json"

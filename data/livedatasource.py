@@ -48,6 +48,7 @@ class IBProxyServerDataSource(AbstractBarDataSource):
                 raise OSError('CSV file not exist: ' + csvFilePath)
 
         # Prepare backtest data csv file list to load
+
         for dataPeriod in self.config.dataPeriod:
             for resolution in self.config.dataResolution:
                 csvFilename = dataPeriod + "_" + self.config.dataTicker + "_" + resolution + ".csv"
@@ -55,6 +56,7 @@ class IBProxyServerDataSource(AbstractBarDataSource):
                 if utilities.checkFileExist(csvFilePath):
                     self.backtestCSVFile.append({"filePath": csvFilePath, "resolution": resolution})
                 else:
+                    self.session.Log("CSV file not found:", csvFilePath)
                     self.liveCSVFile.append({"month": dataPeriod, "filePath": csvFilePath, "resolution": resolution})
 
         self.LoadBacktestData()
@@ -93,6 +95,9 @@ class IBProxyServerDataSource(AbstractBarDataSource):
         return df
 
     def MergeOHLCData(self, dfs):
+        if len(dfs) == 0:
+            return False
+
         df = pd.concat(dfs)
 
         # to made different resolution sort in correct order
@@ -109,12 +114,14 @@ class IBProxyServerDataSource(AbstractBarDataSource):
         return df
 
     def LoadBacktestData(self):
+        print("========== Start LoadBacktestData ==========")
         isFirst = True
         dfs = []
         if len(self.backtestCSVFile)>0:
             for obj in self.backtestCSVFile:
                 csvFilePath = obj['filePath']
                 resolution = obj['resolution']
+                self.session.Log("LoadBarCsvFile:", csvFilePath)
                 df = self.LoadBarCsvFile(csvFilePath, resolution, isFirst)
                 '''
                 df = pd.read_csv(csvFilePath, index_col=0, parse_dates=True,
@@ -151,9 +158,11 @@ class IBProxyServerDataSource(AbstractBarDataSource):
                 dfs.append(df)
             self.historicalDf = self.MergeOHLCData(dfs)
 
+        print("========== End LoadBacktestData ==========")
         self.LoadLiveData()
 
     def LoadLiveData(self):
+        print("========== Start LoadLiveData ==========")
         firstDateInLiveData = None
         for liveDataToLoad in self.liveCSVFile:
             if firstDateInLiveData is None:
@@ -193,31 +202,36 @@ class IBProxyServerDataSource(AbstractBarDataSource):
                     print("remove this if else statment for live trade current for debug")
 
         self.liveDataDf = self.MergeOHLCData(dfs)
-        self.backfillDf = self.MergeOHLCData([self.historicalDf, self.liveDataDf])
+        if type(self.liveDataDf) == bool and self.liveDataDf == False:
+            self.backfillDf = self.historicalDf
+        else:
+            self.backfillDf = self.MergeOHLCData([self.historicalDf, self.liveDataDf])
+        print("========== End LoadLiveData ==========")
 
 
     def FeedBackfillData(self):
+        print("========== Start FeedBackfillData ==========")
         for row in self.backfillDf.itertuples():
             barData = OHLC(row)
 
             self.StoreData(barData)
-            self.session.OnData(barData)
-
+            self.session.OnHistoricalData(barData)
+        print("========== End FeedBackfillData ==========")
         self.isReady = True
 
     def OnBidAsk(self, data):
         if self.config.dataTicker == data['ticker'] and str(self.config.expiryMonth) == str(data['expiryMonth']):
             ticker = data['ticker']
             timestamp = utilities.ConvertAdjustedDateTimeToTimestamp(str(data['adjustedDate']), str(data['adjustedTime']))
-            bid = data['bidPrice']
-            ask = data['askPrice']
-            adjustedDate = str(data['adjustedDate'])
-            adjustedTime = str(data['adjustedTime'])
+            bid = int(data['bidPrice'])
+            ask = int(data['askPrice'])
+            adjustedDate = int(data['adjustedDate'])
+            adjustedTime = int(data['adjustedTime'])
             tick = TickData(ticker, timestamp, bid, ask, adjustedDate, adjustedTime)
             self.StoreData(tick)
             self.session.OnData(tick)
 
-            print("OnBidAsk:", adjustedDate, adjustedTime, ticker, bid, ask)
+            #print("OnBidAsk:", adjustedDate, adjustedTime, ticker, bid, ask)
 
 
     def OnTickData(self, data):
@@ -225,64 +239,43 @@ class IBProxyServerDataSource(AbstractBarDataSource):
             ticker = data['ticker']
             timestamp = utilities.ConvertAdjustedDateTimeToTimestamp(str(data['adjustedDate']),
                                                                      str(data['adjustedTime']))
-            bid = data['price']
-            ask = data['price']
-            adjustedDate = str(data['adjustedDate'])
-            adjustedTime = str(data['adjustedTime'])
+            bid = int(data['price'])
+            ask = int(data['price'])
+            adjustedDate = int(data['adjustedDate'])
+            adjustedTime = int(data['adjustedTime'])
             tick = TickData(ticker, timestamp, bid, ask, adjustedDate, adjustedTime)
             self.StoreData(tick)
             self.session.OnData(tick)
 
-            print("OnTickData:", adjustedDate, adjustedTime, ticker, bid, ask)
+            #print("OnTickData: ", adjustedDate, adjustedTime, ticker, bid, ask)
 
 
     def OnOHLCData(self, data):
-        if self.config.dataTicker == data['ticker']:
-            timestamp = utilities.ConvertAdjustedDateTimeToTimestamp(data['adjustedDate'], data['adjustedTime'])
-            openPrice = data['open']
-            highPrice = data['high']
-            lowPrice = data['low']
-            closePrice = data['close']
-            vol = data['qty']
-            ticker = data['ticker']
-            resolution = data['resolution']
-            resolutionInSec = data['resolution_in_sec']
-            adjustedDate = data['adjustedDate']
-            adjustedTime = data['adjustedTime']
-            barData = OHLC((timestamp, openPrice, highPrice, lowPrice, closePrice, vol, ticker, resolution, resolutionInSec, adjustedDate, adjustedTime))
-
-            print("barData:", timestamp, openPrice, highPrice, lowPrice, closePrice, vol, ticker, resolution, resolutionInSec, adjustedDate, adjustedTime)
-
-            self.StoreData(barData)
-            self.session.OnData(barData)
-
-            print("OnOHLCData:", adjustedDate, adjustedTime, ticker, resolution, resolutionInSec, openPrice, highPrice, lowPrice, closePrice, vol)
-
-
-    def StartStreaming(self):
-        return
-        #loop data monthly
-        for row in self.dataDf:
-            barData = OHLC(row)
-
-            if self.inPeriodData:
-                if barData.timestamp >= self.config.endDate:
-                    self.inPeriodData = False
-            else:
-                if barData.timestamp >= self.config.startDate:
-                    self.inPeriodData = True
-
-            self.StoreData(barData)
-            self.session.OnData(barData)
-
-        #load another month after looping
-        if self.currentCsvFileIdx != len(self.config.dataPeriod):
-            self.LoadCsvFile()
-            self.StartStreaming()
+        if data['resolution'] not in self.session.config.dataResolution:
             return
 
-        #exit is no data to loop
-        self.session.OnComplete()
+        if self.config.dataTicker == data['ticker']:
+            timestamp = utilities.ConvertAdjustedDateTimeToTimestamp(data['adjustedDate'], data['adjustedTime'])
+            openPrice = int(data['open'])
+            highPrice = int(data['high'])
+            lowPrice = int(data['low'])
+            closePrice = int(data['close'])
+            vol = int(data['qty'])
+            ticker = data['ticker']
+            resolution = data['resolution']
+            resolutionInSec = int(data['resolution_in_sec'])
+            adjustedDate = int(data['adjustedDate'])
+            adjustedTime = int(data['adjustedTime'])
+            barData = OHLC((timestamp, openPrice, highPrice, lowPrice, closePrice, vol, ticker, resolution, resolutionInSec, adjustedDate, adjustedTime))
+
+            #print("barData:   ", timestamp, openPrice, highPrice, lowPrice, closePrice, vol, ticker, resolution, resolutionInSec, adjustedDate, adjustedTime)
+
+            self.StoreData(barData)
+            self.session.OnData(barData)
+
+            #print("OnOHLCData:", adjustedDate, adjustedTime, ticker, resolution, resolutionInSec, openPrice, highPrice, lowPrice, closePrice, vol)
+
+
 
 
     def GetTickerTradeDateDataByDate(self, timestamp):

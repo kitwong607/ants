@@ -14,5 +14,3 @@ class FuturePortfolio(AbstractPortfolio):
 
     def AddPosition(self, order):
         self.positions[order.ticker] = FuturePosition(order)
-
-
