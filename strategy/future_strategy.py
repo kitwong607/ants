@@ -1,5 +1,6 @@
 from .base import AbstractStrategy
 from .. import utilities
+from ..session import SessionMode
 
 from ..order.base import OrderAction, OrderType
 from ..data.datamodel import DataType
@@ -212,6 +213,18 @@ class FutureAbstractStrategy(AbstractStrategy):
         return self.session.portfolio.maxNet
 
 
+    def CalculateBidAsk(self, tick):
+        bidAsk = int((int(tick.bid) + int(tick.ask))/2)
+        if self.CanCalculateExitSignalByBidAsk(bidAsk):
+            self.CalculateExitSignalByBidAsk(bidAsk, tick.adjustedDate, tick.adjustedTime)
+
+
+    def CalculateTick(self, tick):
+        bidAsk = int((int(tick.bid) + int(tick.ask)) / 2)
+        if self.CanCalculateExitSignalByBidAsk(bidAsk):
+            self.CalculateExitSignalByBidAsk(bidAsk, tick.adjustedDate, tick.adjustedTime)
+
+
     def CalculateBar(self, bar):
         # 1 is day end
         #print(bar.resolution)
@@ -219,6 +232,8 @@ class FutureAbstractStrategy(AbstractStrategy):
             self.isDayEnd = True
             self.OnDayEnd(bar)
         else:   # (bar.resolution in utilities.INTRADAY_BAR_SIZE) #assum all are intra day
+            print("CalculateBar:", bar.resolution, bar.adjustedTime)
+
             if (self.isDayEnd):
                 self.isDayEnd = False
 
@@ -363,6 +378,8 @@ class FutureAbstractStrategy(AbstractStrategy):
 
             self.CalculateTA(bar)
 
+            self.inTradePeriod = True
+
             if self.inTradePeriod is False:
                 return
 
@@ -370,28 +387,21 @@ class FutureAbstractStrategy(AbstractStrategy):
             if self.CanCalculateExitSignal(bar):
                 self.CalculateExitSignal(bar)
 
-                '''
-                if self.entryHourLimitInAdjustedTime is not None:
-                    #self.Exit(bar, OrderType.MARKET, "ExitBeforeMktClose", self.baseQuantity)
-                    canCalculateExitSignal = False
-
-                if canCalculateExitSignal:
-                    self.CalculateExitSignal(data)
-                '''
 
             if self.action is not None:
                 if bar.resolution != self.signalResolution:
                     return
 
+                print("Try to Entry:", self.entryCount, self.tradeLimit)
                 if self.entryCount >= self.tradeLimit:
                     return
+
+                print("Try to Entry:", bar.adjustedTime, self.entryHourLimitInAdjustedTime["START"], self.entryHourLimitInAdjustedTime["END"])
                 if self.entryHourLimitInAdjustedTime is not None:
                     if not (bar.adjustedTime > self.entryHourLimitInAdjustedTime["START"] and bar.adjustedTime < self.entryHourLimitInAdjustedTime["END"]):
                         return
 
                 self.CalculateEntrySignal(bar)
-
-
 
 
     def CanCalculateExitSignal(self, bar):
@@ -404,62 +414,104 @@ class FutureAbstractStrategy(AbstractStrategy):
         if self.minsToExitBeforeMarketClose is not None:
             diff = utilities.mintueBetweenTwoDatetime(self.mktCloseTime, bar.timestamp, False)
             if diff <= self.minsToExitBeforeMarketClose:
-                self.Exit(bar, OrderType.MARKET, "ExitBeforeMktClose", self.baseQuantity)
+                self.Exit(bar.closePrice, OrderType.LIMIT, "ExitBeforeMktClose", self.baseQuantity)
                 return False
+        return True
+
+    def CanCalculateExitSignalByBidAsk(self, bidAsk):
+        if self.config.tradeTicker not in self.session.portfolio.positions:
+            return False
+
         return True
 
 
     def CalculateEntrySignal(self, bar):
+        print("CalculateEntrySignal:", bar.timestamp)
         count = 0
         for signal in self.entrySignals:
             if signal.CalculateSignal(bar):
                 count += 1
 
         if count == len(self.entrySignals):
-            self.Entry(bar, OrderType.MARKET, signal.Label(), self.baseQuantity)
+            self.Entry(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, signal.Label(), self.baseQuantity)
 
+
+    def CalculateExitSignalByBidAsk(self, bidAsk, adjustedDate, adjustedTime):
+        print("CalculateExitSignalByBidAsk:", bidAsk)
+        if self.session.mode == SessionMode.IB_LIVE:
+            #For live sesion only use
+            for signal in self.exitSignals:
+                if signal.CalculateSignalByBidAsk(bidAsk):
+                    self.Exit(bidAsk, adjustedDate, adjustedTime, OrderType.LIMIT, signal.Label(), self.baseQuantity)
+                    return
 
     def CalculateExitSignal(self, bar):
+        print("CalculateExitSignal:", bar.timestamp)
+        for signal in self.exitSignals:
+            if signal.CalculateSignal(bar):
+                self.Exit(signal.exitPrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, signal.Label(), self.baseQuantity)
+                return
+
+
+    '''
+    def CalculateExitSignalByTick(self, bid, ask):
         for signal in self.exitSignals:
             if signal.CalculateSignal(bar):
                 self.Exit(bar, OrderType.MARKET, signal.Label(), self.baseQuantity)
                 return
+    '''
 
 
-    def Entry(self, bar, orderType, label, quantity, triggerLimit=None):
+    def Entry(self, price, adjustedDate, adjustedTime, orderType, label, quantity, triggerLimit=None):
+        print("entry:", price, adjustedDate, adjustedTime, entryCount, label)
         self.entryCount += 1
 
+        price = int(price)
+        quantity = int(quantity)
         if triggerLimit is None:
-            triggerLimit = self.config.slippage
-        if self.action == OrderAction.BUY:
-            limitPrice = bar.closePrice + triggerLimit
+            triggerLimit = int(self.config.slippage)
         else:
-            limitPrice = bar.closePrice - triggerLimit
+            triggerLimit = int(triggerLimit)
+
+        if self.action == OrderAction.BUY:
+            limitPrice = price + triggerLimit
+        else:
+            limitPrice = price - triggerLimit
 
         orderId = self.orderHandler.GetNextOrderId()
         contract = self.orderHandler.PrepareContract(self.config.tradeTicker,
                                                      self.tradeDateData["expected_expiry_month"])
-        order = self.orderHandler.PrepareOrder(self.action, contract, orderId, bar, orderType, label, quantity, limitPrice)
+        order = self.orderHandler.PrepareOrder(self.action, contract, orderId, price, adjustedDate, adjustedTime, orderType, label, quantity, limitPrice)
         order.stopLossThreshold = self.stopLoss
 
         self.orderHandler.PlaceOrder(orderId, contract, order)
 
 
-    def Exit(self, bar, orderType, label, quantity, triggerLimit=None):
+
+    def Exit(self, price, adjustedDate, adjustedTime, orderType, label, quantity, triggerLimit=None):
+        price = int(price)
+        quantity = int(quantity)
         if triggerLimit is None:
             triggerLimit = self.config.slippage
-
-        orderId = self.orderHandler.GetNextOrderId()
-        contract = self.orderHandler.PrepareContract(self.config.tradeTicker, self.tradeDateData["expected_expiry_month"])
-
-        if self.action == OrderAction.BUY:
-            limitPrice = bar.closePrice + triggerLimit
-            order = self.orderHandler.PrepareOrder(OrderAction.SELL, contract, orderId, bar, orderType, label, quantity, limitPrice)
         else:
-            limitPrice = bar.closePrice - triggerLimit
-            order = self.orderHandler.PrepareOrder(OrderAction.BUY, contract, orderId, bar, orderType, label, quantity, limitPrice)
+            triggerLimit = int(triggerLimit)
+
+        #IF live use tick by tick to exit
+        if self.session.mode == SessionMode.IB_LIVE:
+            pass
+        else:
+            orderId = self.orderHandler.GetNextOrderId()
+            contract = self.orderHandler.PrepareContract(self.config.tradeTicker, self.tradeDateData["expected_expiry_month"])
+
+            if self.action == OrderAction.BUY:
+                limitPrice = price + triggerLimit
+                order = self.orderHandler.PrepareOrder(OrderAction.SELL, contract, orderId, price, adjustedDate, adjustedTime, orderType, label, quantity, limitPrice)
+            else:
+                limitPrice = price - triggerLimit
+                order = self.orderHandler.PrepareOrder(OrderAction.BUY, contract, orderId, price, adjustedDate, adjustedTime, orderType, label, quantity, limitPrice)
 
         self.orderHandler.PlaceOrder(orderId, contract, order)
+        print("Exit:", price, orderType, label, quantity, triggerLimit)
 
 
     def UpdateContact(self):

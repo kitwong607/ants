@@ -134,10 +134,10 @@ class StrategyCreator(FutureAbstractStrategy):
 
         if self.entrySignal.CalculateSignal(bar):
             label = 'long entry (sl:' + str(self.stopLoss) + ')'
-            self.Entry(bar, OrderType.MARKET, label, self.baseQuantity)
+            self.Entry(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, label, self.baseQuantity)
 
 
     def CalculateExitSignal(self, bar):
         if self.stopLossSignal.CalculateSignal(bar):
             label = 'stopLoss'
-            self.Exit(bar, OrderType.MARKET, label, self.baseQuantity)
+            self.Exit(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, label, self.baseQuantity)

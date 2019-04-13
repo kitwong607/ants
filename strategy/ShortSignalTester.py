@@ -65,7 +65,7 @@ class ShortSignalTester(FutureAbstractStrategy):
                 label += signal.Label()
 
         if count == len(self.entrySignals):
-            self.Entry(bar, OrderType.MARKET, label, self.baseQuantity)
+            self.Entry(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, label, self.baseQuantity)
 
 
     # 1 Breakout previous day high

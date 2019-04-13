@@ -17,7 +17,6 @@ class OrderAction(Enum):
 
 # region Class: OrderType
 class OrderType(IntEnum):
-    IS_DISPLAY_IN_OPTION = False
     MARKET = 0
     LIMIT = 1
 # endregion
@@ -25,8 +24,6 @@ class OrderType(IntEnum):
 
 
 class Order(object):
-    IS_DISPLAY_IN_OPTION = False
-
     __metaclass__ = ABCMeta
 
     def __init__(self, order_id, ticker, data_ticker, exchange, contract, trigger_price, action, stop_loss_threshold, label, quantity, adjusted_date, adjusted_time):
@@ -81,8 +78,6 @@ class Order(object):
         print("calculate_commission")
 
 class MktOrder(Order):
-    IS_DISPLAY_IN_OPTION = False
-
     def __init__(self, order_id, ticker, data_ticker, exchange, contract, trigger_pice, action, stop_loss_threshold, label, quantity, adjusted_time, adjusted_date):
         super().__init__(order_id, ticker, data_ticker, exchange, contract, trigger_pice, action, stop_loss_threshold, label, quantity, adjusted_time, adjusted_date)
         self.type = "MKT"

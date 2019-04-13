@@ -66,7 +66,7 @@ class LongStrategyCreator(FutureAbstractStrategy):
                 label += signal.Label()
 
         if count == len(self.entrySignals):
-            self.Entry(bar, OrderType.MARKET, label, self.baseQuantity)
+            self.Entry(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, label, self.baseQuantity)
 
 
     def SetupSignal(self, signalId):
