@@ -366,7 +366,7 @@ class IBOrder:
     #/ Products: BOND, CFD, CASH, FUT, FOP, OPT, STK, WAR
     </summary>"""
     @staticmethod
-    def LimitOrder(action:str, quantity:float, limitPrice:float, signalPrice:float):
+    def LimitOrder(action:str, quantity:float, signalPrice:float, limitPrice:float):
     
         # ! [limitorder]
         order = Order()
@@ -375,6 +375,9 @@ class IBOrder:
         order.totalQuantity = float(quantity)
         order.lmtPrice = float(limitPrice)
         order.signalPrice = signalPrice
+
+        print("LimitOrder:", signalPrice, limitPrice)
+
         # ! [limitorder]
         return order
         

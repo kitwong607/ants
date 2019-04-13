@@ -4,6 +4,7 @@ from ..broker.ib.IBOrder import IBOrder
 from ..order.base import OrderType, OrderAction
 from .. import socket as antSocket
 from .. import utilities
+from datetime import datetime
 
 
 class AbstractOrderHandler(object):
@@ -37,13 +38,16 @@ class AbstractOrderHandler(object):
         contract.expiryMonth = expiryMonth
         return contract
 
-    def PrepareOrder(self, action, contract, orderId, price, adjustedDate, adjustedTime, orderType, label, quantity, limitPrice):
+    def PrepareOrder(self, action, contract, orderId, signalPrice, limitPrice, adjustedDate, adjustedTime, orderType, label, quantity):
         if orderType == OrderType.MARKET:
-            order = IBOrder.MarketOrder(action, quantity, price)
+            order = IBOrder.MarketOrder(action, quantity, signalPrice)
         elif orderType == OrderType.LIMIT:
-            order = IBOrder.LimitOrder(action, quantity, price, limitPrice)
+            order = IBOrder.LimitOrder(action, quantity, signalPrice, limitPrice)
         else:
             raise ValueError("Order type: " + orderType + " not support")
+
+        print("signalPrice:", signalPrice, "limitPrice:", limitPrice)
+        print("order.signalPrice:", order.signalPrice, "order.limitPrice:", order.lmtPrice)
 
         #setup default variable for Order object
         order.filledTime = None
@@ -57,10 +61,7 @@ class AbstractOrderHandler(object):
         order.ticker = contract.ticker
         order.type = orderType
         order.stopLossThreshold = 0
-
         return order
-
-
 
 
 class BacktestOrderHandler(AbstractOrderHandler):
@@ -71,7 +72,7 @@ class BacktestOrderHandler(AbstractOrderHandler):
         super().__init__(session)
 
 
-    def PlaceOrder(self, orderId, contract, order):
+    def PlaceOrder(self, orderId, contract, order, isEntry="False"):
         if order.adjustedDate not in self.unfilledOrder:
             self.lastActiveDate = order.adjustedDate
             self.unfilledOrder[order.adjustedDate] = []
@@ -129,8 +130,11 @@ class IBProxyServerOrderHandler(AbstractOrderHandler):
         self.session = session
         self.proxyClient = session.proxyClient
 
+        self.Log = self.session.Log
 
-    def PlaceOrder(self, orderId, contract, order):
+
+    def PlaceOrder(self, orderId, contract, order, isEntry="False"):
+        self.Log("PlaceOrder 1:", order.signalPrice, order.lmtPrice)
         ######################################################################
         #Send to Proxy server to place order in IB
         data = {}
@@ -155,23 +159,30 @@ class IBProxyServerOrderHandler(AbstractOrderHandler):
         data['orderType'] = order.orderType
         data['ticker'] = order.ticker
         data['label'] = order.label
+        data['isEntry'] = isEntry
+
 
 
         self.proxyClient.SendMessage(antSocket.ACTION_PLACE_ORDER, data)
         ######################################################################
-
+        self.Log("Kit please look back here...", self.lastActiveDate)
+        self.lastActiveDate = order.adjustedDate
         if order.adjustedDate not in self.unfilledOrder:
             self.lastActiveDate = order.adjustedDate
             self.unfilledOrder[order.adjustedDate] = []
             self.filledOrder[order.adjustedDate] = []
         self.unfilledOrder[order.adjustedDate].append(order)
 
+
     #this is for socket to call...
     #def FillOrder(self):
 
     def OnOrderPlaced(self, data):
-        lastOrder = self.unfilledOrder[self.lastActiveDate]
-        lastOrder.orderId = data['oid']
+        print("self.session.config.sessionId:", self.session.config.sessionId)
+        if data["sid"] == self.session.config.sessionId:
+            self.Log("self.lastActiveDate:", self.lastActiveDate)
+            lastOrder = self.unfilledOrder[self.lastActiveDate][-1]
+            lastOrder.orderId = data['oid']
 
     def OnOpenOrderEvent(self, data):
         pass
@@ -181,12 +192,16 @@ class IBProxyServerOrderHandler(AbstractOrderHandler):
 
     def OnOpenOrderUpdateEvent(self, data):
         #Check order is belong to this strategy with its order id
+
         for order in self.unfilledOrder[self.lastActiveDate]:
             if order.orderId == data['order_id']:
-                if order_id['status'] == "Filled":
+                if data['status'] == "Filled":
                     order.status = "filled"
                     order.filledPrice = data['avg_fill_price']
-                    order.filledTime = data['adjusted_time']
+                    order.filledTime = datetime.fromtimestamp(int(data['filledTimestamp']))
+
+                    self.Log("Order Filled:", order.orderId, order.filledPrice, order.filledTime)
+                    self.Log(data)
 
                     # here have to change
                     order.commission = 0

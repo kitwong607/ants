@@ -16,6 +16,7 @@ class SessionMode(IntEnum):
     SYNC_BACKTEST = 0
     ASYNC_BACKTEST = 1
     IB_LIVE = 2
+    IB_DALIY_BACKTEST = 3
 # endregion
 
 
@@ -32,8 +33,10 @@ class SessionStaticVariable:
     IB_GATEWAY_PORT = 8100
     IB_GATEWAY_IP = "127.0.0.1"
     IB_CONTROLLER_PORT = 8101
+    IB_BACKTEST_CONTROLLER_PORT = 8102
 
     IB_CLIENT_ID = 0
+    IB_CLIENT_ID_DAILY_HISTORICAL = 90
     IB_CLIENT_ID_DEBUG = 99
 
     HKEX_LIVE_WS_SERVER_PORT = 8200
@@ -63,6 +66,9 @@ class SessionStaticVariable:
 
     baseLiveReportDirectory = "C:/tmp/ReportData/LiveReport/Reports/"
     baseLiveTADirectory = "C:/tmp/ReportData/LiveReport/TA/"
+
+    baseLiveBacktestReportDirectory = "C:/tmp/ReportData/LiveBacktestReport/Reports/"
+    baseLiveBacktestTADirectory = "C:/tmp/ReportData/LiveBacktestReport/TA/"
 
     base_filter_directory = "Y:/ReportData/BacktestReport/Filter/"
 
@@ -160,10 +166,12 @@ class SessionConfig:
         self.dataPath = SessionStaticVariable.dataPath
         self.logDirectory = SessionStaticVariable.logDirectory
         self.apiPath = SessionStaticVariable.api_path
+
         self.baseReportDirectory = SessionStaticVariable.baseReportDirectory
         self.baseTADirectory = SessionStaticVariable.baseTADirectory
         # endregion
 
+        self.Log = kwargs["logFunction"] if "logFunction" in kwargs else print
 
 
         # region Session setting
@@ -174,8 +182,11 @@ class SessionConfig:
             self.baseReportDirectory = SessionStaticVariable.baseLiveReportDirectory
             self.baseTADirectory = SessionStaticVariable.baseLiveTADirectory
 
-        self.sessionId = kwargs["sessionId"] if "sessionId" in kwargs else 999999
+        elif self.mode == SessionMode.IB_DALIY_BACKTEST:
+            self.baseReportDirectory = SessionStaticVariable.baseLiveBacktestReportDirectory
+            self.baseTADirectory = SessionStaticVariable.baseLiveBacktestTADirectory
 
+        self.sessionId = kwargs["sessionId"] if "sessionId" in kwargs else 999999
         self.numReferenceDay = kwargs["numReferenceDay"] if "numReferenceDay" in kwargs else 31
         self.startDate = kwargs["startDate"] if "startDate" in kwargs else datetime(2014, 1, 1, 1, 0, 0)
         self.endDate = kwargs["endDate"] if "endDate" in kwargs else datetime(2014, 12, 31, 1, 0, 0)
@@ -190,10 +201,7 @@ class SessionConfig:
         self.baseQuantity = kwargs["baseQuantity"] if "baseQuantity" in kwargs else 1
         self.exchange = kwargs["exchange"] if "exchange" in kwargs else "HKFE"
 
-        if self.mode in [ SessionMode.SYNC_BACKTEST, SessionMode.ASYNC_BACKTEST]:
-            self.cash = kwargs["cash"] if "cash" in kwargs else 60000
-        else:
-            self.cash = None
+        self.cash = kwargs["cash"] if "cash" in kwargs else 40000
 
         self.signalResolution = kwargs["signalResolution"] if "signalResolution" in kwargs else "1T"
         self.dataResolution = kwargs["dataResolution"] if "dataResolution" in kwargs else ["1T","1D"]
@@ -219,7 +227,7 @@ class SessionConfig:
             "%Y%m%d_") + str(self.sessionId).zfill(6) + "_" + self.strategyClass.STRATEGY_SLUG + "_" + self.signalResolution
         self.reportDirectory = self.baseReportDirectory + self.reportFolderName
 
-        print("self.reportDirectory:", self.reportDirectory)
+        self.Log("self.reportDirectory:", self.reportDirectory)
         try:
             if not os.path.exists(self.reportDirectory):
                 os.makedirs(self.reportDirectory)
@@ -250,7 +258,38 @@ class SessionConfig:
         except:
             pass
 
+
+    def SetReportFolderForLive(self):
+        try:
+            import shutil
+            shutil.rmtree(self.reportDirectory)
+            self.reportFolderName = str(self.sessionId).zfill(
+                6) + "_" + self.strategyClass.STRATEGY_SLUG
+
+            self.reportDirectory = self.baseReportDirectory + self.reportFolderName
+
+            if not os.path.exists(self.reportDirectory):
+                os.makedirs(self.reportDirectory)
+        except:
+            pass
+
     def Save(self):
+        #Load previous session config and update end date only
+        if self.mode == SessionMode.IB_LIVE or self.mode == SessionMode.IB_DALIY_BACKTEST:
+            from pathlib import Path
+            configFilename = "/sessionConfig.json"
+            csvFile = Path(self.reportDirectory + configFilename)
+            if csvFile.is_file():
+                with open(self.reportDirectory + configFilename) as fp:
+                    dictToSave = json.load(fp)
+
+                dictToSave["endDate"] = self.endDate.strftime("%Y%m%d")
+                with open(self.reportDirectory + configFilename, 'w') as fp:
+                    json.dump(dictToSave, fp, indent=4)
+
+                return
+
+
         dictToSave = {}
         dictToSave["sessionId"] = self.sessionId
         dictToSave["mode"] = self.mode
@@ -292,6 +331,7 @@ class SessionConfig:
 class Session(object):
     def __init__(self, config):
         self.config = config
+        self.Log = self.config.Log
 
         self.dataQueue = queue.Queue()
         self.dataSource = self.config.dataSourceClass(self)
@@ -318,16 +358,16 @@ class Session(object):
     def OnComplete(self):
         from . import utilities
 
-        print("Saving config")
+        self.Log("Saving config")
         self.config.Save()
 
-        print("Saving portfolio")
+        self.Log("Saving portfolio")
         self.portfolio.Save()
 
-        print("Saving strategy")
+        self.Log("Saving strategy")
         self.strategy.Save()
 
-        print("saving creating summary report:", self.config.reportFolderName)
+        self.Log("saving creating summary report:", self.config.reportFolderName)
         utilities.CreateReportSummary(self.config.reportDirectory)
 
 
@@ -336,12 +376,15 @@ class Session(object):
         return self.order_id
     # endregion
 
+
 class IBLiveSession(object):
     def __init__(self, config, proxyClient):
         self.proxyClient = proxyClient
         self.mode = SessionMode.IB_LIVE
 
         self.config = config
+        self.config.SetReportFolderForLive()
+        self.Log = self.config.Log
 
         self.dataQueue = queue.Queue()
 
@@ -357,12 +400,19 @@ class IBLiveSession(object):
         self.dataSource.FeedBackfillData()
 
 
+    def OnHistoricalData(self, data):
+        self.PushDataToStrategy(data)
+
+
     def OnData(self, data):
-        print("OnData:", data.type)
+        if self.dataSource.isReady:
+            self.PushDataToStrategy(data)
+
+
+    def PushDataToStrategy(self, data):
         if data.type == DataType.OHLC:
             self.strategy.CalculateBar(data)
         elif data.type == DataType.TICK:
-            print("===== CalculateTick =====")
             self.strategy.CalculateTick(data)
         else:
             raise NotImplemented("Unsupported event.type '%s'" % data.type)
@@ -371,24 +421,23 @@ class IBLiveSession(object):
     def OnComplete(self):
         from . import utilities
 
-        print("Saving config")
+        self.Log("Saving config")
+        #This will overweite the json
         self.config.Save()
 
-        print("Saving portfolio")
+        self.Log("Saving portfolio")
         self.portfolio.Save()
 
-        print("Saving strategy")
+        self.Log("Saving strategy")
+        # This will overweite the json
         self.strategy.Save()
 
-        print("saving creating summary report:", self.config.reportFolderName)
+        #This will be update base one new positions.json data
+        self.Log("saving creating summary report:", self.config.reportFolderName)
         utilities.CreateReportSummary(self.config.reportDirectory)
 
 
     def NextValidOrderId(self):
         self.order_id += 1
         return self.order_id
-
-
-
-
     # endregion

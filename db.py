@@ -1437,6 +1437,34 @@ def GetStrategy(status=None, strategyId=None, parentId=None):
         DisconnectToMySQL(connection)
 
 
+
+def GetStrategyByStatus(status):
+    try:
+        connection = ConnectToMySQL()
+        value = []
+
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM `strategy` WHERE `status`=%s ORDER BY `id` ASC"
+            cursor.execute(sql, (status))
+
+            connection.commit()
+            result = cursor.fetchall()
+
+            if result is not None:
+                for row in result:
+                    value.append(ReformatTimestrInStrategy(row))
+
+        return value
+
+    except:
+        traceback.print_exc()
+        return []
+
+    finally:
+        DisconnectToMySQL(connection)
+
+
+
 def GetStrategyById(strategyId):
     try:
         connection = ConnectToMySQL()
@@ -1488,27 +1516,26 @@ def GetStrategyByName(strategyName):
 
 
 
-def GetStrategyTo_dailyBacktest(status=None):
+def GetStrategyForDailyBacktest():
     try:
+        statusActive = "active"
+        statusOnline = "online"
         connection = ConnectToMySQL()
         value = []
-        online = "online"
-        offline = "offline"
 
         with connection.cursor() as cursor:
             sql = "SELECT * FROM `strategy` WHERE `status`=%s or `status`=%s ORDER BY `id` ASC"
-            cursor.execute(sql, (online, offline))
+            cursor.execute(sql, (statusActive, statusOnline))
 
             connection.commit()
             result = cursor.fetchall()
-            isDBError = False
 
             if result is not None:
                 for row in result:
-                    value.append(ReformatTimestrInStrategy(row))
+                    value.append(row)
 
         return value
-    except e:
+    except:
         traceback.print_exc()
         return NOT_SET
 
@@ -2087,6 +2114,9 @@ def UpdateOrderWithOrderStatus(orderStatus):
 #def UpdatePositionFromFilledOrder(orderId, permId, status):
 def UpdatePositionFromFilledOrder(orderStatus):
     status = orderStatus['status']
+    orderMsgTemplate = "<b>{ENTRY}</b><br>sid: {SID}<br>{ACTION}@{FILLED_PRICE}<br>qty: {QTY}"
+    positionMsgTemplate = "<b>PNL</b><br>sid: {SID}<br>{LABEL}<br>pnl: {PNL}"
+
     if status != "Filled": return
     try:
         connection = ConnectToMySQL()
@@ -2136,6 +2166,14 @@ def UpdatePositionFromFilledOrder(orderStatus):
                                      order['commission'], order['slippage'], status))
                 connection.commit()
                 result = cursor.fetchone()
+
+                orderMsgTemplate = orderMsgTemplate.replace("{ENTRY}", "Entry")
+                orderMsgTemplate = orderMsgTemplate.replace("{SID}", str(order['sid']))
+                orderMsgTemplate = orderMsgTemplate.replace("{ACTION}", order['action'])
+                orderMsgTemplate = orderMsgTemplate.replace("{FILLED_PRICE}", str(int(order['filled_price'])))
+                orderMsgTemplate = orderMsgTemplate.replace("{QTY}", str(order['qty']))
+                AddMessage(orderMsgTemplate)
+
                 pass
 
             else:
@@ -2172,6 +2210,17 @@ def UpdatePositionFromFilledOrder(orderStatus):
                                      result, slippage, status,
                                      position['id']))
 
+                orderMsgTemplate = orderMsgTemplate.replace("{ENTRY}", "Exit")
+                orderMsgTemplate = orderMsgTemplate.replace("{SID}", str(order['sid']))
+                orderMsgTemplate = orderMsgTemplate.replace("{ACTION}", order['action'])
+                orderMsgTemplate = orderMsgTemplate.replace("{FILLED_PRICE}", str(int(order['filled_price'])))
+                orderMsgTemplate = orderMsgTemplate.replace("{QTY}", str(int(order['qty'])))
+                AddMessage(orderMsgTemplate)
+
+                positionMsgTemplate = positionMsgTemplate.replace("{SID}", str(order['sid']))
+                positionMsgTemplate = positionMsgTemplate.replace("{LABEL}", order['label'])
+                positionMsgTemplate = positionMsgTemplate.replace("{PNL}", str(int(pnl)))
+                AddMessage(positionMsgTemplate)
                 connection.commit()
 
         return True
@@ -2284,9 +2333,103 @@ def GetPositionByStrategyIdAndTradeInfo(sid, ticker, exchange, entryDate, entryT
 
 # endregion
 
+
+
+
+
 # endregion
 ############################################################################
 
 
 
 
+############################################################################
+
+# region Message related
+# region Add method
+def AddMessage(message, client_id="-353397433"):
+    try:
+        value = NOT_SET
+        connection = ConnectToMySQL()
+
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO `trade_message` (`client_id`, `message`) VALUES(%s, %s)"
+            cursor.execute(sql, (client_id, message))
+            connection.commit()
+            result = cursor.fetchone()
+        return True
+    except:
+        traceback.print_exc()
+        return False
+    finally:
+        DisconnectToMySQL(connection)
+# endregion
+
+def AddMessageFromOrder(message, client_id="569472731:AAFNucNxW7IhhPdpTgz0roAE96K3kgOHw88"):
+    try:
+        value = NOT_SET
+        connection = ConnectToMySQL()
+
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO `trade_message` (`client_id`, `message`) VALUES(%s, %s)"
+            cursor.execute(sql, (client_id, message))
+            connection.commit()
+            result = cursor.fetchone()
+        return True
+    except:
+        traceback.print_exc()
+        return False
+    finally:
+        DisconnectToMySQL(connection)
+# endregion
+
+def UpdateMessageStatus(messageId, status):
+    try:
+        value = NOT_SET
+        connection = ConnectToMySQL()
+
+        with connection.cursor() as cursor:
+            sql = "UPDATE `trade_message` SET `status`=%s WHERE `id`=%s"
+            cursor.execute(sql, (status, messageId))
+            connection.commit()
+            result = cursor.fetchone()
+
+        return True
+    except:
+        traceback.print_exc()
+        return False
+    finally:
+        DisconnectToMySQL(connection)
+
+
+# region Get method
+def GetMessageToSend():
+    try:
+        connection = ConnectToMySQL()
+        value = []
+
+        status_pending = "pending"
+
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM `trade_message` WHERE `status`=%s  ORDER BY `created_time` ASC"
+
+            cursor.execute(sql, (status_pending))
+            connection.commit()
+            result = cursor.fetchall()
+
+            if result is not None:
+                for row in result:
+                    row['sent_time'] = MySQLTimeToString(row['sent_time'])
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    value.append(row)
+        return value
+    except:
+        traceback.print_exc()
+        return value
+    finally:
+        DisconnectToMySQL(connection)
+
+# endregion
+
+# endregion
+############################################################################

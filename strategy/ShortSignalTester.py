@@ -63,6 +63,9 @@ class ShortSignalTester(FutureAbstractStrategy):
                 if label != "":
                     label += " "
                 label += signal.Label()
+                self.Log("Entry signal["+str(self.session.config.sid)+"-"+signal.Label()+"]: True")
+            else:
+                self.Log("Entry signal["+str(self.session.config.sid)+"-"+signal.Label() + "]: False")
 
         if count == len(self.entrySignals):
             self.Entry(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, label, self.baseQuantity)

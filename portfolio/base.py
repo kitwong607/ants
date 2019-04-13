@@ -6,6 +6,7 @@ from datetime import timedelta
 from ..order.base import OrderAction
 from .. import utilities, static
 from .position import PositionStatus
+from ..session import SessionMode
 
 
 class AbstractPortfolio(object):
@@ -15,6 +16,8 @@ class AbstractPortfolio(object):
         self.session 				 = session
         self.config 				 = session.config
         self.curCash = self.initCash = session.config.cash
+
+        self.Log = self.session.Log
 
         self.positions = {}
         self.closedPositions = []
@@ -29,14 +32,17 @@ class AbstractPortfolio(object):
 
     def TransactOrder(self, order):
         if order.ticker not in self.positions:
+            print("TransactOrder: Add", order.ticker, order.action)
             self.AddPosition(order)
         else:
+            print("ModifyPosition: Add", order.ticker, order.action)
             self.ModifyPosition(order)
 
         self.RecordOrder(order)
 
     def ModifyPosition(self, order):
         self.positions[order.ticker].TransactOrder(order)
+        print("ModifyPosition:", self.positions[order.ticker].status, self.positions[order.ticker].quantity)
         if self.positions[order.ticker].status == PositionStatus.CLOSED:
             closedPosition = self.positions.pop(order.ticker)
             self.RecordPosition(closedPosition)
@@ -133,6 +139,52 @@ class AbstractPortfolio(object):
 
 
     def Save(self):
+        #For live and daily backtest: merge previous positions and orders
+        if self.session.mode == SessionMode.IB_LIVE or self.session.mode == SessionMode.IB_DALIY_BACKTEST:
+            jsonFilename = "//positions.json"
+            if utilities.checkFileExist(self.session.config.reportDirectory + jsonFilename):
+                with open(self.session.config.reportDirectory + jsonFilename, 'r') as fp:
+                    lastPositions = json.load(fp)
+                for position in self.positionRecords:
+                    entryDate = position['entryDate']
+                    isExist = False
+                    for previousPosition in lastPositions:
+                        if entryDate == previousPosition['entryDate']:
+                            isExist = True
+
+                    if isExist == False:
+                        lastPositions.append(position)
+
+                self.positionRecords = lastPositions
+
+                for i in range(0, len(self.positionRecords)):
+                    self.positionRecords[i]['positionId'] = i+1
+
+            jsonFilename = "//orders.json"
+            if utilities.checkFileExist(self.session.config.reportDirectory + jsonFilename):
+                with open(self.session.config.reportDirectory + jsonFilename, 'r') as fp:
+                    lastOrders= json.load(fp)
+
+                    for order in self.orderRecords:
+                        adjustedDate = order['adjustedDate']
+                        action = order['action']
+                        isExist = False
+                        for previousOrder in lastOrders:
+                            if adjustedDate == previousOrder['adjustedDate'] and action == previousOrder['action']:
+                                isExist = True
+
+
+                        if isExist == False:
+                            lastOrders.append(order)
+
+                    self.orderRecords = lastOrders
+                    for i in range(0, len(self.orderRecords)):
+                        self.orderRecords[i]['orderId'] = i + 1
+
+
+                #self.orderRecords = lastOrders + self.orderRecords
+
+
         jsonFilename = "//positions.json"
         with open(self.session.config.reportDirectory + jsonFilename, 'w') as fp:
             json.dump(self.positionRecords, fp, cls=utilities.AntJSONEncoder)

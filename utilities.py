@@ -88,9 +88,18 @@ def toAdjustedTime(time_int):
         time_int += 240000
     return time_int
 
+def ConvertIntTimestampToDatetime(ts):
+    return datetime.fromtimestamp(ts)
+
 def ConvertAdjustedDateTimeToTimestamp(_date, _time):
+    if "." in _date:
+        _date = str(int(float(_date)))
+
+    if "." in _time:
+        _time = str(int(float(_time))).zfill(6)
+
     _isNextDate = False
-    if int(_time) >= 240000:
+    if int(float(_time)) >= 240000:
         _time = str(int(_time) - 240000).zfill(6)
         _isNextDate = True
 
@@ -693,6 +702,7 @@ def CalculateDrawdown(equitySeries, sessionConfig):
                 durationCounter += 1
             dd = equity - watermark
             drawdownSeries.append(dd)
+            print("sessionConfig:", sessionConfig)
             drawdownPctSeries.append(abs(dd)/(watermark + sessionConfig["cash"]))
 
             i += 1
@@ -1025,12 +1035,17 @@ def GetDataByName(instance, dataName):
     return None
 
 
-def GetLiveTradeDayInfo(todayStrHourOffset=5, LogFunction = None):
+def GetTodayStr(todayStrHourOffset=7):
+    today = datetime.today() - timedelta(hours=todayStrHourOffset)
+    return today.strftime('%Y%m%d')
+
+def GetLiveTradeDayInfo(todayStr, todayStrHourOffset=7, LogFunction = None):
     from .session import SessionStaticVariable
     #todayStrHourOffset: in case started after 0000 still using yesterday as todayStr
-    today = datetime.today() - timedelta(hours=todayStrHourOffset)
-    todayStr = today.strftime('%Y%m%d')
-    todayStrWithSperator = today.strftime('%Y-%m-%d')
+    #today = datetime.today() - timedelta(hours=todayStrHourOffset)
+    #todayStr = today.strftime('%Y%m%d')
+    #todayStrWithSperator = today.strftime('%Y-%m-%d')
+    todayStrWithSperator = todayStr[0:4] + "-" + todayStr[4:6] + "-" + todayStr[6:]
     tradeDateCSVFilePath = SessionStaticVariable.baseLiveDataDirectory + "trade_date/trade_date.csv"
 
     isFindTradeDate = False
@@ -1058,8 +1073,11 @@ def GetLiveTradeDayInfo(todayStrHourOffset=5, LogFunction = None):
             LogFunction("no trade date found:")
             LogFunction("make raise error")
 
-    return todayStr, marketAdjustedAfternoonBreakTime, marketAdjustedEndTime, expiryMonth
+    return marketAdjustedAfternoonBreakTime, marketAdjustedEndTime, expiryMonth
 
 
 def GetOrderUid(sid):
     return str(sid) + "_" + "".join(random.choice(string.ascii_uppercase) for _ in range(6))
+
+
+

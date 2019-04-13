@@ -11,8 +11,6 @@ from numpy import sign
 
 # region Class: PositionStatus
 class PositionStatus(IntEnum):
-    IS_DISPLAY_IN_OPTION = False
-
     OPEN = 0
     CLOSED = 1
 # endregion
@@ -20,8 +18,6 @@ class PositionStatus(IntEnum):
 
 # region Class: PositionResult
 class PositionResult(IntEnum):
-    IS_DISPLAY_IN_OPTION = False
-
     WIN = 0
     LOSS = 1
 # endregion
@@ -29,8 +25,6 @@ class PositionResult(IntEnum):
 
 # region Class: Position
 class Position(object):
-    IS_DISPLAY_IN_OPTION = False
-
     def __init__(self, order):
 
         self.action = order.action
