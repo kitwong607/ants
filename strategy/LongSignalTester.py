@@ -16,7 +16,9 @@ class LongSignalTester(FutureAbstractStrategy):
         "dollarTrailing": {"name": "dollarTrailing", "value": 150, "min": 80, "max": 200, "step": 10},
         "signalId_1": {"name": "signalId_1", "value": 1, "min": 1, "max": NUM_SIGNAL, "step": 1},
         "signalId_2": {"name": "signalId_2", "value": 1, "min": 1, "max": NUM_SIGNAL, "step": 1},
-        "signalId_3": {"name": "signalId_3", "value": 1, "min": 1, "max": NUM_SIGNAL, "step": 1}
+        "signalId_3": {"name": "signalId_3", "value": 1, "min": 1, "max": NUM_SIGNAL, "step": 1},
+
+        "entryPeriod": {"name": "entryLimit", "value": 0, "min": 0, "max": 2, "step": 1}
     }
 
     STRATEGY_NAME = "Long Signal Tester"
@@ -32,7 +34,13 @@ class LongSignalTester(FutureAbstractStrategy):
         super().Setup(session)
         self.action = OrderAction.BUY
         self.tradeLimit = 1
-        self.entryHourLimitInAdjustedTime = {"START": 100000,"END": 160000}
+        if self.parameter["entryPeriod"]["value"] == 0:     #Full Day
+            self.entryHourLimitInAdjustedTime = {"START": 100000,"END": 160000}
+        elif self.parameter["entryPeriod"]["value"] == 1:   #AM
+            self.entryHourLimitInAdjustedTime = {"START": 100000, "END": 120000}
+        elif self.parameter["entryPeriod"]["value"] == 2:   #PM
+            self.entryHourLimitInAdjustedTime = {"START": 130000, "END": 160000}
+
         self.minsToExitBeforeMarketClose = 30
 
         self.dollarTrailing = self.parameter["dollarTrailing"]["value"]
@@ -49,6 +57,7 @@ class LongSignalTester(FutureAbstractStrategy):
 
         # Exit signal
         self.stopLossSignal = exit.StopLossWithFixedPrice(self, self.stopLoss)
+        self.breakevenAfterTouchThreshold = exit.BreakevenAfterTouchThreshold(self, self.stopLoss * 1.5)
         self.dollarTrailingSignal = exit.DollarTrailingStop(self, self.dollarTrailing)
 
 

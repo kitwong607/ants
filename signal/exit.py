@@ -45,7 +45,114 @@ class StopLossWithFixedPrice(ExitSignal):
         return False
 # endregion
 
+# region FixedStopGain
+class FixedStopGain(ExitSignal):
+    name = "FixedStopGain"
 
+    def __init__(self, strategy, amount):
+        super().__init__(strategy)
+        self.amount = amount
+
+
+    def Label(self):
+        return self.name + "_" + str(self.amount)
+
+
+    def OnNewDay(self, bar):
+        self.isTriggerBreakeven = False
+        self.profitWatemark = 0
+
+
+    def CalculateSignal(self, bar):
+        if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
+            return False
+
+        position = self.strategy.session.portfolio.positions[self.strategy.config.tradeTicker]
+        if OrderAction.BUY == position.action:
+            currentWatermark = bar.highPrice - position.entryPrice
+            if currentWatermark > self.amount:
+                return True
+
+        elif OrderAction.SELL == position.action:
+            currentWatermark = position.entryPrice - bar.lowPrice
+            if currentWatermark > self.amount:
+                return True
+
+        return False
+
+# region DayRangeTouch
+class DayRangeTouch(ExitSignal):
+    name = "DayRangeTouch"
+
+    def __init__(self, strategy, amount):
+        super().__init__(strategy)
+        self.amount = amount
+
+
+    def Label(self):
+        return self.name + "_" + str(self.amount)
+
+
+    def OnNewDay(self, bar):
+        self.isTriggerBreakeven = False
+        self.profitWatemark = 0
+
+
+    def CalculateSignal(self, bar):
+        if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
+            return False
+
+        if self.strategy.highD[-1] - self.strategy.lowD[-1] > self.amount:
+            return True
+
+        return False
+
+# region breakeven
+class BreakevenAfterTouchThreshold(ExitSignal):
+    name = "BreakevenAfterTouchThreshold"
+
+    def __init__(self, strategy, amount):
+        super().__init__(strategy)
+        self.isTriggerBreakeven = False
+        self.amount = amount
+
+
+    def Label(self):
+        return self.name + "_" + str(self.amount)
+
+
+    def OnNewDay(self, bar):
+        self.isTriggerBreakeven = False
+        self.profitWatemark = 0
+
+
+    def CalculateSignal(self, bar):
+        if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
+            return False
+
+        position = self.strategy.session.portfolio.positions[self.strategy.config.tradeTicker]
+        if self.isTriggerBreakeven == False:
+            if OrderAction.BUY == position.action:
+                currentWatermark = bar.highPrice - position.entryPrice
+                if currentWatermark > self.amount:
+                    self.isTriggerBreakeven = True
+
+            elif OrderAction.SELL == position.action:
+                currentWatermark = position.entryPrice - bar.lowPrice
+                if currentWatermark > self.amount:
+                    self.isTriggerBreakeven = True
+        else:
+            if OrderAction.BUY == position.action:
+                currentWatermark = bar.lowPrice - position.entryPrice
+
+            elif OrderAction.SELL == position.action:
+                currentWatermark = position.entryPrice - bar.highPrice
+
+            if currentWatermark < 0:
+                return True
+
+
+        return False
 
 # region trailing stop exit
 class DollarTrailingStop(ExitSignal):
@@ -58,7 +165,7 @@ class DollarTrailingStop(ExitSignal):
 
 
     def Label(self):
-        return self.name
+        return self.name + "_" + str(self.amount)
 
 
     def OnNewDay(self, bar):

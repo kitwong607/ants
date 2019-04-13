@@ -32,6 +32,7 @@ class FirstBarAfter(EntrySignal):
         return False
 # endregion
 
+
 # region Higher X Lower X comparsion
 #Class: HigherX
 class HigherX(EntrySignal):
@@ -907,6 +908,444 @@ class CrossDownPivotPointS3(EntrySignal):
         return False
 # endregion
 
+# region KAMA related
+#Class: XHigherKAMA
+class XHigherKAMA(EntrySignal):
+    name = "{X}HigherKAMA{WINDOWSIZE}"
+
+    def __init__(self, strategy, x="close", windowSize=30, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+
+
+        from ..ta.OverlapTA import KAMA
+        self.kama = self.AddTA(KAMA, {'dataName':x, 'windowSize': windowSize})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kama.isReady:
+            return False
+
+        if self.data[self.delay] > self.kama[self.delay]:
+            return True
+        return False
+
+
+
+#Class: XLowerKAMA
+class XLowerKAMA(EntrySignal):
+    name = "{X}LowerKAMA{WINDOWSIZE}"
+
+    def __init__(self, strategy, x="close", windowSize=30, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+
+        from ..ta.OverlapTA import KAMA
+        self.kama = self.AddTA(KAMA, {'dataName':x, 'windowSize': windowSize})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel) ).replace("{WINDOWSIZE}", str(self.windowSize) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kama.isReady:
+            return False
+
+        if self.data[self.delay] < self.kama[self.delay]:
+            return True
+        return False
+
+
+# endregion
+
+# region BBands related
+#Class: XHigherBBandsUpper
+class XHigherBBandsUpper(EntrySignal):
+    name = "{X}HigherBBandsUpper{WINDOWSIZE}-{NBDEV}"
+
+    def __init__(self, strategy, x="close", windowSize=20, nbdev=2, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.nbdev = nbdev
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+
+        from ..ta.OverlapTA import BBandsUpper
+        self.bbandsUpper = self.AddTA(BBandsUpper, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) ).replace("{NBDEV}", str(self.nbdev) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.bbandsUpper.isReady:
+            return False
+
+        if self.data[self.delay] > self.bbandsUpper[self.delay]:
+            return True
+        return False
+
+
+#Class: XHigherBBandsMiddle
+class XHigherBBandsMiddle(EntrySignal):
+    name = "{X}HigherBBandsMiddle{WINDOWSIZE}-{NBDEV}"
+
+    def __init__(self, strategy, x="close", windowSize=20, nbdev=2, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.nbdev = nbdev
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+
+        from ..ta.OverlapTA import BBandsMiddle
+        self.bbandsMiddle = self.AddTA(BBandsMiddle, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) ).replace("{NBDEV}", str(self.nbdev) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.bbandsMiddle.isReady:
+            return False
+
+        if self.data[self.delay] > self.bbandsMiddle[self.delay]:
+            return True
+        return False
+
+
+#Class: XHigherBBandsLower
+class XHigherBBandsLower(EntrySignal):
+    name = "{X}HigherBBandsLower{WINDOWSIZE}-{NBDEV}"
+
+    def __init__(self, strategy, x="close", windowSize=20, nbdev=2, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.nbdev = nbdev
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+
+        from ..ta.OverlapTA import BBandsLower
+        self.bbandsLower = self.AddTA(BBandsLower, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) ).replace("{NBDEV}", str(self.nbdev) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.bbandsLower.isReady:
+            return False
+
+        if self.data[self.delay] > self.bbandsLower[self.delay]:
+            return True
+        return False
+
+
+
+#Class: XLowerBBandsUpper
+class XLowerBBandsUpper(EntrySignal):
+    name = "{X}LowerBBandsUpper{WINDOWSIZE}-{NBDEV}"
+
+    def __init__(self, strategy, x="close", windowSize=20, nbdev=2, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.nbdev = nbdev
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+
+        from ..ta.OverlapTA import BBandsUpper
+        self.bbandsUpper = self.AddTA(BBandsUpper, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) ).replace("{NBDEV}", str(self.nbdev) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.bbandsUpper.isReady:
+            return False
+
+        if self.data[self.delay] < self.bbandsUpper[self.delay]:
+            return True
+        return False
+
+
+#Class: XLowerBBandsMiddle
+class XLowerBBandsMiddle(EntrySignal):
+    name = "{X}LowerBBandsMiddle{WINDOWSIZE}-{NBDEV}"
+
+    def __init__(self, strategy, x="close", windowSize=20, nbdev=2, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.nbdev = nbdev
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+
+        from ..ta.OverlapTA import BBandsMiddle
+        self.bbandsMiddle = self.AddTA(BBandsMiddle, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) ).replace("{NBDEV}", str(self.nbdev) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.bbandsMiddle.isReady:
+            return False
+
+        if self.data[self.delay] < self.bbandsMiddle[self.delay]:
+            return True
+        return False
+
+
+#Class: XLowerBBandsLower
+class XLowerBBandsLower(EntrySignal):
+    name = "{X}LowerBBandsLower{WINDOWSIZE}-{NBDEV}"
+
+    def __init__(self, strategy, x="close", windowSize=20, nbdev=2, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.nbdev = nbdev
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+
+        from ..ta.OverlapTA import BBandsLower
+        self.bbandsLower = self.AddTA(BBandsLower, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) ).replace("{NBDEV}", str(self.nbdev) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.bbandsLower.isReady:
+            return False
+
+        if self.data[self.delay] < self.bbandsLower[self.delay]:
+            return True
+        return False
+
+
+
+class XInBBandsUpper(EntrySignal):
+    name = "{X}InBBandsUpper{WINDOWSIZE}-{NBDEV}"
+
+    def __init__(self, strategy, x="close", windowSize=20, nbdev=2, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.nbdev = nbdev
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+
+        from ..ta.OverlapTA import BBandsUpper, BBandsMiddle
+        self.bbandsUpper = self.AddTA(BBandsUpper, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+        self.bbandsMiddle = self.AddTA(BBandsMiddle, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) ).replace("{NBDEV}", str(self.nbdev) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.bbandsUpper.isReady:
+            return False
+
+        if self.data[self.delay] < self.bbandsUpper[self.delay] and self.data[self.delay] > self.bbandsMiddle[self.delay]:
+            return True
+        return False
+
+
+
+class XInBBandsLower(EntrySignal):
+    name = "{X}InBBandsLower{WINDOWSIZE}-{NBDEV}"
+
+    def __init__(self, strategy, x="close", windowSize=20, nbdev=2, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.nbdev = nbdev
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+
+        from ..ta.OverlapTA import BBandsLower, BBandsMiddle
+        self.bbandsMiddle = self.AddTA(BBandsMiddle, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+        self.bbandsLower = self.AddTA(BBandsLower, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) ).replace("{NBDEV}", str(self.nbdev) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.bbandsMiddle.isReady:
+            return False
+
+        if self.data[self.delay] < self.bbandsMiddle[self.delay] and self.data[self.delay] > self.bbandsLower[self.delay]:
+            return True
+        return False
+
+
+class NarrowerBBands(EntrySignal):
+    name = "NarrowerBBands{WINDOWSIZE}-{NBDEV}-{COMPAREWINDOWSIZE}-{ratio}"
+
+    def __init__(self, strategy, x="close", windowSize=20, nbdev=2, compareWindowSize=6, ratio=0.9, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.nbdev = nbdev
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+        self.compareWindowSize = compareWindowSize
+        self.ratio = ratio
+
+        from ..ta.OverlapTA import BBandsLower, BBandsUpper
+        self.bbandsUpper = self.AddTA(BBandsUpper, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+        self.bbandsLower = self.AddTA(BBandsLower, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) ).replace("{NBDEV}", str(self.nbdev) ).replace("{COMPAREWINDOWSIZE}", str(self.compareWindowSize) ).replace("{RATIO}", str(self.ratio) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+    def CalculateSignal(self, bar):
+        if not self.bbandsUpper.isReady:
+            return False
+
+        if len(self.bbandsUpper) <= (self.delay - self.compareWindowSize) * -1:
+            return False
+
+        upper1 = self.bbandsUpper[self.delay - self.compareWindowSize]
+        lower1 = self.bbandsLower[self.delay - self.compareWindowSize]
+        diff1 = upper1 - lower1
+
+        upper2 = self.bbandsUpper[self.delay]
+        lower2 = self.bbandsLower[self.delay]
+        diff2 = upper2 - lower2
+
+        if diff2 < diff1*self.ratio:
+            return True
+        return False
+
+class WiderBBands(EntrySignal):
+    name = "WiderBBands{WINDOWSIZE}-{NBDEV}-{COMPAREWINDOWSIZE}-{RATIO}"
+
+    def __init__(self, strategy, x="close", windowSize=20, nbdev=2, compareWindowSize=6, ratio=1.1, delay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.nbdev = nbdev
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.delay = (delay * -1) - 1
+        self.compareWindowSize = compareWindowSize
+        self.ratio = ratio
+
+        from ..ta.OverlapTA import BBandsLower, BBandsUpper
+        self.bbandsUpper = self.AddTA(BBandsUpper, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+        self.bbandsLower = self.AddTA(BBandsLower, {'dataName':x, 'windowSize': windowSize, 'nbdev': nbdev})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", str(self.xLabel)).replace("{WINDOWSIZE}", str(self.windowSize) ).replace("{NBDEV}", str(self.nbdev) ).replace("{COMPAREWINDOWSIZE}", str(self.compareWindowSize) ).replace("{RATIO}", str(self.ratio) )
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+    def CalculateSignal(self, bar):
+        if not self.bbandsUpper.isReady:
+            return False
+
+        if len(self.bbandsUpper) <= (self.delay - self.compareWindowSize) * -1:
+            return False
+
+        upper1 = self.bbandsUpper[self.delay - self.compareWindowSize]
+        lower1 = self.bbandsLower[self.delay - self.compareWindowSize]
+        diff1 = upper1 - lower1
+
+        upper2 = self.bbandsUpper[self.delay]
+        lower2 = self.bbandsLower[self.delay]
+        diff2 = upper2 - lower2
+
+        if diff2 > diff1*self.ratio:
+            return True
+        return False
+# endregion
+
 # region RSI related
 #Class: MaxRSIHigherThreshold
 class MaxRSIHigherThreshold(EntrySignal):
@@ -1039,10 +1478,812 @@ class MinRSILowerThreshold(EntrySignal):
             return True
         return False
 
+#Class: MinRSIHigherThreshold
+class MinRSIHigherThreshold(EntrySignal):
+    name = "Min{X}RSI{Y}HigherThreshold{Z}"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, maxWindowSize=14, threshold=80):
+        super().__init__(strategy)
+        if(x!="close"): x = "closeD"
+
+        self.xLabel = x
+        self.rsiWindowSize = rsiWindowSize
+        self.maxWindowSize = maxWindowSize
+        self.threshold = threshold
+
+        from..ta.MomentumTA import RSI
+        self.rsi = self.AddTA(RSI, {'dataName':x, 'windowSize': rsiWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", "(" + str(self.maxWindowSize) + ")").replace("{Y}", "(" + str(self.rsiWindowSize) + ")").replace("{Z}", "(" + str(self.threshold) + ")")
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.rsi.isReady:
+            return False
+
+        val = cmath.MinOfRange(self.rsi, -self.maxWindowSize, len(self.rsi))
+        if val > self.threshold:
+            return True
+        return False
+
+
+
+
+
+#Class: MaxRSILowerThreshold
+class MaxRSILowerThreshold(EntrySignal):
+    name = "Max{X}RSI{Y}LowerThreshold{Z}"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, maxWindowSize=14, threshold=80):
+        super().__init__(strategy)
+        if(x!="close"): x = "closeD"
+
+        self.xLabel = x
+        self.rsiWindowSize = rsiWindowSize
+        self.maxWindowSize = maxWindowSize
+        self.threshold = threshold
+
+        from..ta.MomentumTA import RSI
+        self.rsi = self.AddTA(RSI, {'dataName':x, 'windowSize': rsiWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", "(" + str(self.maxWindowSize) + ")").replace("{Y}", "(" + str(self.rsiWindowSize) + ")").replace("{Z}", "(" + str(self.threshold) + ")")
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.rsi.isReady:
+            return False
+
+        val = cmath.MaxOfRange(self.rsi, -self.maxWindowSize, len(self.rsi))
+        if val < self.threshold:
+            return True
+        return False
+
+
+
+
+#Class: MinRSIHigherThreshold
+class MinRSILowerThreshold(EntrySignal):
+    name = "Min{X}RSI{Y}LowerThreshold{Z}"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, maxWindowSize=14, threshold=80):
+        super().__init__(strategy)
+        if(x!="close"): x = "closeD"
+
+        self.xLabel = x
+        self.rsiWindowSize = rsiWindowSize
+        self.maxWindowSize = maxWindowSize
+        self.threshold = threshold
+
+        from..ta.MomentumTA import RSI
+        self.rsi = self.AddTA(RSI, {'dataName':x, 'windowSize': rsiWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", "(" + str(self.maxWindowSize) + ")").replace("{Y}", "(" + str(self.rsiWindowSize) + ")").replace("{Z}", "(" + str(self.threshold) + ")")
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.rsi.isReady:
+            return False
+
+        val = cmath.MinOfRange(self.rsi, -self.maxWindowSize, len(self.rsi))
+        if val < self.threshold:
+            return True
+        return False
+
 
 # endregion
 
+# region MACD related
+#Class: MACDSignalHigherMACD
+class MACDHigherMACDSignal(EntrySignal):
+    name = "MACDHigherMACDSignal"
 
+    def __init__(self, strategy, x="close", fastWindowSize=12, slowWindowSize=26, signalWindowSize=9, delay=0):
+        super().__init__(strategy)
+        if(x!="close"): x = "closeD"
+
+        self.xLabel = x
+        self.fastWindowSize = fastWindowSize
+        self.slowWindowSize = slowWindowSize
+        self.signalWindowSize = signalWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import MACD, MACDSignalLine
+        params = {
+            "dataName": x,
+            "fastWindowSize": fastWindowSize,
+            "slowWindowSize": slowWindowSize,
+            "signalWindowSize": signalWindowSize
+        }
+        self.macd = self.AddTA(MACD, params)
+        self.macdSignalLine = self.AddTA(MACDSignalLine, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastWindowSize) + "-" + str(self.slowWindowSize) + "-" + str(
+            self.signalWindowSize)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.macd.isReady:
+            return False
+
+        if self.macd[self.delay] > self.macdSignalLine[self.delay]:
+            return True
+        return False
+
+
+#Class: MACDLowerMACDSignal
+class MACDLowerMACDSignal(EntrySignal):
+    name = "MACDLowerMACDSignal"
+
+    def __init__(self, strategy, x="close", fastWindowSize=12, slowWindowSize=26, signalWindowSize=9, delay=0):
+        super().__init__(strategy)
+        if(x!="close"): x = "closeD"
+
+        self.xLabel = x
+        self.fastWindowSize = fastWindowSize
+        self.slowWindowSize = slowWindowSize
+        self.signalWindowSize = signalWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import MACD, MACDSignalLine
+        params = {
+            "dataName": x,
+            "fastWindowSize": fastWindowSize,
+            "slowWindowSize": slowWindowSize,
+            "signalWindowSize": signalWindowSize
+        }
+        self.macd = self.AddTA(MACD, params)
+        self.macdSignalLine = self.AddTA(MACDSignalLine, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastWindowSize) + "-" + str(self.slowWindowSize) + "-" + str(
+            self.signalWindowSize)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.macd.isReady:
+            return False
+
+        if self.macd[self.delay] < self.macdSignalLine[self.delay]:
+            return True
+        return False
+
+
+
+
+#Class: MinRSIHigherThreshold
+class MinRSIHigherThreshold(EntrySignal):
+    name = "Min{X}RSI{Y}HigherThreshold{Z}"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, maxWindowSize=14, threshold=80):
+        super().__init__(strategy)
+        if(x!="close"): x = "closeD"
+
+        self.xLabel = x
+        self.rsiWindowSize = rsiWindowSize
+        self.maxWindowSize = maxWindowSize
+        self.threshold = threshold
+
+        from..ta.MomentumTA import RSI
+        self.rsi = self.AddTA(RSI, {'dataName':x, 'windowSize': rsiWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", "(" + str(self.maxWindowSize) + ")").replace("{Y}", "(" + str(self.rsiWindowSize) + ")").replace("{Z}", "(" + str(self.threshold) + ")")
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.rsi.isReady:
+            return False
+
+        val = cmath.MinOfRange(self.rsi, -self.maxWindowSize, len(self.rsi))
+        if val > self.threshold:
+            return True
+        return False
+
+
+
+
+
+#Class: MaxRSILowerThreshold
+class MaxRSILowerThreshold(EntrySignal):
+    name = "Max{X}RSI{Y}LowerThreshold{Z}"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, maxWindowSize=14, threshold=80):
+        super().__init__(strategy)
+        if(x!="close"): x = "closeD"
+
+        self.xLabel = x
+        self.rsiWindowSize = rsiWindowSize
+        self.maxWindowSize = maxWindowSize
+        self.threshold = threshold
+
+        from..ta.MomentumTA import RSI
+        self.rsi = self.AddTA(RSI, {'dataName':x, 'windowSize': rsiWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", "(" + str(self.maxWindowSize) + ")").replace("{Y}", "(" + str(self.rsiWindowSize) + ")").replace("{Z}", "(" + str(self.threshold) + ")")
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.rsi.isReady:
+            return False
+
+        val = cmath.MaxOfRange(self.rsi, -self.maxWindowSize, len(self.rsi))
+        if val < self.threshold:
+            return True
+        return False
+
+
+
+
+#Class: MinRSIHigherThreshold
+class MinRSILowerThreshold(EntrySignal):
+    name = "Min{X}RSI{Y}LowerThreshold{Z}"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, maxWindowSize=14, threshold=80):
+        super().__init__(strategy)
+        if(x!="close"): x = "closeD"
+
+        self.xLabel = x
+        self.rsiWindowSize = rsiWindowSize
+        self.maxWindowSize = maxWindowSize
+        self.threshold = threshold
+
+        from..ta.MomentumTA import RSI
+        self.rsi = self.AddTA(RSI, {'dataName':x, 'windowSize': rsiWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace("{X}", "(" + str(self.maxWindowSize) + ")").replace("{Y}", "(" + str(self.rsiWindowSize) + ")").replace("{Z}", "(" + str(self.threshold) + ")")
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.rsi.isReady:
+            return False
+
+        val = cmath.MinOfRange(self.rsi, -self.maxWindowSize, len(self.rsi))
+        if val < self.threshold:
+            return True
+        return False
+
+
+# endregion
+
+# region Stochastic related
+#Class: StochasticSlowKHigherD
+class StochasticSlowKHigherD(EntrySignal):
+    name = "StochasticSlowKHigherD"
+
+    def __init__(self, strategy, x="close", fastKWindowSize=5, slowKWindowSize=3, slowDWindowSize=9, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticSlowKHigherD: only support close and closeD as data")
+
+        self.xLabel = ""
+        self.fastKWindowSize = fastKWindowSize
+        self.slowKWindowSize = slowKWindowSize
+        self.slowDWindowSize = slowDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticSlowK, StochasticSlowD
+        params = {
+            "dataName": x,
+            "fastKWindowSize": fastKWindowSize,
+            "slowKWindowSize": slowKWindowSize,
+            "slowDWindowSize": slowDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticSlowK, params)
+        self.dLine = self.AddTA(StochasticSlowD, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastKWindowSize) + "-" + str(self.slowKWindowSize) + "-" + str(
+            self.slowDWindowSize)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] > self.dLine[self.delay]:
+            return True
+        return False
+
+
+#Class: StochasticSlowKLowerD
+class StochasticSlowKLowerD(EntrySignal):
+    name = "StochasticSlowKLowerD"
+
+    def __init__(self, strategy, x="close", fastKWindowSize=5, slowKWindowSize=3, slowDWindowSize=9, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticSlowKLowerD: only support close and closeD as data")
+
+        self.xLabel = ""
+        self.fastKWindowSize = fastKWindowSize
+        self.slowKWindowSize = slowKWindowSize
+        self.slowDWindowSize = slowDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticSlowK, StochasticSlowD
+        params = {
+            "dataName": x,
+            "fastKWindowSize": fastKWindowSize,
+            "slowKWindowSize": slowKWindowSize,
+            "slowDWindowSize": slowDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticSlowK, params)
+        self.dLine = self.AddTA(StochasticSlowD, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastKWindowSize) + "-" + str(self.slowKWindowSize) + "-" + str(
+            self.slowDWindowSize)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] < self.dLine[self.delay]:
+            return True
+        return False
+
+
+#Class: StochasticFastKHigherD
+class StochasticFastKHigherD(EntrySignal):
+    name = "StochasticFastKHigherD"
+
+    def __init__(self, strategy, x="close", fastKWindowSize=5, fastDWindowSize=3, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticFastKHigherD: only support close and closeD as data")
+
+        self.xLabel = ""
+        self.fastKWindowSize = fastKWindowSize
+        self.fastDWindowSize = fastDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticFastK, StochasticFastD
+        params = {
+            "dataName": x,
+            "fastKWindowSize": fastKWindowSize,
+            "fastDWindowSize": fastDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticFastK, params)
+        self.dLine = self.AddTA(StochasticFastD, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastKWindowSize) + "-" + str(self.fastDWindowSize)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] > self.dLine[self.delay]:
+            return True
+        return False
+
+
+#Class: StochasticFastKLowerD
+class StochasticFastKLowerD(EntrySignal):
+    name = "StochasticFastKLowerD"
+
+    def __init__(self, strategy, x="close", fastKWindowSize=5, fastDWindowSize=3, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticFastKLowerD: only support close and closeD as data")
+
+        self.xLabel = ""
+        self.fastKWindowSize = fastKWindowSize
+        self.fastDWindowSize = fastDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticFastK, StochasticFastD
+        params = {
+            "dataName": x,
+            "fastKWindowSize": fastKWindowSize,
+            "fastDWindowSize": fastDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticFastK, params)
+        self.dLine = self.AddTA(StochasticFastD, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastKWindowSize) + "-" + str(self.fastDWindowSize)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] < self.dLine[self.delay]:
+            return True
+        return False
+
+
+#Class: StochasticRSIKHigherD
+class StochasticRSIKHigherD(EntrySignal):
+    name = "StochasticRSIKHigherD"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, fastKWindowSize=5, fastDWindowSize=3, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticRSIKHigherD: only support close and closeD as data")
+
+        self.xLabel = ""
+        self.rsiWindowSize = rsiWindowSize
+        self.fastKWindowSize = fastKWindowSize
+        self.fastDWindowSize = fastDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticRSIK, StochasticRSID
+        params = {
+            "dataName": x,
+            "rsiWindowSize": rsiWindowSize,
+            "fastKWindowSize": fastKWindowSize,
+            "fastDWindowSize": fastDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticRSIK, params)
+        self.dLine = self.AddTA(StochasticRSID, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.rsiWindowSize) + "-" +  str(self.fastKWindowSize) + "-" + str(self.fastDWindowSize)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] > self.dLine[self.delay]:
+            return True
+        return False
+
+
+#Class: StochasticRSIKLowerD
+class StochasticRSIKLowerD(EntrySignal):
+    name = "StochasticRSIKLowerD"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, fastKWindowSize=5, fastDWindowSize=3, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticRSIKLowerD: only support close and closeD as data")
+
+        self.xLabel = ""
+        self.rsiWindowSize = rsiWindowSize
+        self.fastKWindowSize = fastKWindowSize
+        self.fastDWindowSize = fastDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticRSIK, StochasticRSID
+        params = {
+            "dataName": x,
+            "rsiWindowSize": rsiWindowSize,
+            "fastKWindowSize": fastKWindowSize,
+            "fastDWindowSize": fastDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticRSIK, params)
+        self.dLine = self.AddTA(StochasticRSID, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastKWindowSize) + "-" + str(self.fastDWindowSize)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] < self.dLine[self.delay]:
+            return True
+        return False
+
+
+
+#Class: StochasticSlowHigherThreshold
+class StochasticSlowHigherThreshold(EntrySignal):
+    name = "StochasticSlowHigherThreshold"
+
+    def __init__(self, strategy, x="close", fastKWindowSize=5, slowKWindowSize=3, slowDWindowSize=9, threshold=80, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticSlowHigherThreshold: only support close and closeD as data")
+
+        self.threshold = threshold
+
+        self.xLabel = ""
+        self.fastKWindowSize = fastKWindowSize
+        self.slowKWindowSize = slowKWindowSize
+        self.slowDWindowSize = slowDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticSlowK, StochasticSlowD
+        params = {
+            "dataName": x,
+            "fastKWindowSize": fastKWindowSize,
+            "slowKWindowSize": slowKWindowSize,
+            "slowDWindowSize": slowDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticSlowK, params)
+        self.dLine = self.AddTA(StochasticSlowD, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastKWindowSize) + "-" + str(self.slowKWindowSize) + "-" + str(
+            self.slowDWindowSize) + "-" + str(self.threshold)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] > self.threshold and self.dLine[self.delay] > self.threshold:
+            return True
+        return False
+
+
+#Class: StochasticSlowLowerThreshold
+class StochasticSlowLowerThreshold(EntrySignal):
+    name = "StochasticSlowLowerThreshold"
+
+    def __init__(self, strategy, x="close", fastKWindowSize=5, slowKWindowSize=3, slowDWindowSize=9, threshold=20, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticSlowLowerThreshold: only support close and closeD as data")
+
+        self.threshold = threshold
+
+        self.xLabel = ""
+        self.fastKWindowSize = fastKWindowSize
+        self.slowKWindowSize = slowKWindowSize
+        self.slowDWindowSize = slowDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticSlowK, StochasticSlowD
+        params = {
+            "dataName": x,
+            "fastKWindowSize": fastKWindowSize,
+            "slowKWindowSize": slowKWindowSize,
+            "slowDWindowSize": slowDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticSlowK, params)
+        self.dLine = self.AddTA(StochasticSlowD, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastKWindowSize) + "-" + str(self.slowKWindowSize) + "-" + str(
+            self.slowDWindowSize) + "-" + str(self.threshold)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] < self.threshold and self.dLine[self.delay] < self.threshold:
+            return True
+        return False
+
+
+#Class: StochasticFastHigherThreshold
+class StochasticFastHigherThreshold(EntrySignal):
+    name = "StochasticFastHigherThreshold"
+
+    def __init__(self, strategy, x="close", fastKWindowSize=5, fastDWindowSize=3, threshold=80, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticFastHigherThreshold: only support close and closeD as data")
+
+        self.threshold = threshold
+
+        self.xLabel = ""
+        self.fastKWindowSize = fastKWindowSize
+        self.fastDWindowSize = fastDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticFastK, StochasticFastD
+        params = {
+            "dataName": x,
+            "fastKWindowSize": fastKWindowSize,
+            "fastDWindowSize": fastDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticFastK, params)
+        self.dLine = self.AddTA(StochasticFastD, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastKWindowSize) + "-" + str(self.fastDWindowSize) + "-" + str(self.threshold)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] > self.threshold and self.dLine[self.delay] > self.threshold:
+            return True
+        return False
+
+
+#Class: StochasticFastLowerThreshold
+class StochasticFastLowerThreshold(EntrySignal):
+    name = "StochasticFastLowerThreshold"
+
+    def __init__(self, strategy, x="close", fastKWindowSize=5, fastDWindowSize=3, threshold=20, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticFastLowerThreshold: only support close and closeD as data")
+
+        self.threshold = threshold
+
+        self.xLabel = ""
+        self.fastKWindowSize = fastKWindowSize
+        self.fastDWindowSize = fastDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticFastK, StochasticFastD
+        params = {
+            "dataName": x,
+            "fastKWindowSize": fastKWindowSize,
+            "fastDWindowSize": fastDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticFastK, params)
+        self.dLine = self.AddTA(StochasticFastD, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.fastKWindowSize) + "-" + str(self.fastDWindowSize) + "-" + str(self.threshold)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] < self.threshold and self.dLine[self.delay] < self.threshold:
+            return True
+        return False
+
+
+#Class: StochasticRSIHigherThreshold
+class StochasticRSIHigherThreshold(EntrySignal):
+    name = "StochasticRSIHigherThreshold"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, fastKWindowSize=5, fastDWindowSize=3, threshold=80, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticRSIHigherThreshold: only support close and closeD as data")
+
+        self.threshold = threshold
+
+        self.xLabel = ""
+        self.rsiWindowSize = rsiWindowSize
+        self.fastKWindowSize = fastKWindowSize
+        self.fastDWindowSize = fastDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticRSIK, StochasticRSID
+        params = {
+            "dataName": x,
+            "rsiWindowSize": rsiWindowSize,
+            "fastKWindowSize": fastKWindowSize,
+            "fastDWindowSize": fastDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticRSIK, params)
+        self.dLine = self.AddTA(StochasticRSID, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.rsiWindowSize) + "-" +  str(self.fastKWindowSize) + "-" + str(self.fastDWindowSize) + "-" + str(self.threshold)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] > self.threshold and self.dLine[self.delay] > self.threshold:
+            return True
+        return False
+
+
+#Class: StochasticRSILowerThreshold
+class StochasticRSILowerThreshold(EntrySignal):
+    name = "StochasticRSILowerThreshold"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, fastKWindowSize=5, fastDWindowSize=3, threshold=20, delay=0):
+        super().__init__(strategy)
+        if(x!="close" and x!="closeD"):
+            raise ValueError("StochasticRSILowerThreshold: only support close and closeD as data")
+
+        self.threshold = threshold
+
+        self.xLabel = ""
+        self.rsiWindowSize = rsiWindowSize
+        self.fastKWindowSize = fastKWindowSize
+        self.fastDWindowSize = fastDWindowSize
+        self.delay = (delay * -1) - 1
+
+        from..ta.MomentumTA import StochasticRSIK, StochasticRSID
+        params = {
+            "dataName": x,
+            "rsiWindowSize": rsiWindowSize,
+            "fastKWindowSize": fastKWindowSize,
+            "fastDWindowSize": fastDWindowSize
+        }
+        self.kLine = self.AddTA(StochasticRSIK, params)
+        self.dLine = self.AddTA(StochasticRSID, params)
+
+
+    def Label(self):
+        newName = self.name + "_" + str(self.rsiWindowSize) + "_" + str(self.fastKWindowSize) + "-" + str(self.fastDWindowSize) + "-" + str(self.threshold)
+        if self.delay != -1:
+            newName += "_delay-" + str(self.delay)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.kLine.isReady:
+            return False
+
+        if self.kLine[self.delay] < self.threshold and self.dLine[self.delay] < self.threshold:
+            return True
+        return False
+# endregion
 
 #=======================================================================
 #=======================================================================

@@ -33,7 +33,7 @@ class ShortSignalTester(FutureAbstractStrategy):
         super().Setup(session)
         self.action = OrderAction.SELL
         self.tradeLimit = 1
-        self.entryHourLimitInAdjustedTime = {"START": 100000,"END": 160000}
+        self.entryHourLimitInAdjustedTime = {"START": 130000,"END": 160000}
         self.minsToExitBeforeMarketClose = 30
 
         self.dollarTrailing = self.parameter["dollarTrailing"]["value"]

@@ -131,6 +131,11 @@ class FutureAbstractStrategy(AbstractStrategy):
         self.closeD = []
         self.volumeD = []
 
+        self.morningOpenD = []
+        self.morningHighD = []
+        self.morningLowD = []
+        self.morningCloseD = []
+        self.morningVolumeD = []
 
         self.afternoonOpenD = []
         self.afternoonHighD = []
@@ -142,6 +147,12 @@ class FutureAbstractStrategy(AbstractStrategy):
         self.upperShadowD = []
         self.lowerShadowD = []
         self.bodyD = []
+
+        self.morningRangeD = []
+        self.morningUpperShadowD = []
+        self.morningLowerShadowD = []
+        self.morningBodyD = []
+
         self.afternoonRangeD = []
         self.afternoonUpperShadowD = []
         self.afternoonLowerShadowD = []
@@ -232,6 +243,8 @@ class FutureAbstractStrategy(AbstractStrategy):
                 self.mktAfternoonCloseTime = utilities.addTimeToDatetime(self.currentDate, int(afternoonCloseTime[0:2]),
                                                             int(afternoonCloseTime[2:4]), int(afternoonCloseTime[4:]))
 
+                self.mktMorningCloseTime = utilities.addTimeToDatetime(self.currentDate, 12, 30, 0)
+
 
                 self.openD.append(bar.openPrice)
                 self.highD.append(bar.highPrice)
@@ -243,6 +256,19 @@ class FutureAbstractStrategy(AbstractStrategy):
                 self.lowerShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
                 self.bodyD.append(abs(self.openD[-1] - self.closeD[-1]))
                 self.rangeD.append(self.highD[-1] - self.lowD[-1])
+
+
+                if bar.timestamp <= self.mktMorningCloseTime:
+                    self.morningOpenD.append(bar.openPrice)
+                    self.morningHighD.append(bar.highPrice)
+                    self.morningLowD.append(bar.lowPrice)
+                    self.morningCloseD.append(bar.closePrice)
+                    self.morningVolumeD.append(bar.volume)
+
+                    self.morningUpperShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
+                    self.morningLowerShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
+                    self.morningBodyD.append(abs(self.openD[-1] - self.closeD[-1]))
+                    self.morningRangeD.append(self.highD[-1] - self.lowD[-1])
 
                 if bar.timestamp <= self.mktAfternoonCloseTime:
                     self.afternoonOpenD.append(bar.openPrice)
@@ -289,6 +315,24 @@ class FutureAbstractStrategy(AbstractStrategy):
             else:
                 self.upperShadowD[-1] = self.highD[-1] - self.closeD[-1]
                 self.lowerShadowD[-1] = self.openD[-1] - self.lowD[-1]
+
+
+            if bar.timestamp <= self.mktMorningCloseTime:
+                if bar.highPrice > self.morningHighD[-1]: self.morningHighD[-1] = bar.highPrice
+                if bar.lowPrice < self.morningLowD[-1]: self.morningLowD[-1] = bar.lowPrice
+                self.morningCloseD[-1] = bar.closePrice
+                self.morningVolumeD[-1] += bar.volume
+
+                self.morningBodyD[-1] = abs(self.morningOpenD[-1] - self.morningCloseD[-1])
+                self.morningRangeD[-1] = self.morningHighD[-1] - self.morningLowD[-1]
+
+                if self.morningOpenD[-1] > self.morningCloseD[-1]:
+                    self.morningUpperShadowD[-1] = self.morningHighD[-1] - self.morningOpenD[-1]
+                    self.morningLowerShadowD[-1] = self.morningCloseD[-1] - self.morningLowD[-1]
+                else:
+                    self.morningUpperShadowD[-1] = self.morningHighD[-1] - self.morningCloseD[-1]
+                    self.morningLowerShadowD[-1] = self.morningOpenD[-1] - self.morningLowD[-1]
+
 
             if bar.timestamp <= self.mktAfternoonCloseTime:
                 if bar.highPrice > self.afternoonHighD[-1]: self.afternoonHighD[-1] = bar.highPrice
@@ -681,6 +725,9 @@ class FutureAbstractStrategy(AbstractStrategy):
             with open(lockFile, 'w') as fp:
                 json.dump({}, fp, indent=4)
 
+            taDebug = False
+            #taDebug = True
+
             if utilities.isFileExist(jsonFile):
                 try:
                     previousDf = pd.read_json(jsonFile, orient='index')
@@ -692,37 +739,43 @@ class FutureAbstractStrategy(AbstractStrategy):
                     previousDf['value'] = previousDf['value'].astype(float)
                     previousDf = previousDf[['date', 'value']]
 
+                    if taDebug:
+                        #for debug when value not match with previous, it cannot merge
+                        print(jsonFile)
+                        print("previousDf")
+                        print(previousDf)
+
+                        print("df")
+                        print(df)
+
+                        forSaveDF = previousDf
+                        forSaveDF.index = forSaveDF.date
+                        forSaveDF.to_csv("X:\log\previousDf1.csv")
+                        forSaveDF = df.drop(columns=['date'])
 
 
-                    #for debug when value not match with previous, it cannot merge
-                    # print(jsonFile)
-                    #print("previousDf")
-                    #print(previousDf)
-    
-                    #print("df")
-                    #print(df)
-                    '''
-                    forSaveDF = previousDf
-                    forSaveDF.index = forSaveDF.date
-                    forSaveDF.to_csv("X:\log\previousDf1.csv")
-                    forSaveDF = df.drop(columns=['date'])
-    
-    
-                    forSaveDF = df
-                    forSaveDF.index = forSaveDF.date
-                    forSaveDF = df.drop(columns=['date'])
-                    forSaveDF.to_csv("X:\log\df.csv")
-    
-                    forSaveDF = pd.concat([previousDf, df])
-                    forSaveDF['duplicated'] = forSaveDF.index.duplicated()
-                    forSaveDF.to_csv("X:\log\combine.csv")
+                        forSaveDF = df
+                        forSaveDF.index = forSaveDF.date
+                        forSaveDF = df.drop(columns=['date'])
+                        forSaveDF.to_csv("X:\log\df.csv")
 
-                    print(previousDf.dtypes)
-                    print(df.dtypes)
-                    '''
+                        forSaveDF = pd.concat([previousDf, df])
+                        forSaveDF['duplicated'] = forSaveDF.index.duplicated()
+                        forSaveDF.to_csv("X:\log\combine.csv")
 
-                    df = pd.concat([previousDf, df]).drop_duplicates(subset=["date", "value"])
-                    #df.to_csv("X:\log\sort_afterCombinated.csv")
+                        print(previousDf.dtypes)
+                        print(df.dtypes)
+
+
+                    previousDf['value'] = previousDf['value'].round(2)
+                    df['value'] = df['value'].round(2)
+
+                    previousDf = previousDf.dropna()
+                    df = df.dropna()
+
+                    df = pd.concat([previousDf, df]).drop_duplicates(subset=["date"])
+                    if taDebug: df.to_csv("X:\log\sort_afterCombinated.csv")
+
                     df = df.reset_index(drop=True)
                     df = df.sort_values('date')
                 except ValueError as e:
@@ -731,7 +784,7 @@ class FutureAbstractStrategy(AbstractStrategy):
             df.index = df.date
             df = df.drop(columns=['date'])
 
-            #df.to_csv("X:/log/b4Save.csv")
+            if taDebug: df.to_csv("X:/log/b4Save.csv")
             df.to_json(jsonFile, orient='index')
 
             print("remove lock file:", lockFile)
