@@ -53,21 +53,26 @@ class SessionStaticVariable:
 
     # region Directory, file location, python path
     dataPath = "X:/"
-    dataPath = "C:/tmp/"
+    #dataPath = "C:/tmp/"
     logDirectory = "X:/log/"
-    logDirectory = "C:/log/" #"X:/log/"
+    #logDirectory = "C:/log/" #"X:/log/"
     api_path = "http://127.0.0.1/antXXXXXXX/XXXXXXXX/XXXXXXXX"
 
     baseReportDirectory = "Y:/ReportData/BacktestReport/Reports/"
     baseTADirectory = "Y:/ReportData/BacktestReport/TA/"
 
-    baseLiveReportDirectory = "C:/tmp/ReportData/LiveReport/Reports/"
-    baseLiveTADirectory = "C:/tmp/ReportData/LiveReport/TA/"
+    baseLiveReportDirectory = "Y:/ReportData/LiveReport/Reports/"
+    baseLiveTADirectory = "Y:/ReportData/LiveReport/TA/"
+    #baseLiveReportDirectory = "C:/tmp/ReportData/LiveReport/Reports/"
+    #baseLiveTADirectory = "C:/tmp/ReportData/LiveReport/TA/"
+
+
 
     base_filter_directory = "Y:/ReportData/BacktestReport/Filter/"
 
     #base_live_data_directory = "X:/index/ib/Live/"
-    baseLiveDataDirectory = "C:/tmp/index/IB/Live/"
+    baseLiveDataDirectory = "X:/index/ib/Live/"
+    #baseLiveDataDirectory = "C:/tmp/index/IB/Live/"
 
     baseLiveStrategyRotationDirectory = "Y:/ReportData/LiveReport/StrategyRotation/"
 
