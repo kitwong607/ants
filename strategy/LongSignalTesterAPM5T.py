@@ -2,6 +2,7 @@ from .future_strategy import FutureAbstractStrategy
 from ..order.base import OrderAction, OrderType
 #from ..order.ib_order import IBMktOrder
 from .. import utilities
+from ..session import SessionMode
 
 from ..ta.Range import *
 from ..signal import entry
@@ -278,7 +279,8 @@ class LongSignalTesterAPM5T(FutureAbstractStrategy):
         # Exit signal
         self.stopLossSignal = exit.StopLossWithFixedPrice(self, self.stopLoss)
         #self.breakevenAfterTouchThreshold = exit.BreakevenAfterTouchThreshold(self, self.stopLoss * 1.5)
-        self.dollarTrailingSignal = exit.DollarTrailingStop(self, self.dollarTrailing)
+        #self.dollarTrailingSignal = exit.DollarTrailingStop(self, self.dollarTrailing)
+        self.fixedStopGain = exit.FixedStopGain(self, self.stopLoss)
 
 
     def CalculateEntrySignal(self, bar):
@@ -290,6 +292,11 @@ class LongSignalTesterAPM5T(FutureAbstractStrategy):
                 if label != "":
                     label += " "
                 label += signal.Label()
+                if self.session.mode == SessionMode.IB_LIVE or self.session.mode == SessionMode.IB_DALIY_BACKTEST:
+                    self.Log("Entry signal["+str(self.session.config.sid)+"-"+signal.Label()+"]: True")
+            else:
+                if self.session.mode == SessionMode.IB_LIVE or self.session.mode == SessionMode.IB_DALIY_BACKTEST:
+                    self.Log("Entry signal["+str(self.session.config.sid)+"-"+signal.Label() + "]: False")
 
         if count == len(self.entrySignals):
             self.Entry(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, label, self.baseQuantity)
@@ -1724,8 +1731,8 @@ class LongSignalTesterAPM5T(FutureAbstractStrategy):
         # </editor-fold>
 
         # <editor-fold desc="# 70 Inter day BBANDS width change">
-        elif signalId == 491:
+        elif signalId == 494:
             signal = entry.NarrowerBBands(self, "close", 20, 2, 6, 0.5)
-        elif signalId == 492:
+        elif signalId == 495:
             signal = entry.WiderBBands(self, "close", 20, 2, 6, 1.5)
         # </editor-fold>

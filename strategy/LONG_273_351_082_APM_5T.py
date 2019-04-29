@@ -2,6 +2,7 @@ from .future_strategy import FutureAbstractStrategy
 from ..order.base import OrderAction, OrderType
 #from ..order.ib_order import IBMktOrder
 from .. import utilities
+from ..session import SessionMode
 
 from ..ta.Range import *
 from ..signal import entry
