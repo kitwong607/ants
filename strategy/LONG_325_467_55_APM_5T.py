@@ -7,19 +7,19 @@ from ..ta.Range import *
 from ..signal import entry
 from ..signal import exit
 
-class LONG_468_088_024_APM_5T(FutureAbstractStrategy):
+class LONG_325_467_55_APM_5T(FutureAbstractStrategy):
     IS_DISPLAY_IN_OPTION = True
     OPTIMIZATION_PAIR = []
     OPTIMIZATION_PARAMETER = {
         "stopLoss": {"name": "stopLoss", "value": 80, "min": 60, "max": 120, "step": 10 },
-        "dollarTrailing": {"name": "dollarTrailing", "value": 150, "min": 80, "max": 200, "step": 10}
+        "dollarTrailing": {"name": "dollarTrailing", "value": 150, "min": 80, "max": 200, "step": 10},
     }
 
-    STRATEGY_NAME = "LONG_468_088_024_APM_5T"
-    STRATEGY_SLUG = "LONG_468_088_024_APM_5T"
+    STRATEGY_NAME = "LONG_325_467_55_APM_5T"
+    STRATEGY_SLUG = "LONG_325_467_55_APM_5T"
     VERSION = "1"
-    LAST_UPDATE_DATE = "20190413"
-    LAST_UPDATE_TIME = "090000"
+    LAST_UPDATE_DATE = "20190414"
+    LAST_UPDATE_TIME = "191431"
 
     def __init__(self):
         pass
@@ -33,14 +33,15 @@ class LONG_468_088_024_APM_5T(FutureAbstractStrategy):
 
         self.dollarTrailing = self.parameter["dollarTrailing"]["value"]
 
-        #Entry signal
-        #468
-        signal = entry.XHigherKAMA(self, "close", 30, 2)
-        #88
-        signal = entry.XHigherY(self, "close", 30, "closeD", 2)
-        #24
-        signal = entry.XLowerY(self, "close", 60, "highD", 2)
 
+        #Entry Signal
+        #55
+        signal = entry.XHigherY(self, "close", 60, "openD", 1)
+        #325
+        signal = entry.StochasticSlowKHigherD(self, "close", 10, 6, 6)
+        signal = entry.StochasticSlowKHigherD(self, "close", 10, 6, 6, 4)
+        #467
+        signal = entry.XHigherKAMA(self, "close", 20, 6)
 
         # Exit signal
         self.stopLossSignal = exit.StopLossWithFixedPrice(self, self.stopLoss)
@@ -63,4 +64,3 @@ class LONG_468_088_024_APM_5T(FutureAbstractStrategy):
 
         if count == len(self.entrySignals):
             self.Entry(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, label, self.baseQuantity)
-
