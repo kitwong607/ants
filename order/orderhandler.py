@@ -179,13 +179,11 @@ class IBProxyServerOrderHandler(AbstractOrderHandler):
             self.filledOrder[order.adjustedDate] = []
         self.unfilledOrder[order.adjustedDate].append(order)
 
-
     #this is for socket to call...
     #def FillOrder(self):
 
     def OnOrderPlaced(self, data):
-        print("self.session.config.sessionId:", self.session.config.sessionId)
-        if data["sid"] == self.session.config.sessionId:
+        if str(data["sid"]) == str(self.session.config.sessionId):
             self.Log("self.lastActiveDate:", self.lastActiveDate)
             lastOrder = self.unfilledOrder[self.lastActiveDate][-1]
             lastOrder.orderId = data['oid']
@@ -205,6 +203,7 @@ class IBProxyServerOrderHandler(AbstractOrderHandler):
                     order.status = "filled"
                     order.filledPrice = data['avg_fill_price']
                     order.filledTime = datetime.fromtimestamp(int(data['filledTimestamp']))
+
 
                     self.Log("Order Filled:", order.orderId, order.filledPrice, order.filledTime)
                     self.Log(data)

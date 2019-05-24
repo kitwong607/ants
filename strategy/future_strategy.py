@@ -267,6 +267,7 @@ class FutureAbstractStrategy(AbstractStrategy):
                 if closeTime == 0:
                     closeTime = self.tradeDateData["close_time"]
                 closeTime = str(closeTime)
+
                 closeTime = utilities.addTimeToDatetime(self.currentDate, int(closeTime[0:2]),
                                                             int(closeTime[2:4]), int(closeTime[4:]))
                 self.mktCloseTime = closeTime
@@ -400,9 +401,8 @@ class FutureAbstractStrategy(AbstractStrategy):
                     return
 
                 if self.entryHourLimitInAdjustedTime is not None:
-                    if not (bar.adjustedTime > self.entryHourLimitInAdjustedTime["START"] and bar.adjustedTime < self.entryHourLimitInAdjustedTime["END"]):
-                        if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
-                            self.Log("sid:", self.session.config.sid, "["+str(bar.adjustedTime)+"] Out of entry hour limit:", bar.adjustedTime, self.entryHourLimitInAdjustedTime)
+                    if not (bar.adjustedTime >= self.entryHourLimitInAdjustedTime["START"] and bar.adjustedTime < self.entryHourLimitInAdjustedTime["END"]):
+                        self.Log("sid:", self.session.config.sid, "["+str(bar.adjustedTime)+"] Out of entry hour limit:", bar.adjustedTime, self.entryHourLimitInAdjustedTime)
                         return
 
                 if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:

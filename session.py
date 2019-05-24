@@ -58,18 +58,18 @@ class SessionStaticVariable:
 
     # region Directory, file location, python path
     dataPath = "X:/"
-    #dataPath = "C:/tmp/"
+    dataPath = "C:/tmp/"
     logDirectory = "X:/log/"
-    #logDirectory = "C:/log/" #"X:/log/"
+    logDirectory = "C:/log/" #"X:/log/"
     api_path = "http://127.0.0.1/antXXXXXXX/XXXXXXXX/XXXXXXXX"
 
     baseReportDirectory = "Y:/ReportData/BacktestReport/Reports/"
     baseTADirectory = "Y:/ReportData/BacktestReport/TA/"
 
-    baseLiveReportDirectory = "Y:/ReportData/LiveReport/Reports/"
-    baseLiveTADirectory = "Y:/ReportData/LiveReport/TA/"
-    #baseLiveReportDirectory = "C:/tmp/ReportData/LiveReport/Reports/"
-    #baseLiveTADirectory = "C:/tmp/ReportData/LiveReport/TA/"
+    #baseLiveReportDirectory = "Y:/ReportData/LiveReport/Reports/"
+    #baseLiveTADirectory = "Y:/ReportData/LiveReport/TA/"
+    baseLiveReportDirectory = "C:/tmp/ReportData/LiveReport/Reports/"
+    baseLiveTADirectory = "C:/tmp/ReportData/LiveReport/TA/"
 
 
 
@@ -293,7 +293,7 @@ class SessionConfig:
             pass
 
     def Save(self):
-        #Load previous session config and update end date only
+        #Load previous session config and update end date only if file exist
         if self.mode == SessionMode.IB_LIVE or self.mode == SessionMode.IB_DALIY_BACKTEST:
             from pathlib import Path
             configFilename = "/sessionConfig.json"
