@@ -702,7 +702,6 @@ def CalculateDrawdown(equitySeries, sessionConfig):
                 durationCounter += 1
             dd = equity - watermark
             drawdownSeries.append(dd)
-            print("sessionConfig:", sessionConfig)
             drawdownPctSeries.append(abs(dd)/(watermark + sessionConfig["cash"]))
 
             i += 1

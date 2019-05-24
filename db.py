@@ -2113,9 +2113,10 @@ def UpdateOrderWithOrderStatus(orderStatus):
 # region Add method
 #def UpdatePositionFromFilledOrder(orderId, permId, status):
 def UpdatePositionFromFilledOrder(orderStatus):
+    print("UpdatePositionFromFilledOrder:", orderStatus['order_id'], orderStatus['perm_id'])
     status = orderStatus['status']
-    orderMsgTemplate = "<b>{ENTRY}</b><br>sid: {SID}<br>{ACTION}@{FILLED_PRICE}<br>qty: {QTY}"
-    positionMsgTemplate = "<b>PNL</b><br>sid: {SID}<br>{LABEL}<br>pnl: {PNL}"
+    orderMsgTemplate = "<b>{ENTRY}</b> sid: {SID}<br>{ACTION}@{FILLED_PRICE} qty: {QTY}"
+    positionMsgTemplate = "<b>PNL</b> sid: {SID}<br>{LABEL} pnl: {PNL}"
 
     if status != "Filled": return
     try:
@@ -2140,6 +2141,7 @@ def UpdatePositionFromFilledOrder(orderStatus):
             connection.commit()
             result = cursor.fetchall()
 
+
             positions = []
             if result is not None:
                 for row in result:
@@ -2147,6 +2149,7 @@ def UpdatePositionFromFilledOrder(orderStatus):
                     row['modified_time'] = MySQLTimeToString(row['modified_time'])
                     positions.append(row)
 
+            print("UpdatePositionFromFilledOrder position:", len(positions))
             if len(positions)==0:
                 #Condition: No position created today
                 #Action: Create a new position with filled order
