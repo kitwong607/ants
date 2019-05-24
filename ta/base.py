@@ -85,6 +85,7 @@ class OffsetTA(object):
                 self.values.append(self.data[self.offsetForList])
                 self.valuesTimestamp.append(self.currentDate)
 
+
     def OnDayEnd(self):
         if len(self.data) >= self.offset + 1:
             if not self.isIntraDay:
@@ -130,6 +131,18 @@ class OffsetTA(object):
 
         return d
 
+class CurrentDayOffsetTA(OffsetTA):
+    __metaclass__ = ABCMeta
+    @staticmethod
+    def GetSlug(dataName, offset):
+        return dataName +"-"+str(offset)+"_currentDayOffset"
+
+    @staticmethod
+    def GetName(dataName, offset):
+        return dataName+"("+str(offset)+") CURRENT_DATE_OFFSET"
+
+    def __init__(self, session, dataName, offset, isIntraDay):
+        super().__init__(session, dataName, offset, True)
 
 class WindowTA(object):
     __metaclass__ = ABCMeta

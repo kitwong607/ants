@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 from .data.csvdatasource import CSVOHLCDataSource
 from .data.datamodel import DataType
 
+
+
 # region Class: SessionMode
 class SessionMode(IntEnum):
     SYNC_BACKTEST = 0
@@ -73,11 +75,14 @@ class SessionStaticVariable:
 
     baseLiveBacktestReportDirectory = "C:/tmp/ReportData/LiveBacktestReport/Reports/"
     baseLiveBacktestTADirectory = "C:/tmp/ReportData/LiveBacktestReport/TA/"
+    baseLiveBacktestReportDirectory = "Y:/ReportData/LiveBacktestReport/Reports/"
+    baseLiveBacktestTADirectory = "Y:/ReportData/LiveBacktestReport/TA/"
 
     base_filter_directory = "Y:/ReportData/BacktestReport/Filter/"
 
     #base_live_data_directory = "X:/index/ib/Live/"
-    baseLiveDataDirectory = "X:/index/ib/Live/"
+    baseDataDirectory = "X:/index/hkex/csv/"
+    baseLiveDataDirectory = "X:/index/ib/"
     #baseLiveDataDirectory = "C:/tmp/index/IB/Live/"
 
     baseLiveStrategyRotationDirectory = "Y:/ReportData/LiveReport/StrategyRotation/"
@@ -150,9 +155,13 @@ class SessionStaticVariable:
 
     @staticmethod
     def GetHistoricalPriceDataPath(ticker, exchange):
+        from . import dataHelper
+
         path = SessionStaticVariable.dataPath
-        if str(ticker).upper() == "MHI" or str(ticker).lower() == "HSI":
-            path += 'index/'
+
+        #if str(ticker)
+        #if str(ticker).upper() == "MHI" or str(ticker).lower() == "HSI":
+        path += dataHelper.GetTickerType(str(ticker).lower()).lower() + '/'
         path += str(exchange).lower() + "/csv/"
         return path
 
@@ -246,11 +255,14 @@ class SessionConfig:
         try:
             import shutil
             shutil.rmtree(self.reportDirectory)
+            if "_" not in str(dateStr):
+                dateStr += "_"
+
             if self.signalResolution in self.strategyClass.STRATEGY_SLUG:
-                self.reportFolderName = dateStr + str(self.sessionId).zfill(
+                self.reportFolderName = str(dateStr) + str(self.sessionId).zfill(
                     6) + "_" + self.strategyClass.STRATEGY_SLUG
             else:
-                self.reportFolderName = dateStr + str(self.sessionId).zfill(
+                self.reportFolderName = str(dateStr) + str(self.sessionId).zfill(
                     6) + "_" + self.strategyClass.STRATEGY_SLUG + "_" + self.signalResolution
 
             if cat != "":
@@ -258,9 +270,11 @@ class SessionConfig:
 
             self.reportDirectory = self.baseReportDirectory + self.reportFolderName
 
+            self.Log("self.reportDirectory:", self.reportDirectory)
             if not os.path.exists(self.reportDirectory):
                 os.makedirs(self.reportDirectory)
         except:
+            traceback.print_exc()
             pass
 
 
@@ -342,7 +356,6 @@ class Session(object):
         self.dataSource = self.config.dataSourceClass(self)
         self.portfolio = self.config.portfolioClass(self)
         self.orderHandler = self.config.orderHandlerClass(self)
-
         self.mode = config.mode
 
         self.strategy = self.config.strategyClass()

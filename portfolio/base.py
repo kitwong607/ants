@@ -5,6 +5,7 @@ from enum import Enum
 from datetime import timedelta
 from ..order.base import OrderAction
 from .. import utilities, static
+from ..session import SessionMode
 from .position import PositionStatus
 from ..session import SessionMode
 
@@ -32,17 +33,20 @@ class AbstractPortfolio(object):
 
     def TransactOrder(self, order):
         if order.ticker not in self.positions:
-            print("TransactOrder: Add", order.ticker, order.action)
+            if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
+                print("TransactOrder: Add", order.ticker, order.action)
             self.AddPosition(order)
         else:
-            print("ModifyPosition: Add", order.ticker, order.action)
+            if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
+                print("ModifyPosition: Add", order.ticker, order.action)
             self.ModifyPosition(order)
 
         self.RecordOrder(order)
 
     def ModifyPosition(self, order):
         self.positions[order.ticker].TransactOrder(order)
-        print("ModifyPosition:", self.positions[order.ticker].status, self.positions[order.ticker].quantity)
+        if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
+            print("ModifyPosition:", self.positions[order.ticker].status, self.positions[order.ticker].quantity)
         if self.positions[order.ticker].status == PositionStatus.CLOSED:
             closedPosition = self.positions.pop(order.ticker)
             self.RecordPosition(closedPosition)

@@ -49,14 +49,27 @@ class DebugSignalTester(FutureAbstractStrategy):
         #signal = entry.StochasticRSIKLowerD(self, "close", 14, 5, 3)
         #signal = entry.StochasticRSIKLowerD(self, "close", 14, 5, 3, 4)
         #signal = entry.StochasticFastLowerThreshold(self, "close", 10, 6, 6, 20, 6)
-        signal = entry.StochasticSlowHigherThreshold(self, "closeD", 5, 3, 3, 20)
+        #signal = entry.StochasticSlowHigherThreshold(self, "closeD", 5, 3, 3, 20)
 
+        #signal = entry.XHigherY(self, "close", 0, "highD", 1)
+        #signal = entry.XHigherYWithThresold(self, "close", 0, "lowD", 0, 0, 0, 80)
 
+        #signal = entry.XHigherYWithThresold(self, "close", 0, "lowD", 0, 0, 0, 200)
+        #signal = entry.XLowerYWithThresold(self, "close", 0, "highD", 0, 0, 0, -80)
+        #signal = entry.XYRangeLargerThresold(self, "highD", 0, "lowD", 0, 200)
+        signal = entry.XYRangeSmallerThresold(self, "highD", 2, "lowD", 2, 150)
+        signal = entry.XYRangeLargerThresold(self, "highD", 1, "lowD", 1, 250)
+        '''
         self.breakevenAfterTouchThreshold = exit.BreakevenAfterTouchThreshold(self, self.stopLoss)
         self.stopLossSignal = exit.StopLossWithFixedPrice(self, self.stopLoss)
         self.dollarTrailingSignal = exit.DollarTrailingStop(self, self.dollarTrailing)
         self.fixedStopGain = exit.FixedStopGain(self, self.stopLoss * 3)
         self.dayRangeTouch = exit.DayRangeTouch(self, 400)
+        '''
+
+        self.stopLossSignal = exit.StopLossWithFixedPrice(self, self.stopLoss)
+        self.dollarTrailingSignal = exit.DollarTrailingStop(self, self.dollarTrailing)
+
 
 
 

@@ -4,6 +4,7 @@ from ..broker.ib.IBOrder import IBOrder
 from ..order.base import OrderType, OrderAction
 from .. import socket as antSocket
 from .. import utilities
+from ..session import SessionMode
 from datetime import datetime
 
 
@@ -31,6 +32,10 @@ class AbstractOrderHandler(object):
             contract = IBContract.HSIFut(expiryMonth)
         elif tradeTicker == "MHI":
             contract = IBContract.MHIFut(expiryMonth)
+        elif tradeTicker == "HHI":
+            contract = IBContract.HHIFut(expiryMonth)
+        elif tradeTicker == "MCH":
+            contract = IBContract.MCHFut(expiryMonth)
         else:
             raise ValueError("Trade ticker: " + tradeTicker + " not support")
 
@@ -46,8 +51,9 @@ class AbstractOrderHandler(object):
         else:
             raise ValueError("Order type: " + orderType + " not support")
 
-        print("signalPrice:", signalPrice, "limitPrice:", limitPrice)
-        print("order.signalPrice:", order.signalPrice, "order.limitPrice:", order.lmtPrice)
+        if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
+            print("signalPrice:", signalPrice, "limitPrice:", limitPrice)
+            print("order.signalPrice:", order.signalPrice, "order.limitPrice:", order.lmtPrice)
 
         #setup default variable for Order object
         order.filledTime = None
@@ -84,14 +90,14 @@ class BacktestOrderHandler(AbstractOrderHandler):
         getLastTime = self.session.dataSource.GetLastTime(contract.symbol)
         commission = self.session.config.commission * order.totalQuantity
 
-        if order.action == OrderAction.BUY:
-            filledPirce = lastClosePrice + self.session.config.slippage
-            self.FillOrder(orderId, filledPirce, getLastTime, commission)
 
+        if order.action == OrderAction.BUY:
+            filledPirce = order.lmtPrice
+            self.FillOrder(orderId, filledPirce, getLastTime, commission)
             #self.FillOrder(order.orderId, self.session.dataSource.getLastClose(
              #   order.dataTicker) + self.session.config.slippage, filledTimestamp, self.session.config.commission * order.quantity)
         elif order.action == OrderAction.SELL:
-            filledPirce = lastClosePrice - self.session.config.slippage
+            filledPirce = order.lmtPrice
             self.FillOrder(orderId, filledPirce, getLastTime, commission)
         else:
             raise ValueError("Unexprected orderAction: " + order.action)
@@ -134,7 +140,7 @@ class IBProxyServerOrderHandler(AbstractOrderHandler):
 
 
     def PlaceOrder(self, orderId, contract, order, isEntry="False"):
-        self.Log("PlaceOrder 1:", order.signalPrice, order.lmtPrice)
+        self.Log("PlaceOrder:", order.signalPrice, order.lmtPrice)
         ######################################################################
         #Send to Proxy server to place order in IB
         data = {}

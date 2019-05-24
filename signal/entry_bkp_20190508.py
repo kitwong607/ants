@@ -33,232 +33,6 @@ class FirstBarAfter(EntrySignal):
 # endregion
 
 
-#=======================================================================
-#Class: XHigherY
-class XYRangeLargerThresold(EntrySignal):
-    name = "{X}{Y}RangeLargerThresold{THRESHOLD}"
-
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yOffset=0, threshold=80):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xOffset = xOffset
-        self.xOffsetForList = (xOffset * -1) - 1
-
-        self.yOffset = yOffset
-        self.yOffsetForList = (yOffset * -1) - 1
-
-        self.threshold = threshold
-
-        from..ta.base import OffsetTA, CurrentDayOffsetTA
-        self.xOffsetTA = self.AddTA(CurrentDayOffsetTA, {'dataName':x, 'offset': xOffset})
-        self.yOffsetTA = self.AddTA(CurrentDayOffsetTA, {'dataName':y, 'offset': yOffset})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        newName = newName.replace("{Y}", yLabel)
-        newName = newName.replace("{THRESHOLD}", "(" + str(self.threshold) + ")")
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xOffsetTA.isReady:
-            return False
-
-        if not self.yOffsetTA.isReady:
-            return False
-
-        if abs(self.xOffsetTA[-1] - self.yOffsetTA[-1]) > self.threshold:
-            return True
-
-        return False
-#=======================================================================
-
-
-#=======================================================================
-#Class: XHigherY
-class XYRangeSmallerThresold(EntrySignal):
-    name = "{X}{Y}RangeSmallerThresold{THRESHOLD}"
-
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yOffset=0, threshold=80):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xOffset = xOffset
-        self.xOffsetForList = (xOffset * -1) - 1
-
-        self.yOffset = yOffset
-        self.yOffsetForList = (yOffset * -1) - 1
-
-        self.threshold = threshold
-
-        from..ta.base import OffsetTA, CurrentDayOffsetTA
-        self.xOffsetTA = self.AddTA(CurrentDayOffsetTA, {'dataName':x, 'offset': xOffset})
-        self.yOffsetTA = self.AddTA(CurrentDayOffsetTA, {'dataName':y, 'offset': yOffset})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        newName = newName.replace("{Y}", yLabel)
-        newName = newName.replace("{THRESHOLD}", "(" + str(self.threshold) + ")")
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xOffsetTA.isReady:
-            return False
-
-        if not self.yOffsetTA.isReady:
-            return False
-
-        if abs(self.xOffsetTA[-1] - self.yOffsetTA[-1]) < self.threshold:
-            return True
-
-        return False
-#=======================================================================
-
-#=======================================================================
-#Class: XHigherY
-class XHigherYWithThresold(EntrySignal):
-    name = "{X}Higher{Y}WithThresold{THRESHOLD}"
-
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yOffset=0, xDelay=0, yDelay=0, threshold=80):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xOffset = xOffset
-        self.xOffsetForList = (xOffset * -1) - 1
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yOffset = yOffset
-        self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-        self.threshold = threshold
-
-        from..ta.base import OffsetTA, CurrentDayOffsetTA
-        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
-        self.yOffsetTA = self.AddTA(CurrentDayOffsetTA, {'dataName':y, 'offset': yOffset})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-        newName = newName.replace("{THRESHOLD}", "(" + str(self.threshold) + ")")
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xOffsetTA.isReady:
-            return False
-
-        if not self.yOffsetTA.isReady:
-            return False
-
-        if len(self.xOffsetTA) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xOffsetTA[self.xDelayForList] > self.yOffsetTA[self.yDelayForList] + self.threshold:
-            return True
-
-        return False
-#=======================================================================
-
-#=======================================================================
-#Class: XHigherY
-class XLowerYWithThresold(EntrySignal):
-    name = "{X}Lower{Y}WithThresold{THRESHOLD}"
-
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yOffset=0, xDelay=0, yDelay=0, threshold=80):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xOffset = xOffset
-        self.xOffsetForList = (xOffset * -1) - 1
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yOffset = yOffset
-        self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-        self.threshold = threshold
-
-        from..ta.base import OffsetTA, CurrentDayOffsetTA
-        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
-        self.yOffsetTA = self.AddTA(CurrentDayOffsetTA, {'dataName':y, 'offset': yOffset})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-        newName = newName.replace("{THRESHOLD}", "("+str(self.threshold) +")")
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xOffsetTA.isReady:
-            return False
-
-        if not self.yOffsetTA.isReady:
-            return False
-
-        if len(self.xOffsetTA) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xOffsetTA[self.xDelayForList] < self.yOffsetTA[self.yDelayForList] + self.threshold:
-            return True
-
-        return False
-
-#=======================================================================
-
 # region Higher X Lower X comparsion
 #Class: HigherX
 class HigherX(EntrySignal):
@@ -276,10 +50,10 @@ class HigherX(EntrySignal):
         self.xMax = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
 
     def Label(self):
-        newName = self.name
+        newName = self.name.replace
         xLabel =   self.xLabel + "(" + str(self.xWindowSize) + ")"
         if self.xOffset != -1:
-            xLabel += 'Offset('+str(self.xOffset)+')'
+            xLabel += 'Offset('+str((self.xOffset+1)*-1)+')'
         newName = newName.replace("{X}", xLabel)
         return newName
 
@@ -289,9 +63,6 @@ class HigherX(EntrySignal):
             return False
 
         if len(self.xMax) <= self.xWindowSize:
-            return False
-
-        if len(self.xMax) <= self.xWindowSize + self.xOffset + 1:
             return False
 
         val1 = self.xMax[self.xOffsetForList]
@@ -317,10 +88,10 @@ class LowerX(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
+        newName = self.name.replace
         xLabel =   self.xLabel + "(" + str(self.xWindowSize) + ")"
         if self.xOffset != -1:
-            xLabel += 'Offset('+str(self.xOffset)+')'
+            xLabel += 'Offset('+str((self.xOffset+1)*-1)+')'
         newName = newName.replace("{X}", xLabel)
         return newName
 
@@ -330,9 +101,6 @@ class LowerX(EntrySignal):
             return False
 
         if len(self.xMin) <= self.xWindowSize:
-            return False
-
-        if len(self.xMin) <= self.xWindowSize + self.xOffset + 1:
             return False
 
         val1 = self.xMin[self.xOffsetForList]
@@ -1261,12 +1029,12 @@ class XHigherKAMA(EntrySignal):
         newName = self.name
         xLabel =   self.xLabel
         if self.xOffsetForList != -1:
-            xLabel +=  'Offset('+str(self.xOffset)+')'
+            xLabel +=  'Offset('+str((self.xOffset+1)*-1)+')'
         newName = newName.replace("{X}", xLabel)
 
-        windowSizeLabel = '(' + str(self.windowSize) + ')'
+        windowSizeLabel = '(' + str((self.windowSize + 1) * -1) + ')'
         if self.kamaOffsetForList != -1:
-            windowSizeLabel += 'Offset(' + str(self.kamaOffset) + ')'
+            windowSizeLabel += 'Offset(' + str((self.kamaOffset + 1) * -1) + ')'
         newName = newName.replace("{WINDOWSIZE}", windowSizeLabel)
 
         return newName
@@ -1313,7 +1081,7 @@ class XHigherKAMAY(EntrySignal):
 
         yLabel = self.yLabel + "("+str(self.windowSize)+")"
         if self.kamaOffsetForList != -1:
-            yLabel +=  'Offset('+str(self.kamaOffset)+')'
+            yLabel +=  'Offset('+str((self.kamaOffset+1)*-1)+')'
         newName = newName.replace("{Y}", yLabel)
 
         return newName
@@ -1351,15 +1119,15 @@ class XLowerKAMA(EntrySignal):
         newName = self.name
         xLabel =   self.xLabel
         if self.xOffsetForList != -1:
-            xLabel += 'Offset(' + str(self.xOffset) + ')'
+            xLabel +=  'Offset('+str((self.xOffset+1)*-1)+')'
         newName = newName.replace("{X}", xLabel)
 
-        windowSizeLabel = '(' + str(self.windowSize) + ')'
+        windowSizeLabel = '(' + str((self.windowSize + 1) * -1) + ')'
         if self.kamaOffsetForList != -1:
-            windowSizeLabel += 'Offset(' + str(self.kamaOffset) + ')'
+            windowSizeLabel += 'Offset(' + str((self.kamaOffset + 1) * -1) + ')'
         newName = newName.replace("{WINDOWSIZE}", windowSizeLabel)
 
-        return newName
+        return rename
 
 
     def CalculateSignal(self, bar):
@@ -1394,12 +1162,12 @@ class XLowerKAMAY(EntrySignal):
         newName = self.name
         xLabel = self.xLabel
         if self.xOffsetForList != -1:
-            xLabel += 'Offset(' + str(self.xOffset) + ')'
+            xLabel += 'Offset(' + str((self.xOffset + 1) * -1) + ')'
         newName = newName.replace("{X}", xLabel)
 
         yLabel = self.yLabel + "(" + str(self.windowSize) + ")"
         if self.kamaOffsetForList != -1:
-            yLabel += 'Offset(' + str(self.kamaOffset) + ')'
+            yLabel += 'Offset(' + str((self.kamaOffset + 1) * -1) + ')'
         newName = newName.replace("{Y}", yLabel)
 
         return newName
@@ -1796,6 +1564,8 @@ class NarrowerBBands(EntrySignal):
     def Label(self):
         newName = self.name
         xLabel = self.xLabel
+        if self.xOffset!=0:
+            xLabel += "Offset("+str(self.xOffset)+")"
         newName = newName.replace("{X}", xLabel)
 
         bbLabel = str(self.windowSize) + "-" + str(self.nbdev)
@@ -1852,6 +1622,8 @@ class WiderBBands(EntrySignal):
     def Label(self):
         newName = self.name
         xLabel = self.xLabel
+        if self.xOffset!=0:
+            xLabel += "Offset("+str(self.xOffset)+")"
         newName = newName.replace("{X}", xLabel)
 
         bbLabel = str(self.windowSize) + "-" + str(self.nbdev)
@@ -1867,7 +1639,7 @@ class WiderBBands(EntrySignal):
         if not self.bbandsUpper.isReady:
             return False
 
-        if len(self.bbandsUpper) <= (self.bbOffsetForList - self.compareWindowSize) * -1:
+        if len(self.bbandsUpper) <= (self.delay - self.compareWindowSize) * -1:
             return False
 
         upper1 = self.bbandsUpper[self.bbOffsetForList - self.compareWindowSize]
@@ -2074,6 +1846,53 @@ class MinRSILowerThreshold(EntrySignal):
             return True
         return False
 
+#Class: MinRSIHigherThreshold
+class MinRSIHigherThreshold(EntrySignal):
+    name = "Min{MIN}{X}RSI{RSI}HigherThreshold{THRESHOLD}"
+
+    def __init__(self, strategy, x="close", rsiWindowSize=14, rsiOffset=0, minWindowSize=14, threshold=80):
+        super().__init__(strategy)
+        if(x!="close"): x = "closeD"
+
+        self.xLabel = x
+        self.rsiWindowSize = rsiWindowSize
+        self.minWindowSize = minWindowSize
+        self.threshold = threshold
+
+        self.rsiOffset = rsiOffset
+
+        from..ta.MomentumTA import RSI
+        self.rsi = self.AddTA(RSI, {'dataName':x, 'windowSize': rsiWindowSize})
+
+
+    def Label(self):
+        newName = self.name
+        newName = newName.replace("{MIN}", str(self.minWindowSize))
+
+        xLabel = self.xLabel
+        newName = newName.replace("{X}", xLabel)
+
+        rsiLabel = str(self.rsiWindowSize)
+        if self.rsiOffset != 0:
+            rsiLabel += "Offset(" + str(self.rsiOffset) + ")"
+        newName = newName.replace("{RSI}", rsiLabel)
+        newName = newName.replace("{THRESHOLD}", str(self.threshold))
+
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.rsi.isReady:
+            return False
+
+        if len(self.rsi) < (-self.minWindowSize - self.rsiOffset) * -1 - 1:
+            return False
+
+        val = cmath.MinOfRange(self.rsi, -self.minWindowSize - self.rsiOffset, len(self.rsi) - self.rsiOffset)
+        if val > self.threshold:
+            return True
+        return False
+
 #Class: MaxRSILowerThreshold
 class MaxRSILowerThreshold(EntrySignal):
     name = "Max{MAX}{X}RSI{RSI}LowerThreshold{THRESHOLD}"
@@ -2113,7 +1932,7 @@ class MaxRSILowerThreshold(EntrySignal):
         if not self.rsi.isReady:
             return False
 
-        if len(self.rsi) < (-self.maxWindowSize - self.rsiOffset) * -1 - 1:
+        if len(self.rsi) < (-self.minWindowSize - self.rsiOffset) * -1 - 1:
             return False
 
         val = cmath.MaxOfRange(self.rsi, -self.maxWindowSize - self.rsiOffset, len(self.rsi) - self.rsiOffset)
@@ -2661,8 +2480,7 @@ class StochasticSlowLowerThreshold(EntrySignal):
         xLabel = self.xLabel
         newName = newName.replace("{X}", xLabel)
 
-        paramsLabel = "(" + str(self.fastKWindowSize) + "," + str(self.slowKWindowSize) + "," + str(
-            self.slowDWindowSize) + ")"
+        paramsLabel = "(" + str(self.rsiWindowSize) + "," + str(self.fastKWindowSize) + "," + str(self.fastDWindowSize) + ")"
         newName = newName.replace("{PARAMS}", paramsLabel)
 
         thresholdLabel = "("+str(self.threshold)+")"
@@ -2908,8 +2726,6 @@ class StochasticRSILowerThreshold(EntrySignal):
         return False
 # endregion
 
-
-
 #=======================================================================
 #=======================================================================
 #Type1 entry signal list
@@ -2918,14 +2734,8 @@ class StochasticRSILowerThreshold(EntrySignal):
 #Class: XHigherY
 class XHigherY(EntrySignal):
     name = "{X}Higher{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "OffsetTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "OffsetTA"
 
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yOffset=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yOffset=0, xDelay = 0, yDelay=0):
         super().__init__(strategy)
 
         self.xLabel = x
@@ -2933,14 +2743,13 @@ class XHigherY(EntrySignal):
 
         self.xOffset = xOffset
         self.xOffsetForList = (xOffset * -1) - 1
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yOffset = yOffset
         self.yOffsetForList = (yOffset * -1) - 1
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
 
         from..ta.base import OffsetTA
         self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
@@ -2948,17 +2757,17 @@ class XHigherY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
+        newName = self.name.replace
+        xLabel =   self.xLabel + "(" + str(self.xOffset) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
 
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
         return newName
 
 
@@ -2981,17 +2790,11 @@ class XHigherY(EntrySignal):
         return False
 
 #=======================================================================
-#Class: XHigherMinY
-class XHigherMinY(EntrySignal):
-    name = "{X}HigherMin{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "Min"
+#Class: XLowerY
+class XLowerY(EntrySignal):
+    name = "{X}Lower{Y}"
 
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yOffset=0, xDelay = 0, yDelay=0):
         super().__init__(strategy)
 
         self.xLabel = x
@@ -2999,12 +2802,73 @@ class XHigherMinY(EntrySignal):
 
         self.xOffset = xOffset
         self.xOffsetForList = (xOffset * -1) - 1
+        self.yOffset = yOffset
+        self.yOffsetForList = (yOffset * -1) - 1
+
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
+
+        from..ta.base import OffsetTA
+        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
+        self.yOffsetTA = self.AddTA(OffsetTA, {'dataName':y, 'offset': yOffset})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel =   self.xLabel + "(" + str(self.xOffset) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xOffsetTA.isReady:
+            return False
+
+        if not self.yOffsetTA.isReady:
+            return False
+
+        if len(self.xOffsetTA) <= self.xDelay:
+            return False
+
+        if len(self.yOffsetTA) <= self.yDelay:
+            return False
+
+        if self.xOffsetTA[self.xDelay] < self.yOffsetTA[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: XHigherMinY
+class XHigherMinY(EntrySignal):
+    name = "{X}HigherMin{Y}"
+
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay = 0, yDelay=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+        self.yOffset = yOffset
+        self.yOffsetForList = (yOffset * -1) - 1
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.yWindowSize = yWindowSize
 
 
         from..ta.base import OffsetTA
@@ -3014,15 +2878,16 @@ class XHigherMinY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "(" + str(self.xOffset) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
 
         return newName
@@ -3047,347 +2912,10 @@ class XHigherMinY(EntrySignal):
         return False
 
 #=======================================================================
-#Class: XHigherMaxPreviousY
-class XHigherMaxPreviousY(EntrySignal):
-    name = "{X}HigherMaxPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "MaxPrevious"
-
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xOffset = xOffset
-        self.xOffsetForList = (xOffset * -1) - 1
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.base import OffsetTA
-        from..ta.MinMax import MaxPreviousX
-        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
-        self.yMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xOffsetTA.isReady:
-            return False
-
-        if not self.yMaxPrevious.isReady:
-            return False
-
-        if len(self.xOffsetTA) <= self.xDelay:
-            return False
-
-        if len(self.yMaxPrevious) <= self.yDelay:
-            return False
-
-        if self.xOffsetTA[self.xDelayForList] > self.yMaxPrevious[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: XHigherMinPreviousY
-class XHigherMinPreviousY(EntrySignal):
-    name = "{X}HigherMinPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "MinPrevious"
-
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xOffset = xOffset
-        self.xOffsetForList = (xOffset * -1) - 1
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.base import OffsetTA
-        from..ta.MinMax import MinPreviousX
-        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
-        self.yMinPrevious = self.AddTA(MinPreviousX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xOffsetTA.isReady:
-            return False
-
-        if not self.yMinPrevious.isReady:
-            return False
-
-        if len(self.xOffsetTA) <= self.xDelay:
-            return False
-
-        if len(self.yMinPrevious) <= self.yDelay:
-            return False
-
-        if self.xOffsetTA[self.xDelayForList] > self.yMinPrevious[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: XHigherMaxY
-class XHigherMaxY(EntrySignal):
-    name = "{X}HigherMax{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "Max"
-
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xOffset = xOffset
-        self.xOffsetForList = (xOffset * -1) - 1
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.base import OffsetTA
-        from..ta.MinMax import MaxX
-        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
-        self.yMax = self.AddTA(MaxX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xOffsetTA.isReady:
-            return False
-
-        if not self.yMax.isReady:
-            return False
-
-        if len(self.xOffsetTA) <= self.xDelay:
-            return False
-
-        if len(self.yMax) <= self.yDelay:
-            return False
-
-        if self.xOffsetTA[self.xDelayForList] > self.yMax[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: XHigherAverageY
-class XHigherAverageY(EntrySignal):
-    name = "{X}HigherAverage{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "Average"
-
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xOffset = xOffset
-        self.xOffsetForList = (xOffset * -1) - 1
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.base import OffsetTA
-        from..ta.SMA import SMA
-        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
-        self.ySMA = self.AddTA(SMA, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xOffsetTA.isReady:
-            return False
-
-        if not self.ySMA.isReady:
-            return False
-
-        if len(self.xOffsetTA) <= self.xDelay:
-            return False
-
-        if len(self.ySMA) <= self.yDelay:
-            return False
-
-        if self.xOffsetTA[self.xDelayForList] > self.ySMA[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: XLowerY
-class XLowerY(EntrySignal):
-    name = "{X}Lower{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "OffsetTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "OffsetTA"
-
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yOffset=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xOffset = xOffset
-        self.xOffsetForList = (xOffset * -1) - 1
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yOffset = yOffset
-        self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.base import OffsetTA
-        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
-        self.yOffsetTA = self.AddTA(OffsetTA, {'dataName':y, 'offset': yOffset})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xOffsetTA.isReady:
-            return False
-
-        if not self.yOffsetTA.isReady:
-            return False
-
-        if len(self.xOffsetTA) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xOffsetTA[self.xDelayForList] < self.yOffsetTA[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
 #Class: XLowerMinY
 class XLowerMinY(EntrySignal):
     name = "{X}LowerMin{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "Min"
-
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay = 0, yDelay=0):
         super().__init__(strategy)
 
         self.xLabel = x
@@ -3395,13 +2923,14 @@ class XLowerMinY(EntrySignal):
 
         self.xOffset = xOffset
         self.xOffsetForList = (xOffset * -1) - 1
+        self.yOffset = yOffset
+        self.yOffsetForList = (yOffset * -1) - 1
+
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.yWindowSize = yWindowSize
 
         from..ta.base import OffsetTA
         from..ta.MinMax import MinX
@@ -3410,15 +2939,16 @@ class XLowerMinY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "(" + str(self.xOffset) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
 
         return newName
@@ -3437,7 +2967,65 @@ class XLowerMinY(EntrySignal):
         if len(self.yMin) <= self.yDelay:
             return False
 
-        if self.xOffsetTA[self.xDelayForList] < self.yMin[self.yDelayForList]:
+        if self.xOffsetTA[self.xDelay] < self.yMin[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: XHigherMaxPreviousY
+class XHigherMaxPreviousY(EntrySignal):
+    name = "{X}HigherMaxPrevious{Y}"
+
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.yWindowSize = yWindowSize
+
+        from..ta.base import OffsetTA
+        from..ta.MinMax import MaxPreviousX
+        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
+        self.yMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "(" + str(self.xOffset) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xOffsetTA.isReady:
+            return False
+
+        if not self.yMaxPrevious.isReady:
+            return False
+
+        if len(self.xOffsetTA) <= self.xDelay:
+            return False
+
+        if len(self.yMaxPrevious) <= self.yDelay:
+            return False
+
+        if self.xOffsetTA[self.xDelay] > self.yMaxPrevious[self.yDelay]:
             return True
 
         return False
@@ -3446,14 +3034,8 @@ class XLowerMinY(EntrySignal):
 #Class: XLowerMaxPreviousY
 class XLowerMaxPreviousY(EntrySignal):
     name = "{X}LowerMaxPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "MaxPrevious"
 
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
@@ -3461,13 +3043,12 @@ class XLowerMaxPreviousY(EntrySignal):
 
         self.xOffset = xOffset
         self.xOffsetForList = (xOffset * -1) - 1
+
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.yWindowSize = yWindowSize
 
         from..ta.base import OffsetTA
         from..ta.MinMax import MaxPreviousX
@@ -3476,17 +3057,16 @@ class XLowerMaxPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "(" + str(self.xOffset) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -3503,7 +3083,66 @@ class XLowerMaxPreviousY(EntrySignal):
         if len(self.yMaxPrevious) <= self.yDelay:
             return False
 
-        if self.xOffsetTA[self.xDelayForList] < self.yMaxPrevious[self.yDelayForList]:
+        if self.xOffsetTA[self.xDelay] < self.yMaxPrevious[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: XHigherMinPreviousY
+class XHigherMinPreviousY(EntrySignal):
+    name = "{X}HigherMinPrevious{Y}"
+
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.yWindowSize = yWindowSize
+
+        from..ta.base import OffsetTA
+        from..ta.MinMax import MinPreviousX
+        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
+        self.yMinPrevious = self.AddTA(MinPreviousX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "(" + str(self.xOffset) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xOffsetTA.isReady:
+            return False
+
+        if not self.yMinPrevious.isReady:
+            return False
+
+        if len(self.xOffsetTA) <= self.xDelay:
+            return False
+
+        if len(self.yMinPrevious) <= self.yDelay:
+            return False
+
+        if self.xOffsetTA[self.xDelay] > self.yMinPrevious[self.yDelay]:
             return True
 
         return False
@@ -3512,14 +3151,8 @@ class XLowerMaxPreviousY(EntrySignal):
 #Class: XLowerMinPreviousY
 class XLowerMinPreviousY(EntrySignal):
     name = "{X}LowerMinPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "MinPrevious"
 
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
@@ -3527,13 +3160,12 @@ class XLowerMinPreviousY(EntrySignal):
 
         self.xOffset = xOffset
         self.xOffsetForList = (xOffset * -1) - 1
+
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.yWindowSize = yWindowSize
 
         from..ta.base import OffsetTA
         from..ta.MinMax import MinPreviousX
@@ -3542,17 +3174,16 @@ class XLowerMinPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "(" + str(self.xOffset) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -3569,7 +3200,65 @@ class XLowerMinPreviousY(EntrySignal):
         if len(self.yMinPrevious) <= self.yDelay:
             return False
 
-        if self.xOffsetTA[self.xDelayForList] < self.yMinPrevious[self.yDelayForList]:
+        if self.xOffsetTA[self.xDelay] < self.yMinPrevious[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: XHigherMaxY
+class XHigherMaxY(EntrySignal):
+    name = "{X}HigherMax{Y}"
+
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.yWindowSize = yWindowSize
+
+        from..ta.base import OffsetTA
+        from..ta.MinMax import MaxX
+        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
+        self.yMax = self.AddTA(MaxX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "(" + str(self.xOffset) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xOffsetTA.isReady:
+            return False
+
+        if not self.yMax.isReady:
+            return False
+
+        if len(self.xOffsetTA) <= self.xDelay:
+            return False
+
+        if len(self.yMax) <= self.yDelay:
+            return False
+
+        if self.xOffsetTA[self.xDelay] > self.yMax[self.yDelay]:
             return True
 
         return False
@@ -3578,14 +3267,8 @@ class XLowerMinPreviousY(EntrySignal):
 #Class: XLowerMaxY
 class XLowerMaxY(EntrySignal):
     name = "{X}LowerMax{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "Max"
 
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
@@ -3593,13 +3276,12 @@ class XLowerMaxY(EntrySignal):
 
         self.xOffset = xOffset
         self.xOffsetForList = (xOffset * -1) - 1
+
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.yWindowSize = yWindowSize
 
         from..ta.base import OffsetTA
         from..ta.MinMax import MaxX
@@ -3608,17 +3290,16 @@ class XLowerMaxY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "(" + str(self.xOffset) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -3635,7 +3316,66 @@ class XLowerMaxY(EntrySignal):
         if len(self.yMax) <= self.yDelay:
             return False
 
-        if self.xOffsetTA[self.xDelayForList] < self.yMax[self.yDelayForList]:
+        if self.xOffsetTA[self.xDelay] < self.yMax[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: XHigherAverageY
+class XHigherAverageY(EntrySignal):
+    name = "{X}HigherAverage{Y}"
+
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.yWindowSize = yWindowSize
+
+        from..ta.base import OffsetTA
+        from..ta.SMA import SMA
+        self.xOffsetTA = self.AddTA(OffsetTA, {'dataName':x, 'offset': xOffset})
+        self.ySMA = self.AddTA(SMA, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "(" + str(self.xOffset) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xOffsetTA.isReady:
+            return False
+
+        if not self.ySMA.isReady:
+            return False
+
+        if len(self.xOffsetTA) <= self.xDelay:
+            return False
+
+        if len(self.ySMA) <= self.yDelay:
+            return False
+
+        if self.xOffsetTA[self.xDelay] > self.ySMA[self.yDelay]:
             return True
 
         return False
@@ -3644,14 +3384,8 @@ class XLowerMaxY(EntrySignal):
 #Class: XLowerAverageY
 class XLowerAverageY(EntrySignal):
     name = "{X}LowerAverage{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "OffsetTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "OffsetTA"
-    funcNameAfter = "Average"
 
-    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
@@ -3659,13 +3393,12 @@ class XLowerAverageY(EntrySignal):
 
         self.xOffset = xOffset
         self.xOffsetForList = (xOffset * -1) - 1
+
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.yWindowSize = yWindowSize
 
         from..ta.base import OffsetTA
         from..ta.SMA import SMA
@@ -3674,15 +3407,15 @@ class XLowerAverageY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xOffset)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "(" + str(self.xOffset) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "(" + str(self.yOffset) + ")WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
 
         return newName
@@ -3701,73 +3434,7 @@ class XLowerAverageY(EntrySignal):
         if len(self.ySMA) <= self.yDelay:
             return False
 
-        if self.xOffsetTA[self.xDelayForList] < self.ySMA[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MinXHigherY
-class MinXHigherY(EntrySignal):
-    name = "Min{X}Higher{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "OffsetTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "OffsetTA"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yOffset = yOffset
-        self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MinX
-        from..ta.base import OffsetTA
-        self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yOffsetTA = self.AddTA(OffsetTA, {'dataName':y, 'offset': yOffset})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMin.isReady:
-            return False
-
-        if not self.yOffsetTA.isReady:
-            return False
-
-        if len(self.xMin) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xMin[self.xDelayForList] > self.yOffsetTA[self.yDelayForList]:
+        if self.xOffsetTA[self.xDelay] < self.ySMA[self.yDelay]:
             return True
 
         return False
@@ -3776,27 +3443,19 @@ class MinXHigherY(EntrySignal):
 #Class: MinXHigherMinY
 class MinXHigherMinY(EntrySignal):
     name = "Min{X}HigherMin{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "Min"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MinX
         self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
@@ -3804,17 +3463,16 @@ class MinXHigherMinY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -3831,333 +3489,7 @@ class MinXHigherMinY(EntrySignal):
         if len(self.yMin) <= self.yDelay:
             return False
 
-        if self.xMin[self.xDelayForList] > self.yMin[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MinXHigherMaxPreviousY
-class MinXHigherMaxPreviousY(EntrySignal):
-    name = "Min{X}HigherMaxPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "MaxPrevious"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MinX
-        from..ta.MinMax import MaxPreviousX
-        self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMin.isReady:
-            return False
-
-        if not self.yMaxPrevious.isReady:
-            return False
-
-        if len(self.xMin) <= self.xDelay:
-            return False
-
-        if len(self.yMaxPrevious) <= self.yDelay:
-            return False
-
-        if self.xMin[self.xDelayForList] > self.yMaxPrevious[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MinXHigherMinPreviousY
-class MinXHigherMinPreviousY(EntrySignal):
-    name = "Min{X}HigherMinPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "MinPrevious"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MinX
-        from..ta.MinMax import MinPreviousX
-        self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMinPrevious = self.AddTA(MinPreviousX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMin.isReady:
-            return False
-
-        if not self.yMinPrevious.isReady:
-            return False
-
-        if len(self.xMin) <= self.xDelay:
-            return False
-
-        if len(self.yMinPrevious) <= self.yDelay:
-            return False
-
-        if self.xMin[self.xDelayForList] > self.yMinPrevious[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MinXHigherMaxY
-class MinXHigherMaxY(EntrySignal):
-    name = "Min{X}HigherMax{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "Max"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MinX
-        from..ta.MinMax import MaxX
-        self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMax = self.AddTA(MaxX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMin.isReady:
-            return False
-
-        if not self.yMax.isReady:
-            return False
-
-        if len(self.xMin) <= self.xDelay:
-            return False
-
-        if len(self.yMax) <= self.yDelay:
-            return False
-
-        if self.xMin[self.xDelayForList] > self.yMax[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MinXHigherAverageY
-class MinXHigherAverageY(EntrySignal):
-    name = "Min{X}HigherAverage{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "Average"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MinX
-        from..ta.SMA import SMA
-        self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
-        self.ySMA = self.AddTA(SMA, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMin.isReady:
-            return False
-
-        if not self.ySMA.isReady:
-            return False
-
-        if len(self.xMin) <= self.xDelay:
-            return False
-
-        if len(self.ySMA) <= self.yDelay:
-            return False
-
-        if self.xMin[self.xDelayForList] > self.ySMA[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MinXLowerY
-class MinXLowerY(EntrySignal):
-    name = "Min{X}Lower{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "OffsetTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "OffsetTA"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yOffset = yOffset
-        self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MinX
-        from..ta.base import OffsetTA
-        self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yOffsetTA = self.AddTA(OffsetTA, {'dataName':y, 'offset': yOffset})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMin.isReady:
-            return False
-
-        if not self.yOffsetTA.isReady:
-            return False
-
-        if len(self.xMin) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xMin[self.xDelayForList] < self.yOffsetTA[self.yDelayForList]:
+        if self.xMin[self.xDelay] > self.yMin[self.yDelay]:
             return True
 
         return False
@@ -4166,27 +3498,19 @@ class MinXLowerY(EntrySignal):
 #Class: MinXLowerMinY
 class MinXLowerMinY(EntrySignal):
     name = "Min{X}LowerMin{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "Min"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MinX
         self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
@@ -4194,17 +3518,16 @@ class MinXLowerMinY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -4221,7 +3544,285 @@ class MinXLowerMinY(EntrySignal):
         if len(self.yMin) <= self.yDelay:
             return False
 
-        if self.xMin[self.xDelayForList] < self.yMin[self.yDelayForList]:
+        if self.xMin[self.xDelay] < self.yMin[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: MaxXHigherMaxY
+class MaxXHigherMaxY(EntrySignal):
+    name = "Max{X}HigherMax{Y}"
+
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
+
+        from..ta.MinMax import MaxX
+        self.xMax = self.AddTA(MaxX, {'dataName':x, 'windowSize': xWindowSize})
+        self.yMax = self.AddTA(MaxX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xMax.isReady:
+            return False
+
+        if not self.yMax.isReady:
+            return False
+
+        if len(self.xMax) <= self.xDelay:
+            return False
+
+        if len(self.yMax) <= self.yDelay:
+            return False
+
+        if self.xMax[self.xDelay] > self.yMax[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: MaxXLowerrMaxY
+class MaxXLowerrMaxY(EntrySignal):
+    name = "Max{X}LowerMax{Y}"
+
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
+
+        from..ta.MinMax import MaxX
+        self.xMax = self.AddTA(MaxX, {'dataName':x, 'windowSize': xWindowSize})
+        self.yMax = self.AddTA(MaxX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xMax.isReady:
+            return False
+
+        if not self.yMax.isReady:
+            return False
+
+        if len(self.xMax) <= self.xDelay:
+            return False
+
+        if len(self.yMax) <= self.yDelay:
+            return False
+
+        if self.xMax[self.xDelay] < self.yMax[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: MaxXHigherMinY
+class MaxXHigherMinY(EntrySignal):
+    name = "Max{X}HigherMin{Y}"
+
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
+
+        from..ta.MinMax import MaxX
+        from..ta.MinMax import MinX
+        self.xMax = self.AddTA(MaxX, {'dataName':x, 'windowSize': xWindowSize})
+        self.yMin = self.AddTA(MinX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xMax.isReady:
+            return False
+
+        if not self.yMin.isReady:
+            return False
+
+        if len(self.xMax) <= self.xDelay:
+            return False
+
+        if len(self.yMin) <= self.yDelay:
+            return False
+
+        if self.xMax[self.xDelay] > self.yMin[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: MaxXLowerMinY
+class MaxXLowerMinY(EntrySignal):
+    name = "Max{X}LowerMin{Y}"
+
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
+
+        from..ta.MinMax import MaxX
+        from..ta.MinMax import MinX
+        self.xMax = self.AddTA(MaxX, {'dataName':x, 'windowSize': xWindowSize})
+        self.yMin = self.AddTA(MinX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xMax.isReady:
+            return False
+
+        if not self.yMin.isReady:
+            return False
+
+        if len(self.xMax) <= self.xDelay:
+            return False
+
+        if len(self.yMin) <= self.yDelay:
+            return False
+
+        if self.xMax[self.xDelay] < self.yMin[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: MinXHigherMaxPreviousY
+class MinXHigherMaxPreviousY(EntrySignal):
+    name = "Min{X}HigherMaxPrevious{Y}"
+
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
+
+        from..ta.MinMax import MinX
+        from..ta.MinMax import MaxPreviousX
+        self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
+        self.yMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xMin.isReady:
+            return False
+
+        if not self.yMaxPrevious.isReady:
+            return False
+
+        if len(self.xMin) <= self.xDelay:
+            return False
+
+        if len(self.yMaxPrevious) <= self.yDelay:
+            return False
+
+        if self.xMin[self.xDelay] > self.yMaxPrevious[self.yDelay]:
             return True
 
         return False
@@ -4230,27 +3831,19 @@ class MinXLowerMinY(EntrySignal):
 #Class: MinXLowerMaxPreviousY
 class MinXLowerMaxPreviousY(EntrySignal):
     name = "Min{X}LowerMaxPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "MaxPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MinX
         from..ta.MinMax import MaxPreviousX
@@ -4259,17 +3852,16 @@ class MinXLowerMaxPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -4286,7 +3878,63 @@ class MinXLowerMaxPreviousY(EntrySignal):
         if len(self.yMaxPrevious) <= self.yDelay:
             return False
 
-        if self.xMin[self.xDelayForList] < self.yMaxPrevious[self.yDelayForList]:
+        if self.xMin[self.delay] < self.yMaxPrevious[self.delay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: MinXHigherMinPreviousY
+class MinXHigherMinPreviousY(EntrySignal):
+    name = "Min{X}HigherMinPrevious{Y}"
+
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
+
+        from..ta.MinMax import MinX
+        from..ta.MinMax import MinPreviousX
+        self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
+        self.yMinPrevious = self.AddTA(MinPreviousX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xMin.isReady:
+            return False
+
+        if not self.yMinPrevious.isReady:
+            return False
+
+        if len(self.xMin) <= self.xDelay:
+            return False
+
+        if len(self.yMinPrevious) <= self.yDelay:
+            return False
+
+        if self.xMin[self.xDelay] > self.yMinPrevious[self.yDelay]:
             return True
 
         return False
@@ -4295,27 +3943,19 @@ class MinXLowerMaxPreviousY(EntrySignal):
 #Class: MinXLowerMinPreviousY
 class MinXLowerMinPreviousY(EntrySignal):
     name = "Min{X}LowerMinPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "MinPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MinX
         from..ta.MinMax import MinPreviousX
@@ -4324,17 +3964,16 @@ class MinXLowerMinPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -4351,55 +3990,46 @@ class MinXLowerMinPreviousY(EntrySignal):
         if len(self.yMinPrevious) <= self.yDelay:
             return False
 
-        if self.xMin[self.xDelayForList] < self.yMinPrevious[self.yDelayForList]:
+        if self.xMin[self.xDelay] < self.yMinPrevious[self.yDelay]:
             return True
 
         return False
 
 #=======================================================================
-#Class: MinXLowerMaxY
-class MinXLowerMaxY(EntrySignal):
-    name = "Min{X}LowerMax{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "Max"
+#Class: MinXHigherAverageY
+class MinXHigherAverageY(EntrySignal):
+    name = "Min{X}HigherAverage{Y}"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MinX
-        from..ta.MinMax import MaxX
+        from..ta.SMA import SMA
         self.xMin = self.AddTA(MinX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMax = self.AddTA(MaxX, {'dataName':y, 'windowSize': yWindowSize})
+        self.ySMA = self.AddTA(SMA, {'dataName':y, 'windowSize': yWindowSize})
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -4407,16 +4037,16 @@ class MinXLowerMaxY(EntrySignal):
         if not self.xMin.isReady:
             return False
 
-        if not self.yMax.isReady:
+        if not self.ySMA.isReady:
             return False
 
         if len(self.xMin) <= self.xDelay:
             return False
 
-        if len(self.yMax) <= self.yDelay:
+        if len(self.ySMA) <= self.yDelay:
             return False
 
-        if self.xMin[self.xDelayForList] < self.yMax[self.yDelayForList]:
+        if self.xMin[self.xDelay] > self.ySMA[self.yDelay]:
             return True
 
         return False
@@ -4425,27 +4055,19 @@ class MinXLowerMaxY(EntrySignal):
 #Class: MinXLowerAverageY
 class MinXLowerAverageY(EntrySignal):
     name = "Min{X}LowerAverage{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Min"
-    funcNameAfter = "Average"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MinX
         from..ta.SMA import SMA
@@ -4454,17 +4076,16 @@ class MinXLowerAverageY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -4481,138 +4102,7 @@ class MinXLowerAverageY(EntrySignal):
         if len(self.ySMA) <= self.yDelay:
             return False
 
-        if self.xMin[self.xDelayForList] < self.ySMA[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MaxPreviousXHigherY
-class MaxPreviousXHigherY(EntrySignal):
-    name = "MaxPrevious{X}Higher{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "OffsetTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "OffsetTA"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yOffset = yOffset
-        self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MaxPreviousX
-        from..ta.base import OffsetTA
-        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yOffsetTA = self.AddTA(OffsetTA, {'dataName':y, 'offset': yOffset})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMaxPrevious.isReady:
-            return False
-
-        if not self.yOffsetTA.isReady:
-            return False
-
-        if len(self.xMaxPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xMaxPrevious[self.xDelayForList] > self.yOffsetTA[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MaxPreviousXHigherMinY
-class MaxPreviousXHigherMinY(EntrySignal):
-    name = "MaxPrevious{X}HigherMin{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "Min"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MaxPreviousX
-        from..ta.MinMax import MinX
-        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMin = self.AddTA(MinX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMaxPrevious.isReady:
-            return False
-
-        if not self.yMin.isReady:
-            return False
-
-        if len(self.xMaxPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yMin) <= self.yDelay:
-            return False
-
-        if self.xMaxPrevious[self.xDelayForList] > self.yMin[self.yDelayForList]:
+        if self.xMin[self.delay] < self.ySMA[self.delay]:
             return True
 
         return False
@@ -4621,27 +4111,19 @@ class MaxPreviousXHigherMinY(EntrySignal):
 #Class: MaxPreviousXHigherMaxPreviousY
 class MaxPreviousXHigherMaxPreviousY(EntrySignal):
     name = "MaxPrevious{X}HigherMaxPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "MaxPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MaxPreviousX
         self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
@@ -4649,17 +4131,16 @@ class MaxPreviousXHigherMaxPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -4676,333 +4157,7 @@ class MaxPreviousXHigherMaxPreviousY(EntrySignal):
         if len(self.yMaxPrevious) <= self.yDelay:
             return False
 
-        if self.xMaxPrevious[self.xDelayForList] > self.yMaxPrevious[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MaxPreviousXHigherMinPreviousY
-class MaxPreviousXHigherMinPreviousY(EntrySignal):
-    name = "MaxPrevious{X}HigherMinPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "MinPrevious"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MaxPreviousX
-        from..ta.MinMax import MinPreviousX
-        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMinPrevious = self.AddTA(MinPreviousX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMaxPrevious.isReady:
-            return False
-
-        if not self.yMinPrevious.isReady:
-            return False
-
-        if len(self.xMaxPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yMinPrevious) <= self.yDelay:
-            return False
-
-        if self.xMaxPrevious[self.xDelayForList] > self.yMinPrevious[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MaxPreviousXHigherMaxY
-class MaxPreviousXHigherMaxY(EntrySignal):
-    name = "MaxPrevious{X}HigherMax{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "Max"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MaxPreviousX
-        from..ta.MinMax import MaxX
-        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMax = self.AddTA(MaxX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMaxPrevious.isReady:
-            return False
-
-        if not self.yMax.isReady:
-            return False
-
-        if len(self.xMaxPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yMax) <= self.yDelay:
-            return False
-
-        if self.xMaxPrevious[self.xDelayForList] > self.yMax[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MaxPreviousXHigherAverageY
-class MaxPreviousXHigherAverageY(EntrySignal):
-    name = "MaxPrevious{X}HigherAverage{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "Average"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MaxPreviousX
-        from..ta.SMA import SMA
-        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
-        self.ySMA = self.AddTA(SMA, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMaxPrevious.isReady:
-            return False
-
-        if not self.ySMA.isReady:
-            return False
-
-        if len(self.xMaxPrevious) <= self.xDelay:
-            return False
-
-        if len(self.ySMA) <= self.yDelay:
-            return False
-
-        if self.xMaxPrevious[self.xDelayForList] > self.ySMA[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MaxPreviousXLowerY
-class MaxPreviousXLowerY(EntrySignal):
-    name = "MaxPrevious{X}Lower{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "OffsetTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "OffsetTA"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yOffset = yOffset
-        self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MaxPreviousX
-        from..ta.base import OffsetTA
-        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yOffsetTA = self.AddTA(OffsetTA, {'dataName':y, 'offset': yOffset})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMaxPrevious.isReady:
-            return False
-
-        if not self.yOffsetTA.isReady:
-            return False
-
-        if len(self.xMaxPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xMaxPrevious[self.xDelayForList] < self.yOffsetTA[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MaxPreviousXLowerMinY
-class MaxPreviousXLowerMinY(EntrySignal):
-    name = "MaxPrevious{X}LowerMin{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "Min"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MaxPreviousX
-        from..ta.MinMax import MinX
-        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMin = self.AddTA(MinX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMaxPrevious.isReady:
-            return False
-
-        if not self.yMin.isReady:
-            return False
-
-        if len(self.xMaxPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yMin) <= self.yDelay:
-            return False
-
-        if self.xMaxPrevious[self.xDelayForList] < self.yMin[self.yDelayForList]:
+        if self.xMaxPrevious[self.xDelay] > self.yMaxPrevious[self.yDelay]:
             return True
 
         return False
@@ -5011,27 +4166,19 @@ class MaxPreviousXLowerMinY(EntrySignal):
 #Class: MaxPreviousXLowerMaxPreviousY
 class MaxPreviousXLowerMaxPreviousY(EntrySignal):
     name = "MaxPrevious{X}LowerMaxPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "MaxPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MaxPreviousX
         self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
@@ -5039,17 +4186,16 @@ class MaxPreviousXLowerMaxPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -5066,36 +4212,28 @@ class MaxPreviousXLowerMaxPreviousY(EntrySignal):
         if len(self.yMaxPrevious) <= self.yDelay:
             return False
 
-        if self.xMaxPrevious[self.xDelayForList] < self.yMaxPrevious[self.yDelayForList]:
+        if self.xMaxPrevious[self.xDelay] < self.yMaxPrevious[self.yDelay]:
             return True
 
         return False
 
 #=======================================================================
-#Class: MaxPreviousXLowerMinPreviousY
-class MaxPreviousXLowerMinPreviousY(EntrySignal):
-    name = "MaxPrevious{X}LowerMinPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "MinPrevious"
+#Class: MaxPreviousXHigherMinPreviousY
+class MaxPreviousXHigherMinPreviousY(EntrySignal):
+    name = "MaxPrevious{X}HigherMinPrevious{Y}"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MaxPreviousX
         from..ta.MinMax import MinPreviousX
@@ -5104,17 +4242,16 @@ class MaxPreviousXLowerMinPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -5131,36 +4268,84 @@ class MaxPreviousXLowerMinPreviousY(EntrySignal):
         if len(self.yMinPrevious) <= self.yDelay:
             return False
 
-        if self.xMaxPrevious[self.xDelayForList] < self.yMinPrevious[self.yDelayForList]:
+        if self.xMaxPrevious[self.xDelay] > self.yMinPrevious[self.yDelay]:
             return True
 
         return False
 
 #=======================================================================
-#Class: MaxPreviousXLowerMaxY
-class MaxPreviousXLowerMaxY(EntrySignal):
-    name = "MaxPrevious{X}LowerMax{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "Max"
+#Class: MaxPreviousXLowerMinPreviousY
+class MaxPreviousXLowerMinPreviousY(EntrySignal):
+    name = "MaxPrevious{X}LowerMinPrevious{Y}"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
+        from..ta.MinMax import MaxPreviousX
+        from..ta.MinMax import MinPreviousX
+        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
+        self.yMinPrevious = self.AddTA(MinPreviousX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xMaxPrevious.isReady:
+            return False
+
+        if not self.yMinPrevious.isReady:
+            return False
+
+        if len(self.xMaxPrevious) <= self.xDelay:
+            return False
+
+        if len(self.yMinPrevious) <= self.yDelay:
+            return False
+
+        if self.xMaxPrevious[self.xDelay] < self.yMinPrevious[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: MaxPreviousXHigherMaxY
+class MaxPreviousXHigherMaxY(EntrySignal):
+    name = "MaxPrevious{X}HigherMax{Y}"
+
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MaxPreviousX
         from..ta.MinMax import MaxX
@@ -5169,17 +4354,16 @@ class MaxPreviousXLowerMaxY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -5196,36 +4380,84 @@ class MaxPreviousXLowerMaxY(EntrySignal):
         if len(self.yMax) <= self.yDelay:
             return False
 
-        if self.xMaxPrevious[self.xDelayForList] < self.yMax[self.yDelayForList]:
+        if self.xMaxPrevious[self.xDelay] > self.yMax[self.yDelay]:
             return True
 
         return False
 
 #=======================================================================
-#Class: MaxPreviousXLowerAverageY
-class MaxPreviousXLowerAverageY(EntrySignal):
-    name = "MaxPrevious{X}LowerAverage{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MaxPrevious"
-    funcNameAfter = "Average"
+#Class: MaxPreviousXLowerMaxY
+class MaxPreviousXLowerMaxY(EntrySignal):
+    name = "MaxPrevious{X}LowerMax{Y}"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
+        from..ta.MinMax import MaxPreviousX
+        from..ta.MinMax import MaxX
+        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
+        self.yMax = self.AddTA(MaxX, {'dataName':y, 'windowSize': yWindowSize})
+
+
+    def Label(self):
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
+        if self.xDelay != 0:
+            xLabel += 'Delay('+str(self.xDelay)+')'
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
+        if self.yDelay != 0:
+            yLabel += 'Delay('+str(self.yDelay)+')'
+        newName = newName.replace("{Y}", yLabel)
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xMaxPrevious.isReady:
+            return False
+
+        if not self.yMax.isReady:
+            return False
+
+        if len(self.xMaxPrevious) <= self.xDelay:
+            return False
+
+        if len(self.yMax) <= self.yDelay:
+            return False
+
+        if self.xMaxPrevious[self.xDelay] < self.yMax[self.yDelay]:
+            return True
+
+        return False
+
+#=======================================================================
+#Class: MaxPreviousXHigherAverageY
+class MaxPreviousXHigherAverageY(EntrySignal):
+    name = "MaxPrevious{X}HigherAverage{Y}"
+
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xDelay = xDelay
+        self.xDelayForList = (xDelay * -1) - 1
+        self.yDelay = yDelay
+        self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MaxPreviousX
         from..ta.SMA import SMA
@@ -5234,17 +4466,16 @@ class MaxPreviousXLowerAverageY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -5261,203 +4492,175 @@ class MaxPreviousXLowerAverageY(EntrySignal):
         if len(self.ySMA) <= self.yDelay:
             return False
 
-        if self.xMaxPrevious[self.xDelayForList] < self.ySMA[self.yDelayForList]:
+        if self.xMaxPrevious[self.xDelay] > self.ySMA[self.yDelay]:
             return True
 
         return False
 
 #=======================================================================
-#Class: MinPreviousXHigherY
-class MinPreviousXHigherY(EntrySignal):
-    name = "MinPrevious{X}Higher{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "OffsetTA"
-    funcNameBefore = "MinPrevious"
-    funcNameAfter = "OffsetTA"
+#Class: MaxPreviousXLowerAverageY
+class MaxPreviousXLowerAverageY(EntrySignal):
+    name = "MaxPrevious{X}LowerAverage{Y}"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yOffset = yOffset
-        self.yOffsetForList = (yOffset * -1) - 1
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
-
-        from..ta.MinMax import MinPreviousX
-        from..ta.base import OffsetTA
-        self.xMinPrevious = self.AddTA(MinPreviousX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yOffsetTA = self.AddTA(OffsetTA, {'dataName':y, 'offset': yOffset})
+        from..ta.MinMax import MaxPreviousX
+        from..ta.SMA import SMA
+        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
+        self.ySMA = self.AddTA(SMA, {'dataName':y, 'windowSize': yWindowSize})
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
     def CalculateSignal(self, bar):
-        if not self.xMinPrevious.isReady:
+        if not self.xMaxPrevious.isReady:
             return False
 
-        if not self.yOffsetTA.isReady:
+        if not self.ySMA.isReady:
             return False
 
-        if len(self.xMinPrevious) <= self.xDelay:
+        if len(self.xMaxPrevious) <= self.xDelay:
             return False
 
-        if len(self.yOffsetTA) <= self.yDelay:
+        if len(self.ySMA) <= self.yDelay:
             return False
 
-        if self.xMinPrevious[self.xDelayForList] > self.yOffsetTA[self.yDelayForList]:
+        if self.xMaxPrevious[self.xDelay] < self.ySMA[self.yDelay]:
             return True
 
         return False
 
 #=======================================================================
-#Class: MinPreviousXHigherMinY
-class MinPreviousXHigherMinY(EntrySignal):
-    name = "MinPrevious{X}HigherMin{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MinPrevious"
-    funcNameAfter = "Min"
+#Class: MaxPreviousXHigherMinY
+class MaxPreviousXHigherMinY(EntrySignal):
+    name = "MaxPrevious{X}HigherMin{Y}"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
-
-        from..ta.MinMax import MinPreviousX
+        from..ta.MinMax import MaxPreviousX
         from..ta.MinMax import MinX
-        self.xMinPrevious = self.AddTA(MinPreviousX, {'dataName':x, 'windowSize': xWindowSize})
+        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
         self.yMin = self.AddTA(MinX, {'dataName':y, 'windowSize': yWindowSize})
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
     def CalculateSignal(self, bar):
-        if not self.xMinPrevious.isReady:
+        if not self.xMaxPrevious.isReady:
             return False
 
         if not self.yMin.isReady:
             return False
 
-        if len(self.xMinPrevious) <= self.xDelay:
+        if len(self.xMaxPrevious) <= self.xDelay:
             return False
 
         if len(self.yMin) <= self.yDelay:
             return False
 
-        if self.xMinPrevious[self.xDelayForList] > self.yMin[self.yDelayForList]:
+        if self.xMaxPrevious[self.xDelay] > self.yMin[self.yDelay]:
             return True
 
         return False
 
 #=======================================================================
-#Class: MinPreviousXHigherMaxPreviousY
-class MinPreviousXHigherMaxPreviousY(EntrySignal):
-    name = "MinPrevious{X}HigherMaxPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MinPrevious"
-    funcNameAfter = "MaxPrevious"
+#Class: MaxPreviousXLowerMinY
+class MaxPreviousXLowerMinY(EntrySignal):
+    name = "MaxPrevious{X}LowerMin{Y}"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
-
-        from..ta.MinMax import MinPreviousX
         from..ta.MinMax import MaxPreviousX
-        self.xMinPrevious = self.AddTA(MinPreviousX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':y, 'windowSize': yWindowSize})
+        from..ta.MinMax import MinX
+        self.xMaxPrevious = self.AddTA(MaxPreviousX, {'dataName':x, 'windowSize': xWindowSize})
+        self.yMin = self.AddTA(MinX, {'dataName':y, 'windowSize': yWindowSize})
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
     def CalculateSignal(self, bar):
-        if not self.xMinPrevious.isReady:
+        if not self.xMaxPrevious.isReady:
             return False
 
-        if not self.yMaxPrevious.isReady:
+        if not self.yMin.isReady:
             return False
 
-        if len(self.xMinPrevious) <= self.xDelay:
+        if len(self.xMaxPrevious) <= self.xDelay:
             return False
 
-        if len(self.yMaxPrevious) <= self.yDelay:
+        if len(self.yMin) <= self.yDelay:
             return False
 
-        if self.xMinPrevious[self.xDelayForList] > self.yMaxPrevious[self.yDelayForList]:
+        if self.xMaxPrevious[self.xDelay] < self.yMin[self.yDelay]:
             return True
 
         return False
@@ -5466,27 +4669,19 @@ class MinPreviousXHigherMaxPreviousY(EntrySignal):
 #Class: MinPreviousXHigherMinPreviousY
 class MinPreviousXHigherMinPreviousY(EntrySignal):
     name = "MinPrevious{X}HigherMinPrevious{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MinPrevious"
-    funcNameAfter = "MinPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay = 0, yDelay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
-        self.xWindowSize = xWindowSize
         self.xDelay = xDelay
         self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
         self.yDelay = yDelay
         self.yDelayForList = (yDelay * -1) - 1
-
+        self.xWindowSize = xWindowSize
+        self.yWindowSize = yWindowSize
 
         from..ta.MinMax import MinPreviousX
         self.xMinPrevious = self.AddTA(MinPreviousX, {'dataName':x, 'windowSize': xWindowSize})
@@ -5494,17 +4689,16 @@ class MinPreviousXHigherMinPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
+        newName = self.name.replace
+        xLabel = self.xLabel + "WindowSize(" + str(self.xWindowSize) + ")"
         if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
+            xLabel += 'Delay('+str(self.xDelay)+')'
         newName = newName.replace("{X}", xLabel)
 
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
+        yLabel = self.yLabel + "WindowSize("+str(self.yWindowSize)+")"
         if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
+            yLabel += 'Delay('+str(self.yDelay)+')'
         newName = newName.replace("{Y}", yLabel)
-
         return newName
 
 
@@ -5521,72 +4715,7 @@ class MinPreviousXHigherMinPreviousY(EntrySignal):
         if len(self.yMinPrevious) <= self.yDelay:
             return False
 
-        if self.xMinPrevious[self.xDelayForList] > self.yMinPrevious[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MinPreviousXHigherMaxY
-class MinPreviousXHigherMaxY(EntrySignal):
-    name = "MinPrevious{X}HigherMax{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "MinPrevious"
-    funcNameAfter = "Max"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MinPreviousX
-        from..ta.MinMax import MaxX
-        self.xMinPrevious = self.AddTA(MinPreviousX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMax = self.AddTA(MaxX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMinPrevious.isReady:
-            return False
-
-        if not self.yMax.isReady:
-            return False
-
-        if len(self.xMinPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yMax) <= self.yDelay:
-            return False
-
-        if self.xMinPrevious[self.xDelayForList] > self.yMax[self.yDelayForList]:
+        if self.xMinPrevious[self.xDelay] > self.yMinPrevious[self.yDelay]:
             return True
 
         return False
@@ -5602,20 +4731,15 @@ class MinPreviousXHigherAverageY(EntrySignal):
     funcNameBefore = "MinPrevious"
     funcNameAfter = "Average"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MinPreviousX
         from..ta.SMA import SMA
@@ -5624,17 +4748,9 @@ class MinPreviousXHigherAverageY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -5645,13 +4761,7 @@ class MinPreviousXHigherAverageY(EntrySignal):
         if not self.ySMA.isReady:
             return False
 
-        if len(self.xMinPrevious) <= self.xDelay:
-            return False
-
-        if len(self.ySMA) <= self.yDelay:
-            return False
-
-        if self.xMinPrevious[self.xDelayForList] > self.ySMA[self.yDelayForList]:
+        if self.xMinPrevious[self.delay] > self.ySMA[self.delay]:
             return True
 
         return False
@@ -5667,21 +4777,16 @@ class MinPreviousXLowerY(EntrySignal):
     funcNameBefore = "MinPrevious"
     funcNameAfter = "OffsetTA"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yOffset = yOffset
         self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MinPreviousX
         from..ta.base import OffsetTA
@@ -5690,17 +4795,9 @@ class MinPreviousXLowerY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yOffset) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -5711,13 +4808,7 @@ class MinPreviousXLowerY(EntrySignal):
         if not self.yOffsetTA.isReady:
             return False
 
-        if len(self.xMinPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xMinPrevious[self.xDelayForList] < self.yOffsetTA[self.yDelayForList]:
+        if self.xMinPrevious[self.delay] < self.yOffsetTA[self.delay]:
             return True
 
         return False
@@ -5733,20 +4824,15 @@ class MinPreviousXLowerMinY(EntrySignal):
     funcNameBefore = "MinPrevious"
     funcNameAfter = "Min"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MinPreviousX
         from..ta.MinMax import MinX
@@ -5755,17 +4841,9 @@ class MinPreviousXLowerMinY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -5776,13 +4854,7 @@ class MinPreviousXLowerMinY(EntrySignal):
         if not self.yMin.isReady:
             return False
 
-        if len(self.xMinPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yMin) <= self.yDelay:
-            return False
-
-        if self.xMinPrevious[self.xDelayForList] < self.yMin[self.yDelayForList]:
+        if self.xMinPrevious[self.delay] < self.yMin[self.delay]:
             return True
 
         return False
@@ -5798,20 +4870,15 @@ class MinPreviousXLowerMaxPreviousY(EntrySignal):
     funcNameBefore = "MinPrevious"
     funcNameAfter = "MaxPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MinPreviousX
         from..ta.MinMax import MaxPreviousX
@@ -5820,17 +4887,9 @@ class MinPreviousXLowerMaxPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -5841,13 +4900,7 @@ class MinPreviousXLowerMaxPreviousY(EntrySignal):
         if not self.yMaxPrevious.isReady:
             return False
 
-        if len(self.xMinPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yMaxPrevious) <= self.yDelay:
-            return False
-
-        if self.xMinPrevious[self.xDelayForList] < self.yMaxPrevious[self.yDelayForList]:
+        if self.xMinPrevious[self.delay] < self.yMaxPrevious[self.delay]:
             return True
 
         return False
@@ -5863,20 +4916,15 @@ class MinPreviousXLowerMinPreviousY(EntrySignal):
     funcNameBefore = "MinPrevious"
     funcNameAfter = "MinPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MinPreviousX
         self.xMinPrevious = self.AddTA(MinPreviousX, {'dataName':x, 'windowSize': xWindowSize})
@@ -5884,17 +4932,9 @@ class MinPreviousXLowerMinPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -5905,13 +4945,7 @@ class MinPreviousXLowerMinPreviousY(EntrySignal):
         if not self.yMinPrevious.isReady:
             return False
 
-        if len(self.xMinPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yMinPrevious) <= self.yDelay:
-            return False
-
-        if self.xMinPrevious[self.xDelayForList] < self.yMinPrevious[self.yDelayForList]:
+        if self.xMinPrevious[self.delay] < self.yMinPrevious[self.delay]:
             return True
 
         return False
@@ -5927,20 +4961,15 @@ class MinPreviousXLowerMaxY(EntrySignal):
     funcNameBefore = "MinPrevious"
     funcNameAfter = "Max"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MinPreviousX
         from..ta.MinMax import MaxX
@@ -5949,17 +4978,9 @@ class MinPreviousXLowerMaxY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -5970,13 +4991,7 @@ class MinPreviousXLowerMaxY(EntrySignal):
         if not self.yMax.isReady:
             return False
 
-        if len(self.xMinPrevious) <= self.xDelay:
-            return False
-
-        if len(self.yMax) <= self.yDelay:
-            return False
-
-        if self.xMinPrevious[self.xDelayForList] < self.yMax[self.yDelayForList]:
+        if self.xMinPrevious[self.delay] < self.yMax[self.delay]:
             return True
 
         return False
@@ -5992,20 +5007,15 @@ class MinPreviousXLowerAverageY(EntrySignal):
     funcNameBefore = "MinPrevious"
     funcNameAfter = "Average"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MinPreviousX
         from..ta.SMA import SMA
@@ -6014,17 +5024,9 @@ class MinPreviousXLowerAverageY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6035,13 +5037,7 @@ class MinPreviousXLowerAverageY(EntrySignal):
         if not self.ySMA.isReady:
             return False
 
-        if len(self.xMinPrevious) <= self.xDelay:
-            return False
-
-        if len(self.ySMA) <= self.yDelay:
-            return False
-
-        if self.xMinPrevious[self.xDelayForList] < self.ySMA[self.yDelayForList]:
+        if self.xMinPrevious[self.delay] < self.ySMA[self.delay]:
             return True
 
         return False
@@ -6057,21 +5053,16 @@ class MaxXHigherY(EntrySignal):
     funcNameBefore = "Max"
     funcNameAfter = "OffsetTA"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yOffset = yOffset
         self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MaxX
         from..ta.base import OffsetTA
@@ -6080,17 +5071,9 @@ class MaxXHigherY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yOffset) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6101,78 +5084,7 @@ class MaxXHigherY(EntrySignal):
         if not self.yOffsetTA.isReady:
             return False
 
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] > self.yOffsetTA[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MaxXHigherMinY
-class MaxXHigherMinY(EntrySignal):
-    name = "Max{X}HigherMin{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Max"
-    funcNameAfter = "Min"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MaxX
-        from..ta.MinMax import MinX
-        self.xMax = self.AddTA(MaxX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMin = self.AddTA(MinX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMax.isReady:
-            return False
-
-        if not self.yMin.isReady:
-            return False
-
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.yMin) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] > self.yMin[self.yDelayForList]:
+        if self.xMax[self.delay] > self.yOffsetTA[self.delay]:
             return True
 
         return False
@@ -6188,20 +5100,15 @@ class MaxXHigherMaxPreviousY(EntrySignal):
     funcNameBefore = "Max"
     funcNameAfter = "MaxPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MaxX
         from..ta.MinMax import MaxPreviousX
@@ -6210,17 +5117,9 @@ class MaxXHigherMaxPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6231,13 +5130,7 @@ class MaxXHigherMaxPreviousY(EntrySignal):
         if not self.yMaxPrevious.isReady:
             return False
 
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.yMaxPrevious) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] > self.yMaxPrevious[self.yDelayForList]:
+        if self.xMax[self.delay] > self.yMaxPrevious[self.delay]:
             return True
 
         return False
@@ -6253,20 +5146,15 @@ class MaxXHigherMinPreviousY(EntrySignal):
     funcNameBefore = "Max"
     funcNameAfter = "MinPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MaxX
         from..ta.MinMax import MinPreviousX
@@ -6275,17 +5163,9 @@ class MaxXHigherMinPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6296,77 +5176,7 @@ class MaxXHigherMinPreviousY(EntrySignal):
         if not self.yMinPrevious.isReady:
             return False
 
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.yMinPrevious) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] > self.yMinPrevious[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MaxXHigherMaxY
-class MaxXHigherMaxY(EntrySignal):
-    name = "Max{X}HigherMax{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Max"
-    funcNameAfter = "Max"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MaxX
-        self.xMax = self.AddTA(MaxX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMax = self.AddTA(MaxX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMax.isReady:
-            return False
-
-        if not self.yMax.isReady:
-            return False
-
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.yMax) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] > self.yMax[self.yDelayForList]:
+        if self.xMax[self.delay] > self.yMinPrevious[self.delay]:
             return True
 
         return False
@@ -6382,20 +5192,15 @@ class MaxXHigherAverageY(EntrySignal):
     funcNameBefore = "Max"
     funcNameAfter = "Average"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MaxX
         from..ta.SMA import SMA
@@ -6404,17 +5209,9 @@ class MaxXHigherAverageY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6425,13 +5222,7 @@ class MaxXHigherAverageY(EntrySignal):
         if not self.ySMA.isReady:
             return False
 
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.ySMA) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] > self.ySMA[self.yDelayForList]:
+        if self.xMax[self.delay] > self.ySMA[self.delay]:
             return True
 
         return False
@@ -6447,21 +5238,16 @@ class MaxXLowerY(EntrySignal):
     funcNameBefore = "Max"
     funcNameAfter = "OffsetTA"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yOffset = yOffset
         self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MaxX
         from..ta.base import OffsetTA
@@ -6470,17 +5256,9 @@ class MaxXLowerY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yOffset) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6491,78 +5269,7 @@ class MaxXLowerY(EntrySignal):
         if not self.yOffsetTA.isReady:
             return False
 
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] < self.yOffsetTA[self.yDelayForList]:
-            return True
-
-        return False
-
-#=======================================================================
-#Class: MaxXLowerMinY
-class MaxXLowerMinY(EntrySignal):
-    name = "Max{X}LowerMin{Y}"
-    dataBefore = "X"
-    dataAfter = "Y"
-    funcTypeBefore = "WindowTA"
-    funcTypeAfter = "WindowTA"
-    funcNameBefore = "Max"
-    funcNameAfter = "Min"
-
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
-        super().__init__(strategy)
-
-        self.xLabel = x
-        self.yLabel = y
-
-        self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
-        self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
-
-        from..ta.MinMax import MaxX
-        from..ta.MinMax import MinX
-        self.xMax = self.AddTA(MaxX, {'dataName':x, 'windowSize': xWindowSize})
-        self.yMin = self.AddTA(MinX, {'dataName':y, 'windowSize': yWindowSize})
-
-
-    def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
-        return newName
-
-
-    def CalculateSignal(self, bar):
-        if not self.xMax.isReady:
-            return False
-
-        if not self.yMin.isReady:
-            return False
-
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.yMin) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] < self.yMin[self.yDelayForList]:
+        if self.xMax[self.delay] < self.yOffsetTA[self.delay]:
             return True
 
         return False
@@ -6578,20 +5285,15 @@ class MaxXLowerMaxPreviousY(EntrySignal):
     funcNameBefore = "Max"
     funcNameAfter = "MaxPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MaxX
         from..ta.MinMax import MaxPreviousX
@@ -6600,17 +5302,9 @@ class MaxXLowerMaxPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6621,13 +5315,7 @@ class MaxXLowerMaxPreviousY(EntrySignal):
         if not self.yMaxPrevious.isReady:
             return False
 
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.yMaxPrevious) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] < self.yMaxPrevious[self.yDelayForList]:
+        if self.xMax[self.delay] < self.yMaxPrevious[self.delay]:
             return True
 
         return False
@@ -6643,20 +5331,15 @@ class MaxXLowerMinPreviousY(EntrySignal):
     funcNameBefore = "Max"
     funcNameAfter = "MinPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MaxX
         from..ta.MinMax import MinPreviousX
@@ -6665,17 +5348,9 @@ class MaxXLowerMinPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6686,13 +5361,7 @@ class MaxXLowerMinPreviousY(EntrySignal):
         if not self.yMinPrevious.isReady:
             return False
 
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.yMinPrevious) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] < self.yMinPrevious[self.yDelayForList]:
+        if self.xMax[self.delay] < self.yMinPrevious[self.delay]:
             return True
 
         return False
@@ -6708,20 +5377,15 @@ class MaxXLowerMaxY(EntrySignal):
     funcNameBefore = "Max"
     funcNameAfter = "Max"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MaxX
         self.xMax = self.AddTA(MaxX, {'dataName':x, 'windowSize': xWindowSize})
@@ -6729,17 +5393,9 @@ class MaxXLowerMaxY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6750,13 +5406,7 @@ class MaxXLowerMaxY(EntrySignal):
         if not self.yMax.isReady:
             return False
 
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.yMax) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] < self.yMax[self.yDelayForList]:
+        if self.xMax[self.delay] < self.yMax[self.delay]:
             return True
 
         return False
@@ -6772,20 +5422,15 @@ class MaxXLowerAverageY(EntrySignal):
     funcNameBefore = "Max"
     funcNameAfter = "Average"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.MinMax import MaxX
         from..ta.SMA import SMA
@@ -6794,17 +5439,9 @@ class MaxXLowerAverageY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6815,13 +5452,7 @@ class MaxXLowerAverageY(EntrySignal):
         if not self.ySMA.isReady:
             return False
 
-        if len(self.xMax) <= self.xDelay:
-            return False
-
-        if len(self.ySMA) <= self.yDelay:
-            return False
-
-        if self.xMax[self.xDelayForList] < self.ySMA[self.yDelayForList]:
+        if self.xMax[self.delay] < self.ySMA[self.delay]:
             return True
 
         return False
@@ -6837,21 +5468,16 @@ class AverageXHigherY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "OffsetTA"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yOffset = yOffset
         self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         from..ta.base import OffsetTA
@@ -6860,17 +5486,9 @@ class AverageXHigherY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yOffset) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6881,13 +5499,7 @@ class AverageXHigherY(EntrySignal):
         if not self.yOffsetTA.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] > self.yOffsetTA[self.yDelayForList]:
+        if self.xSMA[self.delay] > self.yOffsetTA[self.delay]:
             return True
 
         return False
@@ -6903,20 +5515,15 @@ class AverageXHigherMinY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "Min"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         from..ta.MinMax import MinX
@@ -6925,17 +5532,9 @@ class AverageXHigherMinY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -6946,13 +5545,7 @@ class AverageXHigherMinY(EntrySignal):
         if not self.yMin.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.yMin) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] > self.yMin[self.yDelayForList]:
+        if self.xSMA[self.delay] > self.yMin[self.delay]:
             return True
 
         return False
@@ -6968,20 +5561,15 @@ class AverageXHigherMaxPreviousY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "MaxPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         from..ta.MinMax import MaxPreviousX
@@ -6990,17 +5578,9 @@ class AverageXHigherMaxPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -7011,13 +5591,7 @@ class AverageXHigherMaxPreviousY(EntrySignal):
         if not self.yMaxPrevious.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.yMaxPrevious) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] > self.yMaxPrevious[self.yDelayForList]:
+        if self.xSMA[self.delay] > self.yMaxPrevious[self.delay]:
             return True
 
         return False
@@ -7033,20 +5607,15 @@ class AverageXHigherMinPreviousY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "MinPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         from..ta.MinMax import MinPreviousX
@@ -7055,17 +5624,9 @@ class AverageXHigherMinPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -7076,13 +5637,7 @@ class AverageXHigherMinPreviousY(EntrySignal):
         if not self.yMinPrevious.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.yMinPrevious) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] > self.yMinPrevious[self.yDelayForList]:
+        if self.xSMA[self.delay] > self.yMinPrevious[self.delay]:
             return True
 
         return False
@@ -7098,20 +5653,15 @@ class AverageXHigherMaxY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "Max"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         from..ta.MinMax import MaxX
@@ -7120,17 +5670,9 @@ class AverageXHigherMaxY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -7141,13 +5683,7 @@ class AverageXHigherMaxY(EntrySignal):
         if not self.yMax.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.yMax) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] > self.yMax[self.yDelayForList]:
+        if self.xSMA[self.delay] > self.yMax[self.delay]:
             return True
 
         return False
@@ -7163,20 +5699,15 @@ class AverageXHigherAverageY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "Average"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         self.xSMA = self.AddTA(SMA, {'dataName':x, 'windowSize': xWindowSize})
@@ -7184,17 +5715,9 @@ class AverageXHigherAverageY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -7205,13 +5728,7 @@ class AverageXHigherAverageY(EntrySignal):
         if not self.ySMA.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.ySMA) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] > self.ySMA[self.yDelayForList]:
+        if self.xSMA[self.delay] > self.ySMA[self.delay]:
             return True
 
         return False
@@ -7227,21 +5744,16 @@ class AverageXLowerY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "OffsetTA"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yOffset=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yOffset = yOffset
         self.yOffsetForList = (yOffset * -1) - 1
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         from..ta.base import OffsetTA
@@ -7250,17 +5762,9 @@ class AverageXLowerY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yOffset)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yOffset) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -7271,13 +5775,7 @@ class AverageXLowerY(EntrySignal):
         if not self.yOffsetTA.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.yOffsetTA) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] < self.yOffsetTA[self.yDelayForList]:
+        if self.xSMA[self.delay] < self.yOffsetTA[self.delay]:
             return True
 
         return False
@@ -7293,20 +5791,15 @@ class AverageXLowerMinY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "Min"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         from..ta.MinMax import MinX
@@ -7315,17 +5808,9 @@ class AverageXLowerMinY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -7336,13 +5821,7 @@ class AverageXLowerMinY(EntrySignal):
         if not self.yMin.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.yMin) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] < self.yMin[self.yDelayForList]:
+        if self.xSMA[self.delay] < self.yMin[self.delay]:
             return True
 
         return False
@@ -7358,20 +5837,15 @@ class AverageXLowerMaxPreviousY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "MaxPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         from..ta.MinMax import MaxPreviousX
@@ -7380,17 +5854,9 @@ class AverageXLowerMaxPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -7401,13 +5867,7 @@ class AverageXLowerMaxPreviousY(EntrySignal):
         if not self.yMaxPrevious.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.yMaxPrevious) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] < self.yMaxPrevious[self.yDelayForList]:
+        if self.xSMA[self.delay] < self.yMaxPrevious[self.delay]:
             return True
 
         return False
@@ -7423,20 +5883,15 @@ class AverageXLowerMinPreviousY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "MinPrevious"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         from..ta.MinMax import MinPreviousX
@@ -7445,17 +5900,9 @@ class AverageXLowerMinPreviousY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -7466,13 +5913,7 @@ class AverageXLowerMinPreviousY(EntrySignal):
         if not self.yMinPrevious.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.yMinPrevious) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] < self.yMinPrevious[self.yDelayForList]:
+        if self.xSMA[self.delay] < self.yMinPrevious[self.delay]:
             return True
 
         return False
@@ -7488,20 +5929,15 @@ class AverageXLowerMaxY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "Max"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         from..ta.MinMax import MaxX
@@ -7510,17 +5946,9 @@ class AverageXLowerMaxY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -7531,13 +5959,7 @@ class AverageXLowerMaxY(EntrySignal):
         if not self.yMax.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.yMax) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] < self.yMax[self.yDelayForList]:
+        if self.xSMA[self.delay] < self.yMax[self.delay]:
             return True
 
         return False
@@ -7553,20 +5975,15 @@ class AverageXLowerAverageY(EntrySignal):
     funcNameBefore = "Average"
     funcNameAfter = "Average"
 
-    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, xDelay=0, yDelay=0):
+    def __init__(self, strategy, x="open", xWindowSize=0, y="open", yWindowSize=0, delay = 0):
         super().__init__(strategy)
 
         self.xLabel = x
         self.yLabel = y
 
         self.xWindowSize = xWindowSize
-        self.xDelay = xDelay
-        self.xDelayForList = (xDelay * -1) - 1
-
         self.yWindowSize = yWindowSize
-        self.yDelay = yDelay
-        self.yDelayForList = (yDelay * -1) - 1
-
+        self.delay = (delay * -1) - 1
 
         from..ta.SMA import SMA
         self.xSMA = self.AddTA(SMA, {'dataName':x, 'windowSize': xWindowSize})
@@ -7574,17 +5991,9 @@ class AverageXLowerAverageY(EntrySignal):
 
 
     def Label(self):
-        newName = self.name
-        xLabel = self.xLabel + "("+str(self.xWindowSize)+")"
-        if self.xDelay != 0:
-            xLabel += "Delay(" + str(self.xDelay) + ")"
-        newName = newName.replace("{X}", xLabel)
-
-        yLabel = self.yLabel + "("+str(self.yWindowSize)+")"
-        if self.yDelay != 0:
-            yLabel += "Delay(" + str(self.yDelay) + ")"
-        newName = newName.replace("{Y}", yLabel)
-
+        newName = self.name.replace("{X}", self.xLabel + "(" + str(self.xWindowSize) + ")").replace("{Y}", self.yLabel + "(" + str(self.yWindowSize) + ")")
+        if self.delay!=-1:
+            newName += 'Delay('+str((self.delay+1)*-1)+')'
         return newName
 
 
@@ -7595,13 +6004,7 @@ class AverageXLowerAverageY(EntrySignal):
         if not self.ySMA.isReady:
             return False
 
-        if len(self.xSMA) <= self.xDelay:
-            return False
-
-        if len(self.ySMA) <= self.yDelay:
-            return False
-
-        if self.xSMA[self.xDelayForList] < self.ySMA[self.yDelayForList]:
+        if self.xSMA[self.delay] < self.ySMA[self.delay]:
             return True
 
         return False

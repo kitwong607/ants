@@ -1945,6 +1945,36 @@ def GetOrderById(oid, permId):
         DisconnectToMySQL(connection)
 
 
+def GetAllOrdersByStatus(status="Filled"):
+    try:
+        connection = ConnectToMySQL()
+        value = []
+
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM `trade_orders` WHERE `status`=%s ORDER BY `created_time` ASC"
+            cursor.execute(sql, (status))
+            connection.commit()
+            result = cursor.fetchall()
+
+            if result is not None:
+                for row in result:
+                    row['created_time'] = MySQLTimeToString(row['created_time'])
+                    row['modified_time'] = MySQLTimeToString(row['modified_time'])
+                    try:
+                        row['filled_time'] = MySQLTimeToString(row['filled_time'])
+                    except:
+                        row['filled_time'] = "0000-00-00 00:00:00"
+                    value.append(row)
+
+        return value
+
+    except:
+        traceback.print_exc()
+        return []
+
+    finally:
+        DisconnectToMySQL(connection)
+
 # endregion
 
 
@@ -2262,6 +2292,25 @@ def AddPositionFromBacktestReport(sid, account, clientId, tradeType, exchange, t
 
 # endregion
 # region Get method
+def GetAllPositionByStatus(status="Closed"):
+    try:
+        connection = ConnectToMySQL()
+        value = []
+
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM `trade_positions` WHERE `status`=%s ORDER BY `entry_date` ASC, `entry_time` ASC"
+            cursor.execute(sql, (status))
+            connection.commit()
+            result = cursor.fetchall()
+
+        return result
+    except:
+        traceback.print_exc()
+        return value
+    finally:
+        DisconnectToMySQL(connection)
+
+
 def GetAllPositionInPeriod(sid, fromDate, toDate):
     try:
         connection = ConnectToMySQL()

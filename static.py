@@ -29,7 +29,7 @@ CONTRACT_MULTIPLY = {
     "HSI": 50,
 }
 
-INDEX_TICKER = ['mhi','hsi']
+INDEX_TICKER = ['mhi','hsi','hhi','mch']
 COMMODITY_TICKER = ['brent','copper']
 FX_TICKER = ['usdjpy','usdcad']
 

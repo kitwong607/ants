@@ -93,6 +93,7 @@ class FixedStopGain(ExitSignal):
     def __init__(self, strategy, amount):
         super().__init__(strategy)
         self.amount = amount
+        self.exitPrice = None
 
 
     def Label(self):
@@ -101,7 +102,34 @@ class FixedStopGain(ExitSignal):
 
     def OnNewDay(self, bar):
         self.isTriggerBreakeven = False
-        self.profitWatemark = 0
+        self.exitPrice = None
+
+
+
+    def CalculateSignalByBidAsk(self, bidAsk):
+        if self.isTrigger:
+            return False
+
+        if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
+            return False
+
+        position = self.strategy.session.portfolio.positions[self.strategy.config.tradeTicker]
+
+        if OrderAction.BUY == position.action:
+            self.exitPrice = position.entryPrice + self.amount
+
+            if bidAsk > self.exitPrice:
+                self.isTrigger = True
+                return True
+
+        elif OrderAction.SELL == position.action:
+            self.exitPrice = position.entryPrice - self.stopLoss
+
+            if bidAsk < self.exitPrice:
+                self.isTrigger = True
+                return True
+
+        return False
 
 
     def CalculateSignal(self, bar):
@@ -109,16 +137,21 @@ class FixedStopGain(ExitSignal):
             return False
 
         position = self.strategy.session.portfolio.positions[self.strategy.config.tradeTicker]
+
+
         if OrderAction.BUY == position.action:
-            currentWatermark = bar.highPrice - position.entryPrice
-            if currentWatermark > self.amount:
+            self.exitPrice = position.entryPrice + self.amount
+
+            if bar.closePrice > self.exitPrice:
+                self.isTrigger = True
                 return True
 
         elif OrderAction.SELL == position.action:
-            currentWatermark = position.entryPrice - bar.lowPrice
-            if currentWatermark > self.amount:
-                return True
+            self.exitPrice = position.entryPrice - self.stopLoss
 
+            if bar.closePrice < self.exitPrice:
+                self.isTrigger = True
+                return True
         return False
 
 # region DayRangeTouch

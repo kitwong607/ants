@@ -376,7 +376,7 @@ class IBOrder:
         order.lmtPrice = float(limitPrice)
         order.signalPrice = signalPrice
 
-        print("LimitOrder:", signalPrice, limitPrice)
+        #print("LimitOrder:", signalPrice, limitPrice)
 
         # ! [limitorder]
         return order

@@ -12,7 +12,7 @@ MONTH_CODE = {"1": "F", "2": "G", "3": "H", "4": "J",
              "5": "K", "6": "M", "7": "N", "8": "Q",
              "9": "U", "10": "V", "11": "X", "12": "Z"}
 
-HKEX_FUTURE = ["HSI","MHI"]
+HKEX_FUTURE = ["HSI","MHI","HHI","MCH"]
 
 #call sequence
 #1 on_new_date              -> if data is in a new day
@@ -395,17 +395,23 @@ class FutureAbstractStrategy(AbstractStrategy):
                     return
 
                 if self.entryCount >= self.tradeLimit:
-                    self.Log("sid:", self.session.config.sid, "["+str(bar.adjustedTime)+"] Reach trade limit:", self.tradeLimit)
+                    if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
+                        self.Log("sid:", self.session.config.sid, "["+str(bar.adjustedTime)+"] Reach trade limit:", self.tradeLimit)
                     return
 
                 if self.entryHourLimitInAdjustedTime is not None:
                     if not (bar.adjustedTime > self.entryHourLimitInAdjustedTime["START"] and bar.adjustedTime < self.entryHourLimitInAdjustedTime["END"]):
-                        self.Log("sid:", self.session.config.sid, "["+str(bar.adjustedTime)+"] Out of entry hour limit:", bar.adjustedTime, self.entryHourLimitInAdjustedTime)
+                        if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
+                            self.Log("sid:", self.session.config.sid, "["+str(bar.adjustedTime)+"] Out of entry hour limit:", bar.adjustedTime, self.entryHourLimitInAdjustedTime)
                         return
 
-                self.Log("sid:", self.session.config.sid, "[" + str(bar.adjustedTime)+"]")
+                if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
+                    self.Log("sid:", self.session.config.sid, "[" + str(bar.adjustedTime)+"]")
+
                 self.CalculateEntrySignal(bar)
-                self.Log("")
+
+                if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
+                    self.Log("")
 
 
     def CanCalculateExitSignal(self, bar):
@@ -483,7 +489,8 @@ class FutureAbstractStrategy(AbstractStrategy):
         order.stopLossThreshold = self.stopLoss
 
         self.orderHandler.PlaceOrder(orderId, contract, order, "True")
-        self.Log("========== Entry:", price, adjustedDate, adjustedTime, self.entryCount, label)
+        if self.session.mode == SessionMode.IB_LIVE or self.session.mode == SessionMode.IB_DALIY_BACKTEST:
+            self.Log("========== Entry:", price, adjustedDate, adjustedTime, self.entryCount, label)
 
 
 
@@ -508,7 +515,8 @@ class FutureAbstractStrategy(AbstractStrategy):
             order = self.orderHandler.PrepareOrder(OrderAction.BUY, contract, orderId, price, limitPrice, adjustedDate, adjustedTime, orderType, label, quantity)
 
         self.orderHandler.PlaceOrder(orderId, contract, order)
-        self.Log("========== Exit:", price, orderType, label, quantity, triggerLimit)
+        if self.session.mode == SessionMode.IB_LIVE or self.session.mode == SessionMode.IB_DALIY_BACKTEST:
+            self.Log("========== Exit:", price, orderType, label, quantity, triggerLimit)
 
 
     def UpdateContact(self):
@@ -543,7 +551,8 @@ class FutureAbstractStrategy(AbstractStrategy):
         for signal in self.exitSignals:
             signal.OnNewDay(bar)
 
-        self.Log("OnNewDate:", bar.timestamp, self.config.startDate, self.config.endDate)
+        if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
+            self.Log("OnNewDate:", bar.timestamp, self.config.startDate, self.config.endDate)
 
         if self.inTradePeriod is False:
             if bar.timestamp >= self.config.startDate and bar.timestamp<=self.config.endDate:
@@ -719,10 +728,10 @@ class FutureAbstractStrategy(AbstractStrategy):
             while isCheckLockFile:
                 self.Log("Lock file exist, please exit:", lockFile)
                 tryCount += 1
-                time.sleep(1)
+                time.sleep(2)
                 isCheckLockFile = utilities.isFileExist(lockFile)
 
-                maxTryCount = 10
+                maxTryCount = 30
                 if self.session.mode == SessionMode.IB_DALIY_BACKTEST or self.session.mode == SessionMode.IB_LIVE:
                     import random
                     time.sleep(random.randint(2,5))

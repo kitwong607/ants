@@ -702,7 +702,7 @@ def CalculateDrawdown(equitySeries, sessionConfig):
                 durationCounter += 1
             dd = equity - watermark
             drawdownSeries.append(dd)
-            print("sessionConfig:", sessionConfig)
+            #print("sessionConfig:", sessionConfig)
             drawdownPctSeries.append(abs(dd)/(watermark + sessionConfig["cash"]))
 
             i += 1
@@ -962,8 +962,6 @@ def GetDataByName(instance, dataName):
     from .session import Session, IBLiveSession
     from .signal.base import Signal
     from .strategy.future_strategy import FutureAbstractStrategy
-
-    print(type(instance), instance)
 
     strategy = None
     if issubclass(type(instance), FutureAbstractStrategy):

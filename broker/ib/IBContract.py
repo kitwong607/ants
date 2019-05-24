@@ -63,6 +63,52 @@ class IBContract:
         return contract
 
     @staticmethod
+    def MCHFut(lastTradeDateOrContractMonth = None):
+        #! [cashcontract]
+        contract = Contract()
+        contract.symbol = "MCH"
+        contract.secType = "FUT"
+        contract.currency = "HKD"
+        contract.exchange = "HKFE"
+
+        lastTradeDateOrContractMonth = str(lastTradeDateOrContractMonth)
+        if lastTradeDateOrContractMonth is None:
+            contract.lastTradeDateOrContractMonth = "201806"
+        else:
+            if len(lastTradeDateOrContractMonth)==4:
+                contract.lastTradeDateOrContractMonth = "20"+str(lastTradeDateOrContractMonth)
+            else:
+                contract.lastTradeDateOrContractMonth = lastTradeDateOrContractMonth
+
+        contract.code = contract.symbol + IBContract.HKEXFutureMonthCode[
+            int(contract.lastTradeDateOrContractMonth[4:]) - 1] + contract.lastTradeDateOrContractMonth[2:4]
+        #! [cashcontract]
+        return contract
+
+    @staticmethod
+    def HHIFut(lastTradeDateOrContractMonth = None):
+        #! [cashcontract]
+        contract = Contract()
+        contract.symbol = "HHI"
+        contract.secType = "FUT"
+        contract.currency = "HKD"
+        contract.exchange = "HKFE"
+
+        lastTradeDateOrContractMonth = str(lastTradeDateOrContractMonth)
+        if lastTradeDateOrContractMonth is None:
+            contract.lastTradeDateOrContractMonth = "201806"
+        else:
+            if len(lastTradeDateOrContractMonth)==4:
+                contract.lastTradeDateOrContractMonth = "20"+str(lastTradeDateOrContractMonth)
+            else:
+                contract.lastTradeDateOrContractMonth = lastTradeDateOrContractMonth
+
+        contract.code = contract.symbol + IBContract.HKEXFutureMonthCode[
+            int(contract.lastTradeDateOrContractMonth[4:]) - 1] + contract.lastTradeDateOrContractMonth[2:4]
+        #! [cashcontract]
+        return contract
+
+    @staticmethod
     def EurGbpFx():
         #! [cashcontract]
         contract = Contract()
