@@ -1063,7 +1063,7 @@ def GetLiveTradeDayInfo(todayStr, todayStrHourOffset=7, LogFunction = None):
     #todayStr = today.strftime('%Y%m%d')
     #todayStrWithSperator = today.strftime('%Y-%m-%d')
     todayStrWithSperator = todayStr[0:4] + "-" + todayStr[4:6] + "-" + todayStr[6:]
-    tradeDateCSVFilePath = SessionStaticVariable.baseLiveDataDirectory + "trade_date/trade_date.csv"
+    tradeDateCSVFilePath = SessionStaticVariable.baseLiveDataDirectory + "/live/trade_date/trade_date.csv"
 
     isFindTradeDate = False
     with open(tradeDateCSVFilePath) as f:

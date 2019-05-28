@@ -136,7 +136,6 @@ class CSVOHLCDataSource(AbstractBarDataSource):
         return self.tradeDate.loc[timestamp].to_dict()
 
 
-
 class CSVOHLCDataSourceWithLiveData(AbstractBarDataSource):
     NAME = "CSVOHLCDataSourceWithLiveData"
 
