@@ -58,7 +58,7 @@ class SessionStaticVariable:
 
     # region Directory, file location, python path
     dataPath = "X:/"
-    dataPath = "C:/tmp/"
+    #dataPath = "C:/tmp/"
     logDirectory = "X:/log/"
     logDirectory = "C:/log/" #"X:/log/"
     api_path = "http://127.0.0.1/antXXXXXXX/XXXXXXXX/XXXXXXXX"
