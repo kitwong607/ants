@@ -26,6 +26,8 @@ def DisconnectToMySQL(connection):
 
 # region Data format convert
 def MySQLTimeToString(dt):
+    if type(dt) == str:
+        return dt
     if dt is None:
         return "0000-00-00 00:00:00"
     return dt.strftime('%Y-%m-%d %H:%M:%S')

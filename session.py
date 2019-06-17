@@ -299,9 +299,11 @@ class SessionConfig:
             configFilename = "/sessionConfig.json"
             csvFile = Path(self.reportDirectory + configFilename)
             if csvFile.is_file():
+                print("config exist.")
                 with open(self.reportDirectory + configFilename) as fp:
                     dictToSave = json.load(fp)
 
+                print("set endDate to:", dictToSave["endDate"])
                 dictToSave["endDate"] = self.endDate.strftime("%Y%m%d")
                 with open(self.reportDirectory + configFilename, 'w') as fp:
                     json.dump(dictToSave, fp, indent=4)

@@ -101,6 +101,7 @@ class FixedStopGain(ExitSignal):
 
 
     def OnNewDay(self, bar):
+        self.isTrigger = False
         self.isTriggerBreakeven = False
         self.exitPrice = None
 
@@ -133,6 +134,9 @@ class FixedStopGain(ExitSignal):
 
 
     def CalculateSignal(self, bar):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -168,15 +172,20 @@ class DayRangeTouch(ExitSignal):
 
 
     def OnNewDay(self, bar):
+        self.isTrigger = False
         self.isTriggerBreakeven = False
         self.profitWatemark = 0
 
 
     def CalculateSignal(self, bar):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
         if self.strategy.highD[-1] - self.strategy.lowD[-1] > self.amount:
+            self.isTrigger = True
             return True
 
         return False
@@ -196,11 +205,15 @@ class BreakevenAfterTouchThreshold(ExitSignal):
 
 
     def OnNewDay(self, bar):
+        self.isTrigger = False
         self.isTriggerBreakeven = False
         self.profitWatemark = 0
 
 
     def CalculateSignal(self, bar):
+        if self.isTrigger:
+            return False
+
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -223,6 +236,7 @@ class BreakevenAfterTouchThreshold(ExitSignal):
                 currentWatermark = position.entryPrice - bar.highPrice
 
             if currentWatermark < 0:
+                self.isTrigger = True
                 return True
 
 
@@ -347,7 +361,6 @@ class TrailingStopWithFixedPrice(ExitSignal):
 
 
     def Reset(self):
-        self.isTrigger = False
         self.count = 0
         self.exitPrice = None
         for signal in self.strategy.exitSignals:
@@ -361,9 +374,6 @@ class TrailingStopWithFixedPrice(ExitSignal):
 
 
     def CalculateSignalByBidAsk(self, bidAsk):
-        if self.isTrigger:
-            return False
-
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -396,9 +406,6 @@ class TrailingStopWithFixedPrice(ExitSignal):
 
 
     def CalculateSignal(self, bar):
-        if self.isTrigger:
-            return False
-
         if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
             return False
 
@@ -449,6 +456,7 @@ class TrailingStopCountExit(ExitSignal):
 
     def Reset(self):
         self.count = 0
+        self.isTrigger = False
         self.isTrigger = False
         self.exitPrice = None
 
