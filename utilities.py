@@ -52,6 +52,35 @@ def secondBetweenTwoDatetime(dt1, dt2, useAbsValue=True):
 
     return (dt1 - dt2).seconds
 
+def secondBetweenTwoAdjustedTime(adt1, adt2, useAbsValue=True):
+    adt1 = str(adt1).zfill(6)
+    adt2 = str(adt2).zfill(6)
+
+    difHour = int(adt1[0:2]) - int(adt2[0:2])
+    difMin = int(adt1[2:4]) - int(adt2[2:4])
+    difSecond = int(adt1[4:6]) - int(adt2[4:6])
+    d = difHour * 60 * 60 + difMin * 60 + difSecond
+
+    if useAbsValue:
+        return abs(d)
+
+    return d
+
+def mintueBetweenTwoAdjustedTime(adt1, adt2, useAbsValue=True):
+    adt1 = str(adt1).zfill(6)
+    adt2 = str(adt2).zfill(6)
+
+    difHour = int(adt1[0:2]) - int(adt2[0:2])
+    difMin = int(adt1[2:4]) - int(adt2[2:4])
+    difSecond = int(adt1[4:6]) - int(adt2[4:6])
+
+    d = difHour * 60 + difMin
+
+    if useAbsValue:
+        return abs(d)
+
+    return d
+
 
 def mintueBetweenTwoDatetime(dt1, dt2, useAbsValue=True):
     if useAbsValue:
@@ -948,10 +977,12 @@ def IsIntraDayData(dataName):
     if dataName in ["opend", "highd", "lowd", "closed", "vold", "volumed",
                     "morningopend", "morninghighd", "morninglowd", "morningclosed", "morningvold", "morningvolumed",
                     "afternoonopend", "afternoonhighd", "afternoonlowd", "afternoonclosed", "afternoonvold", "afternoonvolumed",
+                    "athopend", "athhighd", "athlowd", "athclosed", "athvold","athvolumed",
 
                     "ranged", "uppershadowd", "lowershadowd", "bodyd",
                     "morningranged", "morninguppershadowd", "morninglowershadowd", "morningbodyd",
-                    "afternoonranged", "afternoonuppershadowd", "afternoonlowershadowd", "afternoonbodyd"]:
+                    "afternoonranged", "afternoonuppershadowd", "afternoonlowershadowd", "afternoonbodyd",
+                    "athranged", "athuppershadowd", "athlowershadowd", "athbodyd"]:
 
         return False
     return True
@@ -1022,6 +1053,17 @@ def GetDataByName(instance, dataName):
     elif dataName == "afternoonvold" or dataName == "afternoonvolumed":
         return strategy.afternoonVolumeD
 
+    elif dataName == "athopend":
+        return strategy.athOpenD
+    elif dataName == "athhighd":
+        return strategy.athHighD
+    elif dataName == "athlowd":
+        return strategy.athLowD
+    elif dataName == "athclosed":
+        return strategy.athCloseD
+    elif dataName == "athvold" or dataName == "athvolumed":
+        return strategy.athVolumeD
+
     elif dataName == "ranged":
         return strategy.ranged
     elif dataName == "uppershadowd":
@@ -1048,6 +1090,15 @@ def GetDataByName(instance, dataName):
         return strategy.afternoonLowerShadowD
     elif dataName == "afternoonbodyd":
         return strategy.afternoonBodyD
+
+    elif dataName == "athranged":
+        return strategy.athRangeD
+    elif dataName == "athuppershadowd":
+        return strategy.athUpperShadowD
+    elif dataName == "athlowershadowd":
+        return strategy.athLowerShadowD
+    elif dataName == "athbodyd":
+        return strategy.athBodyD
 
     return None
 
@@ -1098,3 +1149,94 @@ def GetOrderUid(sid):
 
 
 
+
+
+
+
+
+
+
+
+
+
+def GetTradePeriodByDate(dt):
+    if (dt < pd.to_datetime('2011-03-07')):
+        period = 1
+    elif (dt < pd.to_datetime('2012-03-05')):
+        period = 2
+    elif (dt < pd.to_datetime('2016-07-25')):
+        if (dt < pd.to_datetime('2014-01-06')):      #MHI have on market later the HSI so we take MHI time here
+            period = 3          #no night market
+        elif (dt < pd.to_datetime('2014-11-03')):
+            period = 4          #has night market close at 2300
+        else:
+            period = 5          #has night market close at 2345
+    elif (dt < pd.to_datetime('2017-11-06')):
+        period = 6              #has U order
+    elif (dt < pd.to_datetime('2019-06-17')):
+        period = 7              #night market extend to 2500
+    else:
+        period = 8              #night market extend to 2700
+    return period
+
+#This function not in use please update from below data.
+#Search this for code position #This is how to define trading preiod and trading hours
+def GetTradeHourByPreiod(period):
+    morningOpen = None
+    morningClose = None
+    afternoonOpen = None
+    afternoonClose = None
+    athOpen = None
+    athClose = None
+    if (period == 1):
+        morningOpen    = 91500   #91500
+        morningClose   = 123000  #123000
+        afternoonOpen  = 143000  #143000
+        afternoonClose = 160000  #160000
+    elif(period == 2):
+        morningOpen    = 91500   #091500
+        morningClose   = 120000  #120000
+        afternoonOpen  = 133000  #133000
+        afternoonClose = 161500  #161500
+    elif(period == 3):
+        morningOpen    = 91500   #091500
+        morningClose   = 120000  #120000
+        afternoonOpen  = 130000  #130000
+        afternoonClose = 161500  #161500
+    elif(period == 4):
+        morningOpen    = 91500   #091500
+        morningClose   = 120000  #120000
+        afternoonOpen  = 130000  #130000
+        afternoonClose = 161500  #161500
+        athOpen      = 170000  #170000
+        athClose     = 230000  #230000
+    elif(period == 5):
+        morningOpen    = 91500   #091500
+        morningClose   = 120000  #120000
+        afternoonOpen  = 130000  #130000
+        afternoonClose = 161500  #161500
+        athOpen      = 170000  #170000
+        athClose     = 234500  #234500
+    elif(period == 6):
+        morningOpen    = 91500   #091500
+        morningClose   = 120000  #120000
+        afternoonOpen  = 130000  #130000
+        afternoonClose = 163000  #163000
+        athOpen      = 171500  #171500
+        athClose     = 234500  #234500
+    elif(period == 7):
+        morningOpen    = 91500   #091500
+        morningClose   = 120000  #120000
+        afternoonOpen  = 130000  #130000
+        afternoonClose = 163000  #163000
+        athOpen      = 171500  #171500
+        athClose     = 250000  #250000
+    elif(period == 8):
+        morningOpen    = 91500   #091500
+        morningClose   = 120000  #120000
+        afternoonOpen  = 130000  #130000
+        afternoonClose = 163000  #163000
+        athOpen      = 171500  #171500
+        athClose     = 270000  #270000
+
+    return morningOpen, morningClose, afternoonOpen, afternoonClose, athOpen, athClose
