@@ -1103,11 +1103,11 @@ def GetDataByName(instance, dataName):
     return None
 
 
-def GetTodayStr(todayStrHourOffset=7):
+def GetTodayStr(todayStrHourOffset=6):
     today = datetime.today() - timedelta(hours=todayStrHourOffset)
     return today.strftime('%Y%m%d')
 
-def GetLiveTradeDayInfo(todayStr, todayStrHourOffset=7, LogFunction = None):
+def GetLiveTradeDayInfo(todayStr, todayStrHourOffset=6, LogFunction = None):
     from .session import SessionStaticVariable
     #todayStrHourOffset: in case started after 0000 still using yesterday as todayStr
     #today = datetime.today() - timedelta(hours=todayStrHourOffset)

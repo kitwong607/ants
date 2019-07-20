@@ -193,6 +193,7 @@ class FutureAbstractStrategy(AbstractStrategy):
         self.tradeLimit = 0
         self.signalResolution = self.config.signalResolution
 
+        self.isTriggerMarketCloseExit = False
         self.minsToExitBeforeMarketClose = None
         self.entryHourLimitInAdjustedTime = None
 
@@ -498,7 +499,9 @@ class FutureAbstractStrategy(AbstractStrategy):
         if self.minsToExitBeforeMarketClose is not None:
             diff = utilities.mintueBetweenTwoDatetime(self.mktCloseTime, bar.timestamp, False)
             if diff <= self.minsToExitBeforeMarketClose:
-                self.Exit(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, "ExitBeforeMktClose", self.baseQuantity)
+                if self.isTriggerMarketCloseExit == False:
+                    self.isTriggerMarketCloseExit = True
+                    self.Exit(bar.closePrice, bar.adjustedDate, bar.adjustedTime, OrderType.LIMIT, "ExitBeforeMktClose", self.baseQuantity)
                 return False
         return True
 
@@ -631,6 +634,7 @@ class FutureAbstractStrategy(AbstractStrategy):
         if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
             self.Log("OnNewDate:", bar.timestamp, self.config.startDate, self.config.endDate)
 
+        self.isTriggerMarketCloseExit = False
         if self.inTradePeriod is False:
             if bar.timestamp >= self.config.startDate and bar.timestamp<=self.config.endDate:
                 self.inTradePeriod = True
