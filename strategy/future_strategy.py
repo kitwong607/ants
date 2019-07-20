@@ -104,12 +104,13 @@ class FutureAbstractStrategy(AbstractStrategy):
         self.useTR = False
         self.TR = []
 
-
         #common
         self.lastTick = None
         self.bars = []
         self.interDayTA = []
         self.intraDayTA = []
+        self.nextEntrySignalId = 0
+        self.nextExitSignalId = 0
 
         self.entryCount = 0
 
@@ -146,6 +147,12 @@ class FutureAbstractStrategy(AbstractStrategy):
         self.afternoonCloseD = []
         self.afternoonVolumeD = []
 
+        self.athOpenD = []
+        self.athHighD = []
+        self.athLowD = []
+        self.athCloseD = []
+        self.athVolumeD = []
+
         self.rangeD = []
         self.upperShadowD = []
         self.lowerShadowD = []
@@ -160,6 +167,11 @@ class FutureAbstractStrategy(AbstractStrategy):
         self.afternoonUpperShadowD = []
         self.afternoonLowerShadowD = []
         self.afternoonBodyD = []
+
+        self.athRangeD = []
+        self.athUpperShadowD = []
+        self.athLowerShadowD = []
+        self.athBodyD = []
 
         self.timestamp = []
         self.open = []
@@ -224,7 +236,6 @@ class FutureAbstractStrategy(AbstractStrategy):
             self.CalculateExitSignalByBidAsk(bidAsk, tick.adjustedDate, tick.adjustedTime)
 
 
-
     def CalculateTick(self, tick):
         if self.lastTick!=None and self.lastTick.adjustedDate == tick.adjustedDate and self.lastTick.adjustedTime == tick.adjustedTime:
             return
@@ -256,6 +267,8 @@ class FutureAbstractStrategy(AbstractStrategy):
 
                 self.date.append(utilities.clearTimeInDatetime(bar.timestamp))
 
+                self.isAfternoonMktStart = False
+                self.isATHMktStart = False
                 self.mktOpenTime = bar.timestamp
                 self.mktOpenTime_min = utilities.getTotalMinuteInDatetime(self.mktOpenTime)
                 self.invested = False
@@ -275,9 +288,19 @@ class FutureAbstractStrategy(AbstractStrategy):
                 afternoonCloseTime = str(self.tradeDateData["close_time"])
                 self.mktAfternoonCloseTime = utilities.addTimeToDatetime(self.currentDate, int(afternoonCloseTime[0:2]),
                                                             int(afternoonCloseTime[2:4]), int(afternoonCloseTime[4:]))
-
                 self.mktMorningCloseTime = utilities.addTimeToDatetime(self.currentDate, 12, 30, 0)
+                morningOpen, morningClose, afternoonOpen, afternoonClose, athOpen, athClose = utilities.GetTradeHourByPreiod(utilities.GetTradePeriodByDate(self.currentDate))
 
+                athCloseTime = str(self.tradeDateData["aht_close_time"])
+                if athCloseTime == "0":
+                    self.mktATHOpenTime = False
+                    self.mktATHCloseTime = False
+                else:
+                    athOpen = str(athOpen).zfill(6)
+                    self.mktATHOpenTime = utilities.addTimeToDatetime(self.currentDate, int(athOpen[0:2]),
+                                                            int(athOpen[2:4]), int(athOpen[4:]))
+                    self.mktATHCloseTime = utilities.addTimeToDatetime(self.currentDate, int(athCloseTime[0:2]),
+                                                            int(athCloseTime[2:4]), int(athCloseTime[4:]))
 
                 self.openD.append(bar.openPrice)
                 self.highD.append(bar.highPrice)
@@ -302,22 +325,14 @@ class FutureAbstractStrategy(AbstractStrategy):
                     self.morningLowerShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
                     self.morningBodyD.append(abs(self.openD[-1] - self.closeD[-1]))
                     self.morningRangeD.append(self.highD[-1] - self.lowD[-1])
+                #print("incorrect afternoon data")
+                #print("add ath data here")
 
-                if bar.timestamp <= self.mktAfternoonCloseTime:
-                    self.afternoonOpenD.append(bar.openPrice)
-                    self.afternoonHighD.append(bar.highPrice)
-                    self.afternoonLowD.append(bar.lowPrice)
-                    self.afternoonCloseD.append(bar.closePrice)
-                    self.afternoonVolumeD.append(bar.volume)
-
-                    self.afternoonUpperShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
-                    self.afternoonLowerShadowD.append(abs(self.openD[-1] - self.closeD[-1]))
-                    self.afternoonBodyD.append(abs(self.openD[-1] - self.closeD[-1]))
-                    self.afternoonRangeD.append(self.highD[-1] - self.lowD[-1])
 
 
                 self.UpdateContact()
                 self.OnNewDay(bar)
+
 
 
             #Update current Open high low close and volume
@@ -336,7 +351,7 @@ class FutureAbstractStrategy(AbstractStrategy):
                 self.upperShadowD[-1] = self.highD[-1] - self.closeD[-1]
                 self.lowerShadowD[-1] = self.openD[-1] - self.lowD[-1]
 
-
+            #print(self.mktMorningCloseTime, self.mktAfternoonCloseTime)
             if bar.timestamp <= self.mktMorningCloseTime:
                 if bar.highPrice > self.morningHighD[-1]: self.morningHighD[-1] = bar.highPrice
                 if bar.lowPrice < self.morningLowD[-1]: self.morningLowD[-1] = bar.lowPrice
@@ -354,21 +369,79 @@ class FutureAbstractStrategy(AbstractStrategy):
                     self.morningLowerShadowD[-1] = self.morningOpenD[-1] - self.morningLowD[-1]
 
 
-            if bar.timestamp <= self.mktAfternoonCloseTime:
-                if bar.highPrice > self.afternoonHighD[-1]: self.afternoonHighD[-1] = bar.highPrice
-                if bar.lowPrice < self.afternoonLowD[-1]: self.afternoonLowD[-1] = bar.lowPrice
-                self.afternoonCloseD[-1] = bar.closePrice
-                self.afternoonVolumeD[-1] += bar.volume
 
-                self.afternoonBodyD[-1] = abs(self.afternoonOpenD[-1] - self.afternoonCloseD[-1])
-                self.afternoonRangeD[-1] = self.afternoonHighD[-1] - self.afternoonLowD[-1]
+            if self.isAfternoonMktStart is False:
+                if bar.timestamp >= self.mktMorningCloseTime:
+                    self.isAfternoonMktStart = True
+                    self.afternoonOpenD.append(bar.openPrice)
+                    self.afternoonHighD.append(bar.highPrice)
+                    self.afternoonLowD.append(bar.lowPrice)
+                    self.afternoonCloseD.append(bar.closePrice)
+                    self.afternoonVolumeD.append(bar.volume)
 
-                if self.afternoonOpenD[-1] > self.afternoonCloseD[-1]:
-                    self.afternoonUpperShadowD[-1] = self.afternoonHighD[-1] - self.afternoonOpenD[-1]
-                    self.afternoonLowerShadowD[-1] = self.afternoonCloseD[-1] - self.afternoonLowD[-1]
+                    if self.afternoonOpenD[-1] > self.afternoonCloseD[-1]:
+                        self.afternoonUpperShadowD.append(abs(self.afternoonHighD[-1] - self.afternoonOpenD[-1]))
+                        self.afternoonLowerShadowD.append(abs(self.afternoonCloseD[-1] - self.afternoonLowD[-1]))
+                    else:
+                        self.afternoonUpperShadowD.append(abs(self.afternoonHighD[-1] - self.afternoonCloseD[-1]))
+                        self.afternoonLowerShadowD.append(abs(self.afternoonOpenD[-1] - self.afternoonLowD[-1]))
+
+                    self.afternoonBodyD.append(abs(self.openD[-1] - self.closeD[-1]))
+                    self.afternoonRangeD.append(self.highD[-1] - self.lowD[-1])
+            else:
+                if bar.timestamp <= self.mktAfternoonCloseTime:
+                    if bar.highPrice > self.afternoonHighD[-1]: self.afternoonHighD[-1] = bar.highPrice
+                    if bar.lowPrice < self.afternoonLowD[-1]: self.afternoonLowD[-1] = bar.lowPrice
+                    self.afternoonCloseD[-1] = bar.closePrice
+                    self.afternoonVolumeD[-1] += bar.volume
+
+                    self.afternoonBodyD[-1] = abs(self.afternoonOpenD[-1] - self.afternoonCloseD[-1])
+                    self.afternoonRangeD[-1] = self.afternoonHighD[-1] - self.afternoonLowD[-1]
+
+                    if self.afternoonOpenD[-1] > self.afternoonCloseD[-1]:
+                        self.afternoonUpperShadowD[-1] = self.afternoonHighD[-1] - self.afternoonOpenD[-1]
+                        self.afternoonLowerShadowD[-1] = self.afternoonCloseD[-1] - self.afternoonLowD[-1]
+                    else:
+                        self.afternoonUpperShadowD[-1] = self.afternoonHighD[-1] - self.afternoonCloseD[-1]
+                        self.afternoonLowerShadowD[-1] = self.afternoonOpenD[-1] - self.afternoonLowD[-1]
+
+
+
+            if self.mktATHOpenTime is not False and self.mktATHCloseTime is not False:
+                if self.isATHMktStart is False:
+                    if bar.timestamp >= self.mktATHOpenTime:
+                        self.isATHMktStart = True
+                        self.athOpenD.append(bar.openPrice)
+                        self.athHighD.append(bar.highPrice)
+                        self.athLowD.append(bar.lowPrice)
+                        self.athCloseD.append(bar.closePrice)
+                        self.athVolumeD.append(bar.volume)
+
+                        if self.athOpenD[-1] > self.athCloseD[-1]:
+                            self.athUpperShadowD.append(abs(self.athHighD[-1] - self.athOpenD[-1]))
+                            self.athLowerShadowD.append(abs(self.athCloseD[-1] - self.athLowD[-1]))
+                        else:
+                            self.athUpperShadowD.append(abs(self.athHighD[-1] - self.athCloseD[-1]))
+                            self.athLowerShadowD.append(abs(self.athOpenD[-1] - self.athLowD[-1]))
+
+                        self.athBodyD.append(abs(self.openD[-1] - self.closeD[-1]))
+                        self.athRangeD.append(self.highD[-1] - self.lowD[-1])
                 else:
-                    self.afternoonUpperShadowD[-1] = self.afternoonHighD[-1] - self.afternoonCloseD[-1]
-                    self.afternoonLowerShadowD[-1] = self.afternoonOpenD[-1] - self.afternoonLowD[-1]
+                    if bar.timestamp <= self.mktATHCloseTime:
+                        if bar.highPrice > self.athHighD[-1]: self.athHighD[-1] = bar.highPrice
+                        if bar.lowPrice < self.athLowD[-1]: self.athLowD[-1] = bar.lowPrice
+                        self.athCloseD[-1] = bar.closePrice
+                        self.athVolumeD[-1] += bar.volume
+
+                        self.athBodyD[-1] = abs(self.athHighD[-1] - self.athHighD[-1])
+                        self.athRangeD[-1] = self.athLowD[-1] - self.athLowD[-1]
+
+                        if self.athOpenD[-1] > self.athCloseD[-1]:
+                            self.athUpperShadowD[-1] = self.athHighD[-1] - self.athOpenD[-1]
+                            self.athLowerShadowD[-1] = self.athCloseD[-1] - self.athLowD[-1]
+                        else:
+                            self.athUpperShadowD[-1] = self.athHighD[-1] - self.athCloseD[-1]
+                            self.athLowerShadowD[-1] = self.athOpenD[-1] - self.athLowD[-1]
 
 
             if bar.resolution == self.signalResolution:
@@ -402,7 +475,8 @@ class FutureAbstractStrategy(AbstractStrategy):
 
                 if self.entryHourLimitInAdjustedTime is not None:
                     if not (bar.adjustedTime >= self.entryHourLimitInAdjustedTime["START"] and bar.adjustedTime < self.entryHourLimitInAdjustedTime["END"]):
-                        self.Log("sid:", self.session.config.sid, "["+str(bar.adjustedTime)+"] Out of entry hour limit:", bar.adjustedTime, self.entryHourLimitInAdjustedTime)
+                        if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
+                            self.Log("sid:", self.session.config.sid, "["+str(bar.adjustedTime)+"] Out of entry hour limit:", bar.adjustedTime, self.entryHourLimitInAdjustedTime)
                         return
 
                 if self.session.mode == SessionMode.IB_LIVE or self.session == SessionMode.IB_DALIY_BACKTEST:
@@ -454,7 +528,7 @@ class FutureAbstractStrategy(AbstractStrategy):
         if self.session.mode == SessionMode.IB_LIVE:
             #For live sesion only use
             for signal in self.exitSignals:
-                if signal.CalculateSignalByBidAsk(bidAsk):
+                if signal.CalculateSignalByBidAsk(bidAsk, adjustedTime):
                     self.Exit(bidAsk, adjustedDate, adjustedTime, OrderType.LIMIT, signal.Label(), self.baseQuantity)
                     return
                 c += 1
@@ -536,6 +610,9 @@ class FutureAbstractStrategy(AbstractStrategy):
 
 
     def OnNewDay(self, bar):
+        self.nextEntrySignalId = 0
+        self.nextExitSignalId = 0
+
         if self.rangeFilter is None:
             self.range = self.highD[-1] - self.lowD[-1]
 
@@ -845,10 +922,10 @@ class FutureAbstractStrategy(AbstractStrategy):
             intraDayTaToSave.append(_ta)
 
             for dateKey in taDict[taSlug]['valuesTimestamp']:
-                folder = self.config.baseTADirectory + "intraday//" + self.config.dataTicker + "//" + taDict[taSlug]['slug'] + "_" + taDict[taSlug]['resolution']
+                folder = self.config.baseTADirectory + "intraday/" + self.config.dataTicker + "/" + taDict[taSlug]['slug'] + "_" + taDict[taSlug]['resolution']
                 filename = taDict[taSlug]['slug'] + "_" + taDict[taSlug]['resolution'] + "_" + dateKey + ".json"
                 utilities.createFolder(folder)
-                csvPath = folder + "//" + filename
+                csvPath = folder + "/" + filename
 
                 if not utilities.isFileExist(csvPath):
                     d_to_save = {}

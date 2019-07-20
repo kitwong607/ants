@@ -71,7 +71,8 @@ class OffsetTA(object):
                 #update value for every bar if inter day data
                 #like highD, lowD, closeD(if previous day's data will not update)
                 #but date will update in current day
-                self.values[-1] = self.data[self.offsetForList]
+                if len(self.values) > 1:
+                    self.values[-1] = self.data[self.offsetForList]
 
 
     def OnNewDay(self, date_ts):
@@ -89,7 +90,8 @@ class OffsetTA(object):
     def OnDayEnd(self):
         if len(self.data) >= self.offset + 1:
             if not self.isIntraDay:
-                self.values[-1] = self.data[self.offsetForList]
+                if len(self.values) > 1:
+                    self.values[-1] = self.data[self.offsetForList]
 
     def __getitem__(self, key):
         if self.isIntraDay:
