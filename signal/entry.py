@@ -32,6 +32,60 @@ class FirstBarAfter(EntrySignal):
         return False
 # endregion
 
+# region TALib Pattern related
+#=======================================================================
+#Class: XHigherY
+class XYRangeLargerThresold(EntrySignal):
+    name = "{X}{Y}RangeLargerThresold{THRESHOLD}"
+
+    def __init__(self, strategy, x="open", xOffset=0, y="open", yOffset=0, threshold=80):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.yLabel = y
+
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        self.yOffset = yOffset
+        self.yOffsetForList = (yOffset * -1) - 1
+
+        self.threshold = threshold
+
+        from..ta.base import OffsetTA, CurrentDayOffsetTA
+        self.xOffsetTA = self.AddTA(CurrentDayOffsetTA, {'dataName':x, 'offset': xOffset})
+        self.yOffsetTA = self.AddTA(CurrentDayOffsetTA, {'dataName':y, 'offset': yOffset})
+
+
+    def Label(self):
+        newName = self.name
+        xLabel = self.xLabel + "("+str(self.xOffset)+")"
+        newName = newName.replace("{X}", xLabel)
+
+        yLabel = self.yLabel + "("+str(self.yOffset)+")"
+        newName = newName.replace("{Y}", yLabel)
+        newName = newName.replace("{THRESHOLD}", "(" + str(self.threshold) + ")")
+
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.xOffsetTA.isReady:
+            return False
+
+        if not self.yOffsetTA.isReady:
+            return False
+
+        if abs(self.xOffsetTA[-1] - self.yOffsetTA[-1]) > self.threshold:
+            return True
+
+        return False
+#=======================================================================
+
+# endregion
+
+
+
 
 #=======================================================================
 #Class: XHigherY
@@ -1409,6 +1463,175 @@ class XLowerKAMAY(EntrySignal):
             return False
 
         if self.data[self.xOffsetForList] < self.kama[self.kamaOffsetForList]:
+            return True
+        return False
+# endregion
+
+# region ATR related
+#Class: ATRHigherMaxPrevious
+class ATRHigherMaxPrevious(EntrySignal):
+    name = "{X}ATR{WINDOWS_SIZE}HigherMaxPrevious{COMPARE_WINDOWS_SIZE}"
+
+    def __init__(self, strategy, x="close", windowSize=20, compareWindowSize=10, xOffset=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.compareWindowSize = compareWindowSize
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        from ..ta.VolatilityTA import ATR, MaxPreviousATR
+        self.atr = self.AddTA(ATR, {'dataName':x, 'windowSize': windowSize})
+        self.previousMaxATR = self.AddTA(MaxPreviousATR, {'dataName':x, 'windowSize': windowSize, 'compareWindowSize': compareWindowSize})
+
+
+    def Label(self):
+        newName = self.name
+        xLabel = self.xLabel
+        newName = newName.replace("{X}", xLabel)
+        newName = newName.replace("{WINDOWS_SIZE}", "(" + str(self.windowSize) + ")")
+        newName = newName.replace("{COMPARE_WINDOWS_SIZE}", "(" + str(self.compareWindowSize) + ")")
+        if self.xOffset!=0:
+            newName += "Offset("+str(self.xOffset)+")"
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.atr.isReady:
+            return False
+        if not self.previousMaxATR.isReady:
+            return False
+        if self.atr[self.xOffsetForList] > self.previousMaxATR[self.xOffsetForList]:
+            return True
+        return False
+
+
+
+#Class: ATRHigherMinPrevious
+class ATRHigherMinPrevious(EntrySignal):
+    name = "{X}ATR{WINDOWS_SIZE}HigherMinPrevious{COMPARE_WINDOWS_SIZE}"
+
+    def __init__(self, strategy, x="close", windowSize=20, compareWindowSize=10, xOffset=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.compareWindowSize = compareWindowSize
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        from ..ta.VolatilityTA import ATR, MinPreviousATR
+        self.atr = self.AddTA(ATR, {'dataName':x, 'windowSize': windowSize})
+        self.previousMinATR = self.AddTA(MinPreviousATR, {'dataName':x, 'windowSize': windowSize, 'compareWindowSize': compareWindowSize})
+
+
+    def Label(self):
+        newName = self.name
+        xLabel = self.xLabel
+        newName = newName.replace("{X}", xLabel)
+        newName = newName.replace("{WINDOWS_SIZE}", "(" + str(self.windowSize) + ")")
+        newName = newName.replace("{COMPARE_WINDOWS_SIZE}", "(" + str(self.compareWindowSize) + ")")
+        if self.xOffset!=0:
+            newName += "Offset("+str(self.xOffset)+")"
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.atr.isReady:
+            return False
+        if not self.previousMinATR.isReady:
+            return False
+        if self.atr[self.xOffsetForList] > self.previousMinATR[self.xOffsetForList]:
+            return True
+        return False
+
+
+
+
+#Class: ATRLowerMaxPrevious
+class ATRLowerMaxPrevious(EntrySignal):
+    name = "{X}ATR{WINDOWS_SIZE}LowerMaxPrevious{COMPARE_WINDOWS_SIZE}"
+
+    def __init__(self, strategy, x="close", windowSize=20, compareWindowSize=10, xOffset=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.compareWindowSize = compareWindowSize
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        from ..ta.VolatilityTA import ATR, MaxPreviousATR
+        self.atr = self.AddTA(ATR, {'dataName':x, 'windowSize': windowSize})
+        self.previousMaxATR = self.AddTA(MaxPreviousATR, {'dataName':x, 'windowSize': windowSize, 'compareWindowSize': compareWindowSize})
+
+
+    def Label(self):
+        newName = self.name
+        xLabel = self.xLabel
+        newName = newName.replace("{X}", xLabel)
+        newName = newName.replace("{WINDOWS_SIZE}", "(" + str(self.windowSize) + ")")
+        newName = newName.replace("{COMPARE_WINDOWS_SIZE}", "(" + str(self.compareWindowSize) + ")")
+        if self.xOffset!=0:
+            newName += "Offset("+str(self.xOffset)+")"
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.atr.isReady:
+            return False
+        if not self.previousMaxATR.isReady:
+            return False
+        if self.atr[self.xOffsetForList] < self.previousMaxATR[self.xOffsetForList]:
+            return True
+        return False
+
+
+
+#Class: ATRLowerMinPrevious
+class ATRLowerMinPrevious(EntrySignal):
+    name = "{X}ATR{WINDOWS_SIZE}LowerMinPrevious{COMPARE_WINDOWS_SIZE}"
+
+    def __init__(self, strategy, x="close", windowSize=20, compareWindowSize=10, xOffset=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.compareWindowSize = compareWindowSize
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        from ..ta.VolatilityTA import ATR, MinPreviousATR
+        self.atr = self.AddTA(ATR, {'dataName':x, 'windowSize': windowSize})
+        self.previousMinATR = self.AddTA(MinPreviousATR, {'dataName':x, 'windowSize': windowSize, 'compareWindowSize': compareWindowSize})
+
+
+    def Label(self):
+        newName = self.name
+        xLabel = self.xLabel
+        newName = newName.replace("{X}", xLabel)
+        newName = newName.replace("{WINDOWS_SIZE}", "(" + str(self.windowSize) + ")")
+        newName = newName.replace("{COMPARE_WINDOWS_SIZE}", "(" + str(self.compareWindowSize) + ")")
+        if self.xOffset!=0:
+            newName += "Offset("+str(self.xOffset)+")"
+        return newName
+
+
+    def CalculateSignal(self, bar):
+        if not self.atr.isReady:
+            return False
+        if not self.previousMinATR.isReady:
+            return False
+        if self.atr[self.xOffsetForList] < self.previousMinATR[self.xOffsetForList]:
             return True
         return False
 # endregion

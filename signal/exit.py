@@ -14,8 +14,6 @@ class StopLossWithFixedPrice(ExitSignal):
         self.exitPrice = None
         self.isTrigger = False
 
-
-
     def Label(self):
         if getattr(self, "trailingStopCount", None) is None:
             return self.name
@@ -30,7 +28,7 @@ class StopLossWithFixedPrice(ExitSignal):
     def OnNewDay(self, bar):
         self.Reset()
 
-    def CalculateSignalByBidAsk(self, bidAsk):
+    def CalculateSignalByBidAsk(self, bidAsk, adjustedTime):
         if self.isTrigger:
             return False
 
@@ -106,7 +104,7 @@ class FixedStopGain(ExitSignal):
 
 
 
-    def CalculateSignalByBidAsk(self, bidAsk):
+    def CalculateSignalByBidAsk(self, bidAsk, adjustedTime):
         if self.isTrigger:
             return False
 
@@ -170,6 +168,8 @@ class DayRangeTouch(ExitSignal):
     def OnNewDay(self, bar):
         self.isTriggerBreakeven = False
         self.profitWatemark = 0
+        self.exitPrice = -1
+        self.isTrigger = False
 
 
     def CalculateSignal(self, bar):
@@ -177,7 +177,10 @@ class DayRangeTouch(ExitSignal):
             return False
 
         if self.strategy.highD[-1] - self.strategy.lowD[-1] > self.amount:
+            self.exitPrice = bar.closePrice
+            self.isTrigger = True
             return True
+
 
         return False
 
@@ -254,7 +257,7 @@ class DollarTrailingStop(ExitSignal):
         self.Reset()
 
 
-    def CalculateSignalByBidAsk(self, bidAsk):
+    def CalculateSignalByBidAsk(self, bidAsk, adjustedTime):
         if self.isTrigger:
             return False
 
@@ -360,7 +363,7 @@ class TrailingStopWithFixedPrice(ExitSignal):
         self.Reset()
 
 
-    def CalculateSignalByBidAsk(self, bidAsk):
+    def CalculateSignalByBidAsk(self, bidAsk, adjustedTime):
         if self.isTrigger:
             return False
 
@@ -457,7 +460,7 @@ class TrailingStopCountExit(ExitSignal):
         self.Reset()
 
 
-    def CalculateSignalByBidAsk(self, bidAsk):
+    def CalculateSignalByBidAsk(self, bidAsk, adjustedTime):
         if self.isTrigger:
             return False
 
@@ -510,3 +513,292 @@ class TrailingStopCountExit(ExitSignal):
 
 
 # endregion
+
+
+
+
+# region ATR related
+#Class: ATRHigherMaxPrevious
+class ATRHigherMaxPrevious(ExitSignal):
+    name = "{X}ATR{WINDOWS_SIZE}HigherMaxPrevious{COMPARE_WINDOWS_SIZE}"
+
+    def __init__(self, strategy, x="close", windowSize=20, compareWindowSize=10, xOffset=0):
+        super().__init__(strategy)
+        self.exitPrice = None
+        self.isTrigger = False
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.compareWindowSize = compareWindowSize
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        from ..ta.VolatilityTA import ATR, MaxPreviousATR
+        self.atr = self.AddTA(ATR, {'dataName':x, 'windowSize': windowSize})
+        self.previousMaxATR = self.AddTA(MaxPreviousATR, {'dataName':x, 'windowSize': windowSize, 'compareWindowSize': compareWindowSize})
+
+
+    def Label(self):
+        newName = self.name
+        xLabel = self.xLabel
+        newName = newName.replace("{X}", xLabel)
+        newName = newName.replace("{WINDOWS_SIZE}", "(" + str(self.windowSize) + ")")
+        newName = newName.replace("{COMPARE_WINDOWS_SIZE}", "(" + str(self.compareWindowSize) + ")")
+        if self.xOffset!=0:
+            newName += "Offset("+str(self.xOffset)+")"
+        return newName
+
+
+    def Reset(self):
+        self.isTrigger = False
+        self.exitPrice = None
+
+
+    def OnNewDay(self, bar):
+        self.Reset()
+
+
+    def CalculateSignal(self, bar):
+        if not self.atr.isReady:
+            return False
+        if not self.previousMaxATR.isReady:
+            return False
+        if self.atr[self.xOffsetForList] > self.previousMaxATR[self.xOffsetForList]:
+            self.exitPrice = bar.closePrice
+            self.isTrigger = True
+            return True
+        return False
+
+
+
+#Class: ATRHigherMinPrevious
+class ATRHigherMinPrevious(ExitSignal):
+    name = "{X}ATR{WINDOWS_SIZE}HigherMinPrevious{COMPARE_WINDOWS_SIZE}"
+
+    def __init__(self, strategy, x="close", windowSize=20, compareWindowSize=10, xOffset=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.compareWindowSize = compareWindowSize
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        from ..ta.VolatilityTA import ATR, MinPreviousATR
+        self.atr = self.AddTA(ATR, {'dataName':x, 'windowSize': windowSize})
+        self.previousMinATR = self.AddTA(MinPreviousATR, {'dataName':x, 'windowSize': windowSize, 'compareWindowSize': compareWindowSize})
+
+
+    def Label(self):
+        newName = self.name
+        xLabel = self.xLabel
+        newName = newName.replace("{X}", xLabel)
+        newName = newName.replace("{WINDOWS_SIZE}", "(" + str(self.windowSize) + ")")
+        newName = newName.replace("{COMPARE_WINDOWS_SIZE}", "(" + str(self.compareWindowSize) + ")")
+        if self.xOffset!=0:
+            newName += "Offset("+str(self.xOffset)+")"
+        return newName
+
+
+    def Reset(self):
+        self.isTrigger = False
+        self.exitPrice = None
+
+
+    def OnNewDay(self, bar):
+        self.Reset()
+
+
+    def CalculateSignal(self, bar):
+        if not self.atr.isReady:
+            return False
+        if not self.previousMinATR.isReady:
+            return False
+        if self.atr[self.xOffsetForList] > self.previousMinATR[self.xOffsetForList]:
+            self.exitPrice = bar.closePrice
+            self.isTrigger = True
+            return True
+        return False
+
+
+
+
+#Class: ATRLowerMaxPrevious
+class ATRLowerMaxPrevious(ExitSignal):
+    name = "{X}ATR{WINDOWS_SIZE}LowerMaxPrevious{COMPARE_WINDOWS_SIZE}"
+
+    def __init__(self, strategy, x="close", windowSize=20, compareWindowSize=10, xOffset=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.compareWindowSize = compareWindowSize
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        from ..ta.VolatilityTA import ATR, MaxPreviousATR
+        self.atr = self.AddTA(ATR, {'dataName':x, 'windowSize': windowSize})
+        self.previousMaxATR = self.AddTA(MaxPreviousATR, {'dataName':x, 'windowSize': windowSize, 'compareWindowSize': compareWindowSize})
+
+
+    def Label(self):
+        newName = self.name
+        xLabel = self.xLabel
+        newName = newName.replace("{X}", xLabel)
+        newName = newName.replace("{WINDOWS_SIZE}", "(" + str(self.windowSize) + ")")
+        newName = newName.replace("{COMPARE_WINDOWS_SIZE}", "(" + str(self.compareWindowSize) + ")")
+        if self.xOffset!=0:
+            newName += "Offset("+str(self.xOffset)+")"
+        return newName
+
+
+    def Reset(self):
+        self.isTrigger = False
+        self.exitPrice = None
+
+
+    def OnNewDay(self, bar):
+        self.Reset()
+
+
+    def CalculateSignal(self, bar):
+        if not self.atr.isReady:
+            return False
+        if not self.previousMaxATR.isReady:
+            return False
+        if self.atr[self.xOffsetForList] < self.previousMaxATR[self.xOffsetForList]:
+            self.exitPrice = bar.closePrice
+            self.isTrigger = True
+            return True
+        return False
+
+
+
+#Class: ATRLowerMinPrevious
+class ATRLowerMinPrevious(ExitSignal):
+    name = "{X}ATR{WINDOWS_SIZE}LowerMinPrevious{COMPARE_WINDOWS_SIZE}"
+
+    def __init__(self, strategy, x="close", windowSize=20, compareWindowSize=10, xOffset=0):
+        super().__init__(strategy)
+
+        self.xLabel = x
+        self.windowSize = windowSize
+        self.compareWindowSize = compareWindowSize
+
+        self.data = utilities.GetDataByName(strategy, x)
+        self.xOffset = xOffset
+        self.xOffsetForList = (xOffset * -1) - 1
+
+        from ..ta.VolatilityTA import ATR, MinPreviousATR
+        self.atr = self.AddTA(ATR, {'dataName':x, 'windowSize': windowSize})
+        self.previousMinATR = self.AddTA(MinPreviousATR, {'dataName':x, 'windowSize': windowSize, 'compareWindowSize': compareWindowSize})
+
+
+    def Label(self):
+        newName = self.name
+        xLabel = self.xLabel
+        newName = newName.replace("{X}", xLabel)
+        newName = newName.replace("{WINDOWS_SIZE}", "(" + str(self.windowSize) + ")")
+        newName = newName.replace("{COMPARE_WINDOWS_SIZE}", "(" + str(self.compareWindowSize) + ")")
+        if self.xOffset!=0:
+            newName += "Offset("+str(self.xOffset)+")"
+        return newName
+
+
+    def Reset(self):
+        self.isTrigger = False
+        self.exitPrice = None
+
+
+    def OnNewDay(self, bar):
+        self.Reset()
+
+
+    def CalculateSignal(self, bar):
+        if not self.atr.isReady:
+            return False
+        if self.atr[self.xOffsetForList] < self.previousMinATR[self.xOffsetForList]:
+            self.exitPrice = bar.closePrice
+            self.isTrigger = True
+            return True
+        return False
+# endregion
+
+
+class ExitIfNoProfitAfter(ExitSignal):
+    name = "ExitIfNoProfitAfter"
+
+    def __init__(self, strategy, seconds = 1800, threshold = 0):
+        super().__init__(strategy)
+        self.seconds = seconds
+        self.profitThreshold = threshold
+        self.exitPrice = None
+        self.isTrigger = False
+
+
+
+    def Label(self):
+        return self.name + "(second:" +str(self.profitThreshold) + ", profit:" +str(self.profitThreshold) + ")"
+
+    def Reset(self):
+        self.isTrigger = False
+        self.exitPrice = None
+
+    def OnNewDay(self, bar):
+        self.Reset()
+
+    def CalculateSignalByBidAsk(self, bidAsk, adjustedTime):
+        if self.isTrigger:
+            return False
+
+        if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
+            return False
+
+        position = self.strategy.session.portfolio.positions[self.strategy.config.tradeTicker]
+        if utilities.secondBetweenTwoAdjustedTime(position.entryAdjustedTime, adjustedTime) < self.seconds:
+            return False
+
+        if OrderAction.BUY == position.action:
+            profit = bidAsk - position.entryPrice
+
+        elif OrderAction.SELL == position.action:
+            profit = position.entryPrice - bidAsk
+
+        if profit < self.profitThreshold:
+            self.exitPrice = bidAsk
+            self.isTrigger = True
+            return True
+
+        return False
+
+
+
+    def CalculateSignal(self, bar):
+        if self.isTrigger:
+            return False
+
+        if self.strategy.config.tradeTicker not in self.strategy.session.portfolio.positions:
+            return False
+
+        position = self.strategy.session.portfolio.positions[self.strategy.config.tradeTicker]
+        if utilities.secondBetweenTwoAdjustedTime(position.entryAdjustedTime, bar.adjustedTime) < self.seconds:
+            return False
+
+        if OrderAction.BUY == position.action:
+            profit = bar.closePrice - position.entryPrice
+
+        elif OrderAction.SELL == position.action:
+            profit = position.entryPrice - bar.closePrice
+
+        if profit < self.profitThreshold:
+            self.exitPrice = bar.closePrice
+            self.isTrigger = True
+            return True
+
+        return False
